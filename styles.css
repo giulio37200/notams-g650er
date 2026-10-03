@@ -1,0 +1,135 @@
+/* AeroBrief G650ER - Cockpit Avionics Stylesheet */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --bg-primary: #0a0e17;
+  --bg-surface: #111827;
+  --bg-surface-elevated: #1f2937;
+  --border-subtle: #2d3748;
+  --border-highlight: #3b82f6;
+  --color-amber: #f59e0b;
+  --color-red: #ef4444;
+  --color-cyan: #06b6d4;
+  --color-green: #10b981;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg-primary);
+  color: #f3f4f6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Glassmorphism Avionics Panels */
+.avionics-card {
+  background: rgba(17, 24, 39, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(55, 65, 81, 0.7);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+}
+
+.avionics-card-glow-red {
+  border: 1px solid rgba(239, 68, 68, 0.6);
+  box-shadow: 0 0 25px -5px rgba(239, 68, 68, 0.25);
+}
+
+.avionics-card-glow-amber {
+  border: 1px solid rgba(245, 158, 11, 0.6);
+  box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.2);
+}
+
+.avionics-card-glow-cyan {
+  border: 1px solid rgba(6, 182, 212, 0.5);
+  box-shadow: 0 0 20px -5px rgba(6, 182, 212, 0.15);
+}
+
+/* Pulsing radar dot */
+@keyframes radar-pulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.pulse-radar {
+  animation: radar-pulse 2s infinite ease-in-out;
+}
+
+/* Severity Tag Badges */
+.badge-critical {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+}
+
+.badge-caution {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: #fde68a;
+  border: 1px solid rgba(245, 158, 11, 0.5);
+}
+
+.badge-advisory {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.badge-info {
+  background-color: rgba(107, 114, 128, 0.2);
+  color: #d1d5db;
+  border: 1px solid rgba(107, 114, 128, 0.4);
+}
+
+.badge-active-window {
+  background-color: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.5);
+}
+
+.badge-inactive-window {
+  background-color: rgba(75, 85, 99, 0.2);
+  color: #9ca3af;
+  border: 1px solid rgba(75, 85, 99, 0.4);
+}
+
+/* Custom Scrollbar for Flight Decks */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* High Contrast Print Stylesheet for iPad/Cockpit Kneeboard */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .avionics-card {
+    background: #ffffff !important;
+    border: 1px solid #999999 !important;
+    box-shadow: none !important;
+    color: #000000 !important;
+    page-break-inside: avoid;
+  }
+  .print-page-break {
+    page-break-before: always;
+  }
+}
