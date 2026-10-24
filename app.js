@@ -7,9 +7,9 @@
  * - Smart Bilingual & Cluster NOTAM Deduplication + Haversine Distance Badges
  */
 
-import { NotamParser, AIRPORT_COORDS_DB } from './notam-parser.js';
-import { G650ERRulesEngine } from './g650er-rules.js';
-import { MOCK_FLIGHT_PRESETS } from './mock-briefings.js';
+import { NotamParser, AIRPORT_COORDS_DB } from './notam-parser.js?v=6';
+import { G650ERRulesEngine } from './g650er-rules.js?v=6';
+import { MOCK_FLIGHT_PRESETS } from './mock-briefings.js?v=6';
 
 class AeroBriefApp {
   constructor() {
@@ -101,6 +101,8 @@ class AeroBriefApp {
       mapBtnDepLbl: document.getElementById('map-btn-dep-lbl'),
       mapBtnArrLbl: document.getElementById('map-btn-arr-lbl'),
       btnMapToggleRadar: document.getElementById('btn-map-toggle-radar'),
+      btnMapStyleDark: document.getElementById('btn-map-style-dark'),
+      btnMapStyleOsm: document.getElementById('btn-map-style-osm'),
       btnMapToggleSat: document.getElementById('btn-map-toggle-sat'),
       btnMapExpand: document.getElementById('btn-map-expand'),
       routeTimelineStrip: document.getElementById('route-timeline-strip'),
@@ -201,11 +203,22 @@ class AeroBriefApp {
   }
 
   /**
-   * Initialize Interactive Leaflet Tactical Map (100% Free CartoDB / Esri / RainViewer tiles)
+   * Initialize Interactive Leaflet Tactical Map (100% Free CartoDB / OSM / Esri / RainViewer tiles)
    */
   initMap() {
-    if (typeof L === 'undefined' || !this.elements.routeMapCanvas) return;
+    if (!this.elements.routeMapCanvas) return;
 
+    if (typeof L === 'undefined') {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+      script.onload = () => this.initMap();
+      document.head.appendChild(script);
+      return;
+    }
+
+    if (this.map) return;
+
+    this.mapStyleMode = 'dark'; // 'dark' | 'osm' | 'sat'
     this.map = L.map(this.elements.routeMapCanvas, {
       center: [-24.3, -52.3],
       zoom: 6,
@@ -215,6 +228,35 @@ class AeroBriefApp {
 
     this.updateMapBaseTile();
     this.mapOverlaysGroup = L.layerGroup().addTo(this.map);
+
+    // Ensure map size & bounds stay synced after Tailwind CDN or window resize
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(() => {
+        if (this.map) this.map.invalidateSize();
+      });
+      ro.observe(this.elements.routeMapCanvas);
+    }
+
+    setTimeout(() => {
+      if (this.map) {
+        this.map.invalidateSize();
+        this.renderMapOverlays();
+      }
+    }, 250);
+  }
+
+  setMapStyleMode(mode) {
+    this.mapStyleMode = mode;
+    this.isSatelliteActive = (mode === 'sat');
+
+    const activeCls = 'px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold transition';
+    const idleCls = 'px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition';
+
+    if (this.elements.btnMapStyleDark) this.elements.btnMapStyleDark.className = mode === 'dark' ? activeCls : idleCls;
+    if (this.elements.btnMapStyleOsm) this.elements.btnMapStyleOsm.className = mode === 'osm' ? activeCls : idleCls;
+    if (this.elements.btnMapToggleSat) this.elements.btnMapToggleSat.className = mode === 'sat' ? activeCls : idleCls;
+
+    this.updateMapBaseTile();
   }
 
   updateMapBaseTile() {
@@ -222,25 +264,50 @@ class AeroBriefApp {
 
     if (this.baseTileLayer) {
       this.map.removeLayer(this.baseTileLayer);
+      this.baseTileLayer = null;
+    }
+    if (this.satTileLayer) {
+      this.map.removeLayer(this.satTileLayer);
+      this.satTileLayer = null;
     }
 
-    if (this.isSatelliteActive) {
+    if (this.isSatelliteActive || this.mapStyleMode === 'sat') {
       this.baseTileLayer = L.tileLayer(
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        { attribution: 'Esri Satellite', maxZoom: 18 }
+        { attribution: 'Esri World Satellite', maxZoom: 18 }
+      ).addTo(this.map);
+      // Add hybrid airport/city/border reference labels on top of satellite imagery
+      this.satTileLayer = L.tileLayer(
+        'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+        { maxZoom: 18, opacity: 0.85 }
       ).addTo(this.map);
       return;
     }
 
-    const tileUrl = this.isGlareMode
-      ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+    if (this.mapStyleMode === 'osm' || this.isGlareMode) {
+      this.baseTileLayer = L.tileLayer(
+        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        { attribution: '&copy; OpenStreetMap', maxZoom: 19 }
+      ).addTo(this.map);
+      return;
+    }
 
+    const tileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
     this.baseTileLayer = L.tileLayer(tileUrl, {
       attribution: '&copy; OpenStreetMap &copy; CARTO',
       subdomains: 'abcd',
-      maxZoom: 19
+      maxZoom: 19,
+      className: 'map-tiles-dark-boost'
     }).addTo(this.map);
+
+    // Automatic fallback to standard OpenStreetMap if CartoDB tiles ever fail
+    let fallbackTriggered = false;
+    this.baseTileLayer.on('tileerror', () => {
+      if (!fallbackTriggered && this.map) {
+        fallbackTriggered = true;
+        this.setMapStyleMode('osm');
+      }
+    });
   }
 
   /**
@@ -988,17 +1055,19 @@ class AeroBriefApp {
     if (this.elements.btnMapToggleRadar) {
       this.elements.btnMapToggleRadar.addEventListener('click', () => this.toggleWeatherRadar());
     }
+    if (this.elements.btnMapStyleDark) {
+      this.elements.btnMapStyleDark.addEventListener('click', () => this.setMapStyleMode('dark'));
+    }
+    if (this.elements.btnMapStyleOsm) {
+      this.elements.btnMapStyleOsm.addEventListener('click', () => this.setMapStyleMode('osm'));
+    }
     if (this.elements.btnMapToggleSat) {
-      this.elements.btnMapToggleSat.addEventListener('click', () => {
-        this.isSatelliteActive = !this.isSatelliteActive;
-        this.elements.btnMapToggleSat.textContent = this.isSatelliteActive ? 'Dark Map' : 'Satellite';
-        this.updateMapBaseTile();
-      });
+      this.elements.btnMapToggleSat.addEventListener('click', () => this.setMapStyleMode('sat'));
     }
     if (this.elements.btnMapExpand) {
       this.elements.btnMapExpand.addEventListener('click', () => {
         this.isMapExpanded = !this.isMapExpanded;
-        this.elements.routeMapCanvas.style.height = this.isMapExpanded ? '600px' : '340px';
+        this.elements.routeMapCanvas.style.height = this.isMapExpanded ? '620px' : '420px';
         setTimeout(() => {
           if (this.map) this.map.invalidateSize();
         }, 220);
@@ -1162,13 +1231,13 @@ class AeroBriefApp {
     // Show/hide sections based on perspective
     if (viewName === 'brief') {
       this.elements.tacticalMapCard.classList.remove('hidden');
-      this.elements.routeMapCanvas.style.height = this.isMapExpanded ? '560px' : '340px';
+      this.elements.routeMapCanvas.style.height = this.isMapExpanded ? '620px' : '420px';
       this.elements.viewFlightBrief.classList.remove('hidden');
       this.elements.viewChartsSection.classList.add('hidden');
       this.elements.viewNotamsSection.classList.add('hidden');
     } else if (viewName === 'MAP') {
       this.elements.tacticalMapCard.classList.remove('hidden');
-      this.elements.routeMapCanvas.style.height = '580px';
+      this.elements.routeMapCanvas.style.height = '600px';
       this.elements.viewFlightBrief.classList.add('hidden');
       this.elements.viewChartsSection.classList.add('hidden');
       this.elements.viewNotamsSection.classList.remove('hidden');
@@ -1258,7 +1327,11 @@ class AeroBriefApp {
 
     let notamList = [];
     if (this.currentBriefing && this.currentBriefing.allNotams && this.currentBriefing.allNotams.length > 0) {
-      notamList = this.currentBriefing.allNotams;
+      this.currentBriefing.routeProfile = NotamParser.extractRouteProfile(rawText, depIcao, arrIcao);
+      notamList = this.currentBriefing.allNotams.map(p => {
+        NotamParser.enrichNotamDistance(p, depIcao, arrIcao);
+        return p;
+      });
     } else {
       const strings = NotamParser.splitNotams(rawText);
       const rawParsed = strings.map(s => {
@@ -2056,6 +2129,14 @@ class AeroBriefApp {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  window.aeroBrief = new AeroBriefApp();
-});
+const bootstrapAeroBrief = () => {
+  if (!window.aeroBrief) {
+    window.aeroBrief = new AeroBriefApp();
+  }
+};
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrapAeroBrief);
+} else {
+  bootstrapAeroBrief();
+}

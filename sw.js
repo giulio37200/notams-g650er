@@ -1,17 +1,18 @@
 // AeroBrief G650ER - Network-First Service Worker with Offline Cockpit Fallback
-const CACHE_NAME = 'aerobrief-g650er-v4';
+const CACHE_NAME = 'aerobrief-g650er-v6';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './styles.css',
-  './app.js',
-  './notam-parser.js',
-  './g650er-rules.js',
-  './mock-briefings.js',
+  './styles.css?v=6',
+  './app.js?v=6',
+  './notam-parser.js?v=6',
+  './g650er-rules.js?v=6',
+  './mock-briefings.js?v=6',
   './manifest.json'
 ];
 
 self.addEventListener('install', (e) => {
+  self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE);
@@ -19,7 +20,6 @@ self.addEventListener('install', (e) => {
       console.warn('Pre-cache note:', err);
     })
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (e) => {
@@ -32,17 +32,18 @@ self.addEventListener('activate', (e) => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Network-First Strategy: always serve fresh updates when online, fallback to cache when offline at FL450
+// Network-First for same-origin app files only.
+// Never intercept cross-origin map tiles (CartoDB, OSM, Esri, RainViewer) or live weather APIs.
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
+  if (!e.request.url.startsWith(self.location.origin)) return;
 
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: 'no-cache' })
       .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
           const responseClone = networkResponse.clone();
@@ -53,7 +54,7 @@ self.addEventListener('fetch', (e) => {
         return networkResponse;
       })
       .catch(() => {
-        return caches.match(e.request).then((cachedResponse) => {
+        return caches.match(e.request, { ignoreSearch: true }).then((cachedResponse) => {
           if (cachedResponse) return cachedResponse;
           if (e.request.mode === 'navigate') {
             return caches.match('./index.html');
