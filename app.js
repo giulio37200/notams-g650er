@@ -761,6 +761,7 @@ class AeroBriefApp {
 
   loadPreset(index) {
     this.currentPresetIndex = index;
+    this.selectedEnrouteStation = null;
     const preset = MOCK_FLIGHT_PRESETS[index];
     if (!preset) return;
 
@@ -786,24 +787,12 @@ class AeroBriefApp {
 
     this.elements.rawNotamsTextarea.value = preset.notamsText.trim();
 
-    // Sync default Route FIRs & AOM regime for this mission
-    const pairKey = `${preset.depIcao}-${preset.arrIcao}`;
-    const defaultFirs = DEFAULT_PRESET_FIRS[pairKey] || 'SBCW SGFA';
-    if (this.elements.inputRouteFirs) this.elements.inputRouteFirs.value = defaultFirs;
-    if (this.elements.jeppInlineFirs) this.elements.jeppInlineFirs.value = defaultFirs;
-    if (this.elements.aomLvtoRegime) {
-      if (preset.arrIcao.startsWith('SG') || preset.depIcao.startsWith('SB')) {
-        this.elements.aomLvtoRegime.value = 'SAM_AIC';
-      } else if (preset.depIcao.startsWith('K')) {
-        this.elements.aomLvtoRegime.value = 'FAA_TERPS';
-      } else {
-        this.elements.aomLvtoRegime.value = 'EASA_ICAO';
-      }
-    }
-
     this.initPresetButtons();
     this.updateUtcDisplays();
-    this.processBriefingText(preset.notamsText.trim());
+    this.processBriefingText(preset.notamsText.trim(), {
+      fromPreset: true,
+      presetAltIcao: preset.altIcao || ''
+    });
   }
 
   initDropZone() {
@@ -816,6 +805,7 @@ class AeroBriefApp {
     fileInput.addEventListener('change', (e) => {
       if (e.target.files && e.target.files[0]) {
         this.handleUploadedFile(e.target.files[0]);
+        e.target.value = '';
       }
     });
 
@@ -971,6 +961,10 @@ class AeroBriefApp {
     this.showToast(`Reading ${file.name}...`);
 
     try {
+      this.currentPresetIndex = -1;
+      this.selectedEnrouteStation = null;
+      this.initPresetButtons();
+
       if (isPdf) {
         if (typeof pdfjsLib === 'undefined') {
           throw new Error('PDF reader library is still initializing. Please try again in a moment.');
@@ -992,17 +986,23 @@ class AeroBriefApp {
         this.renderPdfVisualCharts(pdf).catch(e => console.warn('Chart render note:', e));
 
         this.elements.rawNotamsTextarea.value = extractedText;
-        this.processBriefingText(extractedText);
+        this.processBriefingText(extractedText, { fromUpload: true, fileName: file.name });
         if (this.elements.setupDrawer) this.elements.setupDrawer.classList.add('hidden');
-        this.switchView('brief');
-        this.showToast(`ForeFlight PDF loaded (${pdf.numPages} pages mapped & deduplicated)`);
+        if (this.currentView !== 'JEPPESEN') {
+          this.switchView('brief');
+        }
+        this.showToast(`Flight PDF loaded (${pdf.numPages} pages) — All sections & Jeppesen Compliance updated!`);
       } else {
         const text = await file.text();
+        if (this.elements.btnTabCharts) this.elements.btnTabCharts.classList.add('hidden');
+        if (this.elements.pdfChartsContainer) this.elements.pdfChartsContainer.innerHTML = '';
         this.elements.rawNotamsTextarea.value = text;
-        this.processBriefingText(text);
+        this.processBriefingText(text, { fromUpload: true, fileName: file.name });
         if (this.elements.setupDrawer) this.elements.setupDrawer.classList.add('hidden');
-        this.switchView('brief');
-        this.showToast(`Loaded ${file.name}`);
+        if (this.currentView !== 'JEPPESEN') {
+          this.switchView('brief');
+        }
+        this.showToast(`Loaded ${file.name} — All sections & Jeppesen Compliance updated!`);
       }
     } catch (err) {
       console.error('File parsing error:', err);
@@ -1018,7 +1018,7 @@ class AeroBriefApp {
     const arrIcao = this.elements.inputArrIcao.value.toUpperCase().trim();
     const altIcao = this.elements.inputAltIcao.value.toUpperCase().trim();
 
-    const stations = [depIcao, arrIcao, altIcao, 'SBLO', 'SBMG', 'SBFI', 'SGES'].filter(Boolean);
+    const stations = [depIcao, arrIcao, altIcao, ...(this.activeScenarioExtraIcaos || [])].filter(Boolean);
     const uniqueStations = [...new Set(stations)].join(',');
 
     if (this.elements.liveWxBtnLabel) this.elements.liveWxBtnLabel.textContent = 'Syncing Live WX...';
@@ -1146,6 +1146,42 @@ class AeroBriefApp {
       });
     }
 
+    // Sync manual edits to Departure, Destination, and Alternate ICAOs
+    const handleManualIcaoChange = () => {
+      const dep = (this.elements.inputDepIcao ? this.elements.inputDepIcao.value : '').toUpperCase().trim();
+      const arr = (this.elements.inputArrIcao ? this.elements.inputArrIcao.value : '').toUpperCase().trim();
+      const alt = (this.elements.inputAltIcao ? this.elements.inputAltIcao.value : '').toUpperCase().trim();
+
+      if (dep && AIRPORT_COORDS_DB[dep]) {
+        this.elements.depStationLabel.textContent = AIRPORT_COORDS_DB[dep].name;
+        if (this.elements.briefDepName) this.elements.briefDepName.textContent = AIRPORT_COORDS_DB[dep].name;
+      }
+      if (arr && AIRPORT_COORDS_DB[arr]) {
+        this.elements.arrStationLabel.textContent = AIRPORT_COORDS_DB[arr].name;
+        if (this.elements.briefArrName) this.elements.briefArrName.textContent = AIRPORT_COORDS_DB[arr].name;
+      }
+
+      if (this.jeppesenEngine) {
+        const inferredFirs = this.jeppesenEngine.inferDefaultFirsForBriefing(dep, arr, alt, this.currentBriefing);
+        const firStr = inferredFirs.join(' ');
+        if (this.elements.inputRouteFirs) this.elements.inputRouteFirs.value = firStr;
+        if (this.elements.jeppInlineFirs) this.elements.jeppInlineFirs.value = firStr;
+        this.syncJeppesenScenarioHighlight(firStr);
+      }
+      this.syncAomRegimeForIcaos(dep, arr);
+      this.runAnalysis({ syncDestAom: true });
+    };
+
+    if (this.elements.inputDepIcao) {
+      this.elements.inputDepIcao.addEventListener('change', handleManualIcaoChange);
+    }
+    if (this.elements.inputArrIcao) {
+      this.elements.inputArrIcao.addEventListener('change', handleManualIcaoChange);
+    }
+    if (this.elements.inputAltIcao) {
+      this.elements.inputAltIcao.addEventListener('change', handleManualIcaoChange);
+    }
+
     this.elements.inputDepTime.addEventListener('change', () => {
       this.updateUtcDisplays();
       this.runAnalysis();
@@ -1157,9 +1193,17 @@ class AeroBriefApp {
     this.elements.selectTimeBuffer.addEventListener('change', () => this.runAnalysis());
 
     this.elements.btnRunAnalysis.addEventListener('click', () => {
-      this.processBriefingText(this.elements.rawNotamsTextarea.value.trim());
+      const currentRaw = this.elements.rawNotamsTextarea.value.trim();
+      if (currentRaw !== this.lastProcessedRawText) {
+        this.processBriefingText(currentRaw, { fromUpload: true });
+      } else {
+        if (this.elements.inputRouteFirs && this.elements.jeppInlineFirs) {
+          this.elements.jeppInlineFirs.value = this.elements.inputRouteFirs.value.toUpperCase().trim();
+        }
+        this.runAnalysis({ syncDestAom: true });
+      }
       if (this.elements.setupDrawer) this.elements.setupDrawer.classList.add('hidden');
-      this.showToast('Briefing & Route Map updated');
+      this.showToast('Flight Brief, Route Map & Jeppesen Compliance updated');
     });
 
     this.elements.btnClearText.addEventListener('click', () => {
@@ -1167,7 +1211,7 @@ class AeroBriefApp {
     });
 
     this.elements.btnSampleBriefing.addEventListener('click', () => {
-      this.loadPreset(this.currentPresetIndex);
+      this.loadPreset(this.currentPresetIndex >= 0 ? this.currentPresetIndex : 0);
     });
 
     this.elements.btnPrintBriefing.addEventListener('click', () => window.print());
@@ -1348,7 +1392,24 @@ class AeroBriefApp {
     if (window.lucide) window.lucide.createIcons();
   }
 
-  processBriefingText(rawText) {
+  syncAomRegimeForIcaos(depIcao, arrIcao) {
+    if (!this.elements.aomLvtoRegime) return;
+    const dep = (depIcao || '').toUpperCase().trim();
+    const arr = (arrIcao || '').toUpperCase().trim();
+    if (arr.startsWith('SG') || dep.startsWith('SG') || dep.startsWith('SB') || arr.startsWith('SB')) {
+      this.elements.aomLvtoRegime.value = 'SAM_AIC';
+    } else if (dep.startsWith('K') || arr.startsWith('K') || dep.startsWith('P') || arr.startsWith('P')) {
+      this.elements.aomLvtoRegime.value = 'FAA_TERPS';
+    } else {
+      this.elements.aomLvtoRegime.value = 'EASA_ICAO';
+    }
+  }
+
+  processBriefingText(rawText, options = {}) {
+    this.lastProcessedRawText = (rawText || '').trim();
+    if (this.elements.rawNotamsTextarea && this.elements.rawNotamsTextarea.value !== rawText) {
+      this.elements.rawNotamsTextarea.value = rawText || '';
+    }
     if (!rawText) {
       this.evaluatedNotams = [];
       this.updateAllViews();
@@ -1357,21 +1418,45 @@ class AeroBriefApp {
 
     this.currentBriefing = NotamParser.parseFullBriefing(rawText);
 
-    if (this.currentBriefing && this.currentBriefing.isForeflight) {
-      if (this.currentBriefing.depIcao) this.elements.inputDepIcao.value = this.currentBriefing.depIcao;
-      if (this.currentBriefing.arrIcao) this.elements.inputArrIcao.value = this.currentBriefing.arrIcao;
-      if (this.currentBriefing.depName) {
-        this.elements.depStationLabel.textContent = this.currentBriefing.depName;
-        if (this.elements.briefDepName) this.elements.briefDepName.textContent = this.currentBriefing.depName;
+    if (this.currentBriefing) {
+      if (this.currentBriefing.depIcao) {
+        this.elements.inputDepIcao.value = this.currentBriefing.depIcao;
       }
-      if (this.currentBriefing.arrName) {
-        this.elements.arrStationLabel.textContent = this.currentBriefing.arrName;
-        if (this.elements.briefArrName) this.elements.briefArrName.textContent = this.currentBriefing.arrName;
+      if (this.currentBriefing.arrIcao) {
+        this.elements.inputArrIcao.value = this.currentBriefing.arrIcao;
       }
 
-      if (this.elements.bannerRoute) this.elements.bannerRoute.textContent = `${this.currentBriefing.depIcao} ➔ ${this.currentBriefing.arrIcao}`;
+      const activeDep = this.elements.inputDepIcao.value.toUpperCase().trim();
+      const activeArr = this.elements.inputArrIcao.value.toUpperCase().trim();
+
+      // Update Alternate ICAO from briefing (or preset default if loaded from preset)
+      if (options.fromPreset && options.presetAltIcao) {
+        this.elements.inputAltIcao.value = options.presetAltIcao;
+      } else if (this.currentBriefing.altIcao) {
+        this.elements.inputAltIcao.value = this.currentBriefing.altIcao;
+      } else if (options.fromUpload) {
+        this.elements.inputAltIcao.value = '';
+      }
+      const activeAlt = this.elements.inputAltIcao.value.toUpperCase().trim();
+
+      // Update Departure & Destination Station Names (never leave stale names from previous flight)
+      const resolvedDepName =
+        this.currentBriefing.depName ||
+        (AIRPORT_COORDS_DB[activeDep] && AIRPORT_COORDS_DB[activeDep].name) ||
+        `${activeDep} Aerodrome`;
+      const resolvedArrName =
+        this.currentBriefing.arrName ||
+        (AIRPORT_COORDS_DB[activeArr] && AIRPORT_COORDS_DB[activeArr].name) ||
+        `${activeArr} Aerodrome`;
+
+      this.elements.depStationLabel.textContent = resolvedDepName;
+      this.elements.arrStationLabel.textContent = resolvedArrName;
+      if (this.elements.briefDepName) this.elements.briefDepName.textContent = resolvedDepName;
+      if (this.elements.briefArrName) this.elements.briefArrName.textContent = resolvedArrName;
+
+      if (this.elements.bannerRoute) this.elements.bannerRoute.textContent = `${activeDep} ➔ ${activeArr}`;
       if (this.elements.bannerTail) this.elements.bannerTail.textContent = this.currentBriefing.tailNumber || 'N650MV';
-      if (this.elements.bannerDate) this.elements.bannerDate.textContent = this.currentBriefing.flightDateStr || 'Today';
+      if (this.elements.bannerDate) this.elements.bannerDate.textContent = this.currentBriefing.flightDateStr || 'Active Flight';
 
       if (this.currentBriefing.depTimeUtc) {
         this.elements.inputDepTime.value = this.formatDatetimeLocal(this.currentBriefing.depTimeUtc);
@@ -1381,13 +1466,45 @@ class AeroBriefApp {
       }
       this.updateUtcDisplays();
 
-      if (this.elements.bannerSourceTag) this.elements.bannerSourceTag.textContent = 'ForeFlight Briefing Active';
+      if (this.elements.bannerSourceTag) {
+        this.elements.bannerSourceTag.textContent = options.fromUpload
+          ? (options.fileName ? `Uploaded: ${options.fileName}` : 'Uploaded Briefing Active')
+          : 'ForeFlight Briefing Active';
+      }
+
+      // Dynamically update active En-Route ICAOs & Route FIRs for Jeppesen Compliance!
+      this.activeScenarioExtraIcaos = [
+        activeDep,
+        activeArr,
+        ...(activeAlt ? [activeAlt] : []),
+        ...(this.currentBriefing.enrouteIcaos || [])
+      ].filter((v, i, a) => v && a.indexOf(v) === i);
+
+      if (this.jeppesenEngine) {
+        const inferredFirs = this.jeppesenEngine.inferDefaultFirsForBriefing(
+          activeDep,
+          activeArr,
+          activeAlt,
+          this.currentBriefing
+        );
+        const firStr = inferredFirs.join(' ');
+        if (this.elements.inputRouteFirs) this.elements.inputRouteFirs.value = firStr;
+        if (this.elements.jeppInlineFirs) this.elements.jeppInlineFirs.value = firStr;
+        this.syncJeppesenScenarioHighlight(firStr);
+      }
+
+      this.syncAomRegimeForIcaos(activeDep, activeArr);
+
+      // When a custom flight is uploaded, focus CCN/NCN scanner on the uploaded flight's airports by default
+      if (options.fromUpload && this.elements.jeppShowGlobalNcn) {
+        this.elements.jeppShowGlobalNcn.checked = false;
+      }
     }
 
-    this.runAnalysis();
+    this.runAnalysis({ syncDestAom: true });
   }
 
-  runAnalysis() {
+  runAnalysis(options = {}) {
     const rawText = this.elements.rawNotamsTextarea.value.trim();
     if (!rawText) {
       this.evaluatedNotams = [];
@@ -1409,7 +1526,7 @@ class AeroBriefApp {
 
     let notamList = [];
     if (this.currentBriefing && this.currentBriefing.allNotams && this.currentBriefing.allNotams.length > 0) {
-      this.currentBriefing.routeProfile = NotamParser.extractRouteProfile(rawText, depIcao, arrIcao);
+      this.currentBriefing.routeProfile = NotamParser.extractRouteProfile(rawText, depIcao, arrIcao, this.currentBriefing);
       notamList = this.currentBriefing.allNotams.map(p => {
         NotamParser.enrichNotamDistance(p, depIcao, arrIcao);
         return p;
@@ -1430,6 +1547,7 @@ class AeroBriefApp {
 
       const notamIcao = (parsed.icao || '').toUpperCase();
       const bodyUpper = (parsed.bodyText || '').toUpperCase();
+      const nearArr = parsed.nearestAirport === arrIcao && typeof parsed.distanceFromNearestNm === 'number' && parsed.distanceFromNearestNm <= 30;
 
       if (stage === 'OTHER' || !stage) {
         if (notamIcao === depIcao || bodyUpper.includes(depIcao) || parsed.raw.includes(`!${depIcao.replace(/^K/, '')}`)) {
@@ -1443,13 +1561,13 @@ class AeroBriefApp {
           targetUtc = arrUtc;
         } else if (parsed.fir || notamIcao.endsWith('XX') || notamIcao.startsWith('SBBS') || notamIcao.startsWith('SBCW') || notamIcao.startsWith('SGFA')) {
           stage = 'FIR';
-          targetUtc = notamIcao === 'SGFA' ? arrUtc : depUtc;
+          targetUtc = (nearArr || (arrIcao.startsWith('SG') && notamIcao === 'SGFA')) ? arrUtc : depUtc;
         } else {
           stage = 'ENROUTE';
           targetUtc = depUtc;
         }
       } else {
-        targetUtc = (stage === 'ARR' || notamIcao === 'SGFA' || notamIcao === arrIcao) ? arrUtc : depUtc;
+        targetUtc = (stage === 'ARR' || notamIcao === arrIcao || nearArr || (arrIcao.startsWith('SG') && notamIcao === 'SGFA')) ? arrUtc : depUtc;
       }
 
       const isActiveInWindow = NotamParser.isFlightActive(parsed, targetUtc, bufferHours);
@@ -1477,7 +1595,28 @@ class AeroBriefApp {
       return b.evaluation.severityScore - a.evaluation.severityScore;
     });
 
+    if (options.syncDestAom && this.jeppesenEngine) {
+      this.syncDestinationNotamDowngrades(false);
+    }
+
     this.updateAllViews();
+  }
+
+  isDestinationTerminalFirNotam(item, arrIcao) {
+    if (!item || item.stage !== 'FIR') return false;
+    const p = item.parsed || {};
+    const arr = (arrIcao || '').toUpperCase().trim();
+    if (!arr) return false;
+    if (p.subLocation && p.subLocation.toUpperCase() === arr) return true;
+    if (p.nearestAirport === arr && typeof p.distanceFromNearestNm === 'number' && p.distanceFromNearestNm <= 30) {
+      return true;
+    }
+    const body = (p.bodyText || '').toUpperCase();
+    if (body.includes(arr)) return true;
+    if (arr === 'SGAS' && (p.icao === 'SGFA' || /\b(ASU|ASUNCION|LUQUE|SGAS|NU GUAZU|SGR-7)\b/i.test(body))) {
+      return true;
+    }
+    return false;
   }
 
   updateAllViews() {
@@ -1503,8 +1642,10 @@ class AeroBriefApp {
     let arrTotal = 0;
     let enrouteTotal = 0;
 
+    const arrIcao = (this.elements.inputArrIcao ? this.elements.inputArrIcao.value : '').toUpperCase().trim();
+
     this.evaluatedNotams.forEach(item => {
-      const isDestTerminalFir = item.stage === 'FIR' && (item.parsed.icao === 'SGFA' || /\b(ASU|ASUNCION|LUQUE|SGAS|NU GUAZU|SGR-7)\b/i.test(item.parsed.bodyText));
+      const isDestTerminalFir = this.isDestinationTerminalFirNotam(item, arrIcao);
       if (item.stage === 'DEP') depTotal++;
       else if (item.stage === 'ARR' || isDestTerminalFir) arrTotal++;
       else enrouteTotal++;
@@ -1568,10 +1709,10 @@ class AeroBriefApp {
     const metars = (this.currentBriefing && this.currentBriefing.metars) || [];
     const tafs = (this.currentBriefing && this.currentBriefing.tafs) || [];
 
-    const depMetar = metars.find(m => m.icao === depIcao) || metars[0] || null;
-    const arrMetar = metars.find(m => m.icao === arrIcao) || metars[1] || null;
-    const depTaf = tafs.find(t => t.icao === depIcao) || tafs[0] || null;
-    const arrTaf = tafs.find(t => t.icao === arrIcao) || tafs[1] || null;
+    const depMetar = metars.find(m => m.icao === depIcao) || metars.find(m => !m.icao) || null;
+    const arrMetar = metars.find(m => m.icao === arrIcao) || null;
+    const depTaf = tafs.find(t => t.icao === depIcao) || tafs.find(t => !t.icao) || null;
+    const arrTaf = tafs.find(t => t.icao === arrIcao) || null;
 
     this.renderCompactWxBox(this.elements.briefDepWx, depIcao, depMetar, depTaf);
     this.renderCompactWxBox(this.elements.briefArrWx, arrIcao, arrMetar, arrTaf);
@@ -1583,8 +1724,7 @@ class AeroBriefApp {
     ];
 
     const arrTerminalFirNotams = this.evaluatedNotams.filter(n =>
-      n.stage === 'FIR' &&
-      (n.parsed.icao === 'SGFA' || /\b(ASU|ASUNCION|LUQUE|SGAS|NU GUAZU|SGR-7)\b/i.test(n.parsed.bodyText))
+      this.isDestinationTerminalFirNotam(n, arrIcao)
     );
     const arrCombinedNotams = [
       ...this.evaluatedNotams.filter(n => n.stage === 'ARR'),
@@ -1879,8 +2019,8 @@ class AeroBriefApp {
 
     const metars = (this.currentBriefing && this.currentBriefing.metars) || [];
     const tafs = (this.currentBriefing && this.currentBriefing.tafs) || [];
-    const metar = metars.find(m => m.icao === targetIcao) || (viewName === 'DEP' ? metars[0] : metars[1]);
-    const taf = tafs.find(t => t.icao === targetIcao) || (viewName === 'DEP' ? tafs[0] : tafs[1]);
+    const metar = metars.find(m => m.icao === targetIcao) || (viewName === 'DEP' ? metars.find(m => !m.icao) : null);
+    const taf = tafs.find(t => t.icao === targetIcao) || (viewName === 'DEP' ? tafs.find(t => !t.icao) : null);
 
     if (!metar && !taf) {
       container.classList.add('hidden');
@@ -1922,10 +2062,12 @@ class AeroBriefApp {
       });
     }
 
+    const arrIcao = (this.elements.inputArrIcao ? this.elements.inputArrIcao.value : '').toUpperCase().trim();
+
     const filtered = this.evaluatedNotams.filter(item => {
       if (this.currentView === 'DEP' && item.stage !== 'DEP') return false;
       if (this.currentView === 'ARR') {
-        const isDestTerminalFir = item.stage === 'FIR' && (item.parsed.icao === 'SGFA' || /\b(ASU|ASUNCION|LUQUE|SGAS|NU GUAZU|SGR-7)\b/i.test(item.parsed.bodyText));
+        const isDestTerminalFir = this.isDestinationTerminalFirNotam(item, arrIcao);
         if (item.stage !== 'ARR' && !isDestTerminalFir) return false;
       }
       if (this.currentView === 'ENROUTE') {
@@ -2380,6 +2522,18 @@ class AeroBriefApp {
     };
   }
 
+  syncJeppesenScenarioHighlight(firStr) {
+    const clean = (firStr || '').toUpperCase().trim().replace(/\s+/g, ' ');
+    document.querySelectorAll('.jepp-scenario-btn').forEach(btn => {
+      const btnFirs = (btn.getAttribute('data-firs') || '').toUpperCase().trim().replace(/\s+/g, ' ');
+      if (btnFirs && btnFirs === clean) {
+        btn.classList.add('border-cyan-500/60', 'bg-cyan-500/15', 'text-cyan-200');
+      } else {
+        btn.classList.remove('border-cyan-500/60', 'bg-cyan-500/15', 'text-cyan-200');
+      }
+    });
+  }
+
   syncDestinationNotamDowngrades(showFeedback = false) {
     const arrIcao = (this.elements.inputArrIcao ? this.elements.inputArrIcao.value : 'SGAS').toUpperCase().trim();
     const rawNotams = this.evaluatedNotams.map(it => ({
@@ -2394,6 +2548,9 @@ class AeroBriefApp {
     if (deg.gsOut && this.elements.aomAppType) {
       this.elements.aomAppType.value = 'NPA_2D_CDFA';
       if (this.elements.aomAppDh) this.elements.aomAppDh.value = 380;
+    } else if (!deg.gsOut && this.elements.aomAppType) {
+      this.elements.aomAppType.value = 'ILS_CAT_I';
+      if (this.elements.aomAppDh) this.elements.aomAppDh.value = 200;
     }
 
     this.renderAomCalculator();
@@ -2651,7 +2808,13 @@ class AeroBriefApp {
       altIcao,
       ...(this.activeScenarioExtraIcaos || [])
     ];
-    const aeroNotices = this.jeppesenEngine.scanAerodromeNotices(scanIcaos, includeGlobalNcn);
+    const aeroNotices = this.jeppesenEngine.scanAerodromeNotices(
+      scanIcaos,
+      includeGlobalNcn,
+      this.evaluatedNotams,
+      this.currentBriefing,
+      AIRPORT_COORDS_DB
+    );
 
     if (this.elements.jeppCcnNcnContainer) {
       this.elements.jeppCcnNcnContainer.innerHTML = aeroNotices.map(station => {
@@ -2784,6 +2947,10 @@ class AeroBriefApp {
       const fmsDiscrepancyCount = aeroNotices.filter(a => a.hasFmsDiscrepancy).length;
       const aomSnap = this.getCurrentAomResult();
 
+      const topNoticeItem = aeroNotices
+        .flatMap(st => [...(st.ncnNotices || []), ...(st.ccnNotices || [])].map(n => `${st.icao}: ${n.title}`))
+        .find(Boolean) || `${depIcao} ➔ ${arrIcao} Charts & NavData Verified`;
+
       this.elements.briefJeppesenSummaryGrid.innerHTML = `
         <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
           <div class="flex items-center justify-between text-[10px] font-mono text-cyan-400 font-bold">
@@ -2811,7 +2978,7 @@ class AeroBriefApp {
 
         <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
           <div class="flex items-center justify-between text-[10px] font-mono text-emerald-400 font-bold">
-            <span>3. DYNAMIC AOM (CAT C)</span>
+            <span>3. DYNAMIC AOM (${arrIcao} CAT C)</span>
             <span>${aomSnap.lvto.lvpInForce ? 'LVP ON' : 'NON-LVP FLOOR'}</span>
           </div>
           <div class="text-xs font-bold text-white font-mono">
@@ -2822,13 +2989,13 @@ class AeroBriefApp {
 
         <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
           <div class="flex items-center justify-between text-[10px] font-mono text-purple-400 font-bold">
-            <span>4. CCN / NCN &amp; SSR</span>
+            <span>4. CCN / NCN &amp; SSR (${depIcao}➔${arrIcao})</span>
             <span>${fmsDiscrepancyCount} FMS ALERTS</span>
           </div>
           <div class="text-xs font-bold text-white font-mono">
             ${aeroNotices.length} Stations Scanned • Squawk ${ssrData.firCards[0] ? ssrData.firCards[0].uncontrolledVfrSquawk : '2000'}
           </div>
-          <div class="text-[11px] text-slate-400 truncate">SGES/SBLO VOR U/S, HECA GPS &amp; EGNOS LPV Watch</div>
+          <div class="text-[11px] text-slate-400 truncate">${topNoticeItem}</div>
         </div>
       `;
     }

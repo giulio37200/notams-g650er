@@ -1029,12 +1029,12 @@
           if ('caches' in window) {
             const keys = await caches.keys();
             for (const k of keys) {
-              if (k !== 'aerobrief-g650er-v7') {
+              if (k !== 'aerobrief-g650er-v8') {
                 await caches.delete(k);
               }
             }
           }
-          const reg = await navigator.serviceWorker.register('./sw.js?v=7');
+          const reg = await navigator.serviceWorker.register('./sw.js?v=8');
           await reg.update();
         } catch (err) {
           console.log('SW registration note:', err);
@@ -1042,6 +1042,6 @@
       });
     }
   </script>
-  <script type="module" src="app.js?v=7"></script>
+  <script type="module" src="app.js?v=8"></script>
 </body>
 </html>

@@ -10,7 +10,7 @@
  */
 
 export const AIRPORT_COORDS_DB = {
-  // South America (Brazil / Paraguay / Executive Hubs)
+  // South America (Brazil / Paraguay / Argentina / Chile / Peru / Colombia / Executive Hubs)
   SBJH: { lat: -23.4281, lon: -47.1653, name: 'São Paulo Catarina Executivo', elevFt: 2493 },
   SGAS: { lat: -25.2400, lon: -57.5192, name: 'Asunción Silvio Pettirossi Intl', elevFt: 292 },
   SBAE: { lat: -22.1578, lon: -49.0683, name: 'Bauru-Arealva', elevFt: 1949 },
@@ -23,18 +23,151 @@ export const AIRPORT_COORDS_DB = {
   SBKP: { lat: -23.0074, lon: -47.1345, name: 'Campinas Viracopos Intl', elevFt: 2170 },
   SDCO: { lat: -23.4831, lon: -47.4900, name: 'Sorocaba Airport', elevFt: 2077 },
   SBDN: { lat: -22.1783, lon: -51.4189, name: 'Presidente Prudente', elevFt: 1476 },
+  SBRP: { lat: -21.1364, lon: -47.7767, name: 'Ribeirão Preto Leite Lopes', elevFt: 1808 },
+  SBSJ: { lat: -23.2289, lon: -45.8614, name: 'São José dos Campos', elevFt: 2120 },
+  SBRJ: { lat: -22.9105, lon: -43.1631, name: 'Rio de Janeiro Santos Dumont', elevFt: 11 },
+  SBGL: { lat: -22.8100, lon: -43.2506, name: 'Rio de Janeiro Galeão Intl', elevFt: 28 },
+  SBJR: { lat: -22.9875, lon: -43.3700, name: 'Rio de Janeiro Jacarepaguá', elevFt: 10 },
+  SBCB: { lat: -22.9217, lon: -42.0742, name: 'Cabo Frio Intl', elevFt: 23 },
+  SBME: { lat: -22.3431, lon: -41.7661, name: 'Macaé Airport', elevFt: 8 },
+  SBVT: { lat: -20.2581, lon: -40.2864, name: 'Vitória Eurico de Aguiar Salles', elevFt: 11 },
+  SBCF: { lat: -19.6244, lon: -43.9719, name: 'Belo Horizonte Confins Intl', elevFt: 2715 },
+  SBBH: { lat: -19.8519, lon: -43.9506, name: 'Belo Horizonte Pampulha', elevFt: 2589 },
+  SBBR: { lat: -15.8711, lon: -47.9186, name: 'Brasília Pres. Juscelino Kubitschek Intl', elevFt: 3497 },
+  SBGO: { lat: -16.6325, lon: -49.2211, name: 'Goiânia Santa Genoveva', elevFt: 2450 },
+  SBCY: { lat: -15.6528, lon: -56.1167, name: 'Cuiabá Marechal Rondon Intl', elevFt: 617 },
+  SBCG: { lat: -20.4694, lon: -54.6703, name: 'Campo Grande Intl', elevFt: 1833 },
+  SBCT: { lat: -25.5285, lon: -49.1758, name: 'Curitiba Afonso Pena Intl', elevFt: 2989 },
+  SBBI: { lat: -25.4033, lon: -49.2336, name: 'Curitiba Bacacheri', elevFt: 3057 },
+  SBJV: { lat: -26.2244, lon: -48.7975, name: 'Joinville Lauro Carneiro de Loyola', elevFt: 15 },
+  SBNF: { lat: -26.8786, lon: -48.6508, name: 'Navegantes Ministro Victor Konder', elevFt: 18 },
+  SBFL: { lat: -27.6703, lon: -48.5525, name: 'Florianópolis Hercílio Luz Intl', elevFt: 16 },
+  SBPA: { lat: -29.9944, lon: -51.1714, name: 'Porto Alegre Salgado Filho Intl', elevFt: 11 },
+  SBSV: { lat: -12.9086, lon: -38.3225, name: 'Salvador Deputado Luís Eduardo Magalhães', elevFt: 64 },
+  SBRF: { lat: -8.1264, lon: -34.9236, name: 'Recife Guararapes Intl', elevFt: 33 },
+  SBFZ: { lat: -3.7761, lon: -38.5322, name: 'Fortaleza Pinto Martins Intl', elevFt: 82 },
+  SBNT: { lat: -5.7681, lon: -35.3761, name: 'Natal São Gonçalo do Amarante Intl', elevFt: 272 },
+  SBBE: { lat: -1.3792, lon: -48.4764, name: 'Belém Val-de-Cans Intl', elevFt: 56 },
+  SBMN: { lat: -3.0386, lon: -60.0497, name: 'Manaus Eduardo Gomes Intl', elevFt: 264 },
+  SAEZ: { lat: -34.8222, lon: -58.5358, name: 'Buenos Aires Ezeiza Intl', elevFt: 67 },
+  SABE: { lat: -34.5592, lon: -58.4156, name: 'Buenos Aires Aeroparque Jorge Newbery', elevFt: 18 },
+  SACO: { lat: -31.3100, lon: -64.2083, name: 'Córdoba Ingeniero Taravella', elevFt: 1604 },
+  SAME: { lat: -32.8317, lon: -68.7928, name: 'Mendoza El Plumerillo', elevFt: 2310 },
+  SUMU: { lat: -34.8384, lon: -56.0308, name: 'Montevideo Carrasco Intl', elevFt: 105 },
+  SULS: { lat: -34.8551, lon: -55.0943, name: 'Punta del Este Laguna del Sauce', elevFt: 95 },
+  SCEL: { lat: -33.3930, lon: -70.7858, name: 'Santiago Arturo Merino Benítez Intl', elevFt: 1555 },
+  SLVR: { lat: -17.6448, lon: -63.1354, name: 'Santa Cruz Viru Viru Intl', elevFt: 1224 },
+  SPJC: { lat: -12.0219, lon: -77.1143, name: 'Lima Jorge Chávez Intl', elevFt: 113 },
+  SEQM: { lat: -0.1292, lon: -78.3575, name: 'Quito Mariscal Sucre Intl', elevFt: 7841 },
+  SKBO: { lat: 4.7016, lon: -74.1469, name: 'Bogotá El Dorado Intl', elevFt: 8360 },
+  SVMI: { lat: 10.6012, lon: -66.9913, name: 'Caracas Maiquetía Intl', elevFt: 235 },
+  MPTO: { lat: 9.0714, lon: -79.3835, name: 'Panama City Tocumen Intl', elevFt: 135 },
   SBCW: { lat: -24.0500, lon: -49.5000, name: 'Curitiba FIR', elevFt: 0 },
+  SBBS: { lat: -15.8700, lon: -47.9200, name: 'Brasília FIR', elevFt: 0 },
+  SBAZ: { lat: -3.0400, lon: -60.0500, name: 'Amazônica FIR', elevFt: 0 },
   SGFA: { lat: -25.2400, lon: -57.5200, name: 'Asunción FIR', elevFt: 0 },
-  // North America & Europe Executive Hubs
+  // North America & Caribbean Executive Hubs
   KTEB: { lat: 40.8501, lon: -74.0608, name: 'Teterboro Airport (NY)', elevFt: 9 },
+  KJFK: { lat: 40.6413, lon: -73.7781, name: 'New York John F. Kennedy Intl', elevFt: 13 },
+  KEWR: { lat: 40.6895, lon: -74.1745, name: 'Newark Liberty Intl', elevFt: 18 },
+  KLGA: { lat: 40.7769, lon: -73.8740, name: 'New York LaGuardia', elevFt: 21 },
+  KHPN: { lat: 41.0670, lon: -73.7076, name: 'White Plains Westchester County', elevFt: 439 },
+  KBED: { lat: 42.4700, lon: -71.2890, name: 'Bedford Hanscom Field', elevFt: 133 },
+  KBOS: { lat: 42.3656, lon: -71.0096, name: 'Boston Logan Intl', elevFt: 20 },
+  KIAD: { lat: 38.9531, lon: -77.4565, name: 'Washington Dulles Intl', elevFt: 312 },
+  KDCA: { lat: 38.8512, lon: -77.0402, name: 'Washington Reagan National', elevFt: 15 },
+  KPHL: { lat: 39.8729, lon: -75.2437, name: 'Philadelphia Intl', elevFt: 36 },
+  KATL: { lat: 33.6407, lon: -84.4277, name: 'Atlanta Hartsfield-Jackson Intl', elevFt: 1026 },
+  KMIA: { lat: 25.7959, lon: -80.2870, name: 'Miami International Airport', elevFt: 9 },
+  KOPF: { lat: 25.9070, lon: -80.2784, name: 'Miami-Opa Locka Executive', elevFt: 8 },
+  KFLL: { lat: 26.0742, lon: -80.1506, name: 'Fort Lauderdale-Hollywood Intl', elevFt: 9 },
+  KPBI: { lat: 26.6832, lon: -80.0956, name: 'Palm Beach Intl', elevFt: 19 },
+  KMCO: { lat: 28.4312, lon: -81.3081, name: 'Orlando Intl', elevFt: 96 },
+  KTPA: { lat: 27.9755, lon: -82.5332, name: 'Tampa Intl', elevFt: 26 },
+  KORD: { lat: 41.9742, lon: -87.9073, name: 'Chicago O\'Hare Intl', elevFt: 680 },
+  KMDW: { lat: 41.7868, lon: -87.7522, name: 'Chicago Midway Intl', elevFt: 620 },
+  KDFW: { lat: 32.8998, lon: -97.0403, name: 'Dallas/Fort Worth Intl', elevFt: 607 },
+  KDAL: { lat: 32.8471, lon: -96.8518, name: 'Dallas Love Field', elevFt: 487 },
+  KIAH: { lat: 29.9902, lon: -95.3368, name: 'Houston George Bush Intercontinental', elevFt: 97 },
+  KHOU: { lat: 29.6454, lon: -95.2789, name: 'Houston William P. Hobby', elevFt: 46 },
+  KAUS: { lat: 30.1945, lon: -97.6699, name: 'Austin-Bergstrom Intl', elevFt: 542 },
+  KDEN: { lat: 39.8561, lon: -104.6737, name: 'Denver Intl', elevFt: 5434 },
+  KASE: { lat: 39.2232, lon: -106.8688, name: 'Aspen Pitkin County', elevFt: 7838 },
+  KRIL: { lat: 39.5263, lon: -107.7269, name: 'Rifle Garfield County', elevFt: 5537 },
+  KEGE: { lat: 39.6426, lon: -106.9177, name: 'Eagle County Regional (Vail)', elevFt: 6547 },
+  KSDL: { lat: 33.6229, lon: -111.9105, name: 'Scottsdale Airport', elevFt: 1510 },
+  KPHX: { lat: 33.4342, lon: -112.0116, name: 'Phoenix Sky Harbor Intl', elevFt: 1135 },
+  KLAS: { lat: 36.0840, lon: -115.1537, name: 'Las Vegas Harry Reid Intl', elevFt: 2181 },
+  KVNY: { lat: 34.2098, lon: -118.4899, name: 'Van Nuys Airport (LA)', elevFt: 802 },
+  KLAX: { lat: 33.9416, lon: -118.4085, name: 'Los Angeles Intl', elevFt: 128 },
+  KSNA: { lat: 33.6757, lon: -117.8682, name: 'John Wayne Orange County', elevFt: 56 },
+  KSAN: { lat: 32.7338, lon: -117.1933, name: 'San Diego Intl', elevFt: 17 },
+  KSFO: { lat: 37.6213, lon: -122.3790, name: 'San Francisco Intl', elevFt: 13 },
+  KOAK: { lat: 37.7213, lon: -122.2207, name: 'Oakland Intl', elevFt: 9 },
+  KSJC: { lat: 37.3626, lon: -121.9290, name: 'San Jose Mineta Intl', elevFt: 62 },
+  KSEA: { lat: 47.4502, lon: -122.3088, name: 'Seattle-Tacoma Intl', elevFt: 433 },
+  PANC: { lat: 61.1743, lon: -149.9962, name: 'Anchorage Ted Stevens Intl', elevFt: 151 },
+  PHNL: { lat: 21.3187, lon: -157.9224, name: 'Honolulu Daniel K. Inouye Intl', elevFt: 13 },
+  CYYZ: { lat: 43.6777, lon: -79.6248, name: 'Toronto Pearson Intl', elevFt: 569 },
+  CYUL: { lat: 45.4706, lon: -73.7408, name: 'Montréal-Trudeau Intl', elevFt: 118 },
+  CYVR: { lat: 49.1967, lon: -123.1815, name: 'Vancouver Intl', elevFt: 14 },
+  MMMX: { lat: 19.4363, lon: -99.0721, name: 'Mexico City Benito Juárez Intl', elevFt: 7316 },
+  MMTO: { lat: 19.3371, lon: -99.5660, name: 'Toluca Lic. Adolfo López Mateos Intl', elevFt: 8466 },
+  MMUN: { lat: 21.0365, lon: -86.8771, name: 'Cancún Intl', elevFt: 22 },
+  MYNN: { lat: 25.0390, lon: -77.4662, name: 'Nassau Lynden Pindling Intl', elevFt: 16 },
+  TNCM: { lat: 18.0410, lon: -63.1089, name: 'St. Maarten Princess Juliana Intl', elevFt: 13 },
+  TJSJ: { lat: 18.4394, lon: -66.0018, name: 'San Juan Luis Muñoz Marín Intl', elevFt: 9 },
+  // Europe, Africa, Middle East & Asia Executive Hubs
   EGSS: { lat: 51.8850, lon: 0.2350, name: 'London Stansted Airport', elevFt: 348 },
   EGGW: { lat: 51.8747, lon: -0.3683, name: 'London Luton Airport', elevFt: 526 },
+  EGLF: { lat: 51.2758, lon: -0.7763, name: 'Farnborough Airport', elevFt: 238 },
+  EGKB: { lat: 51.3308, lon: 0.0325, name: 'London Biggin Hill', elevFt: 599 },
+  EGLL: { lat: 51.4700, lon: -0.4543, name: 'London Heathrow Intl', elevFt: 83 },
+  EGKK: { lat: 51.1537, lon: -0.1821, name: 'London Gatwick Intl', elevFt: 202 },
+  EIDW: { lat: 53.4213, lon: -6.2701, name: 'Dublin Airport', elevFt: 242 },
+  EINN: { lat: 52.7020, lon: -8.9248, name: 'Shannon Airport', elevFt: 46 },
   LFPB: { lat: 48.9694, lon: 2.4414, name: 'Paris Le Bourget', elevFt: 218 },
-  LSGG: { lat: 46.2381, lon: 6.1089, name: 'Geneva Cointrin Intl', elevFt: 1411 },
+  LFPG: { lat: 49.0097, lon: 2.5479, name: 'Paris Charles de Gaulle', elevFt: 392 },
+  LFMN: { lat: 43.6584, lon: 7.2159, name: 'Nice Côte d\'Azur', elevFt: 12 },
   LFSB: { lat: 47.5900, lon: 7.5292, name: 'Basel Mulhouse EuroAirport', elevFt: 885 },
-  KASE: { lat: 39.2232, lon: -106.8688, name: 'Aspen Pitkin County', elevFt: 7838 },
-  KVNY: { lat: 34.2098, lon: -118.4899, name: 'Van Nuys Airport (LA)', elevFt: 802 },
-  KRIL: { lat: 39.5263, lon: -107.7269, name: 'Rifle Garfield County', elevFt: 5537 }
+  LSGG: { lat: 46.2381, lon: 6.1089, name: 'Geneva Cointrin Intl', elevFt: 1411 },
+  LSZH: { lat: 47.4582, lon: 8.5555, name: 'Zurich Airport', elevFt: 1417 },
+  EDDF: { lat: 50.0379, lon: 8.5622, name: 'Frankfurt Airport', elevFt: 364 },
+  EDDM: { lat: 48.3538, lon: 11.7861, name: 'Munich Airport', elevFt: 1487 },
+  EDDB: { lat: 52.3667, lon: 13.5033, name: 'Berlin Brandenburg', elevFt: 157 },
+  EHAM: { lat: 52.3086, lon: 4.7639, name: 'Amsterdam Schiphol', elevFt: -11 },
+  EBBR: { lat: 50.9014, lon: 4.4844, name: 'Brussels Airport', elevFt: 184 },
+  LOWW: { lat: 48.1103, lon: 16.5697, name: 'Vienna Intl', elevFt: 600 },
+  LIML: { lat: 45.4451, lon: 9.2767, name: 'Milan Linate', elevFt: 353 },
+  LIMC: { lat: 45.6306, lon: 8.7281, name: 'Milan Malpensa', elevFt: 767 },
+  LIRA: { lat: 41.7994, lon: 12.5949, name: 'Rome Ciampino', elevFt: 427 },
+  LIRF: { lat: 41.8003, lon: 12.2389, name: 'Rome Fiumicino', elevFt: 15 },
+  LEMD: { lat: 40.4719, lon: -3.5626, name: 'Madrid Barajas Intl', elevFt: 1998 },
+  LEBL: { lat: 41.2971, lon: 2.0785, name: 'Barcelona El Prat', elevFt: 14 },
+  GCLP: { lat: 27.9319, lon: -15.3866, name: 'Gran Canaria Airport', elevFt: 78 },
+  LPPT: { lat: 38.7813, lon: -9.1359, name: 'Lisbon Humberto Delgado', elevFt: 374 },
+  LGAV: { lat: 37.9364, lon: 23.9445, name: 'Athens Eleftherios Venizelos', elevFt: 308 },
+  LTFM: { lat: 41.2753, lon: 28.7519, name: 'Istanbul Airport', elevFt: 325 },
+  HECA: { lat: 30.1219, lon: 31.4056, name: 'Cairo International Airport', elevFt: 382 },
+  GMMN: { lat: 33.3675, lon: -7.5899, name: 'Casablanca Mohammed V Intl', elevFt: 656 },
+  GOBD: { lat: 14.6700, lon: -17.0733, name: 'Dakar Blaise Diagne Intl', elevFt: 290 },
+  DIAP: { lat: 5.2614, lon: -3.9263, name: 'Abidjan Félix-Houphouët-Boigny', elevFt: 20 },
+  DNMM: { lat: 6.5774, lon: 3.3212, name: 'Lagos Murtala Muhammed Intl', elevFt: 135 },
+  FAOR: { lat: -26.1392, lon: 28.2460, name: 'Johannesburg O.R. Tambo Intl', elevFt: 5558 },
+  OEJN: { lat: 21.6796, lon: 39.1565, name: 'Jeddah King Abdulaziz Intl', elevFt: 48 },
+  OERK: { lat: 24.9576, lon: 46.6988, name: 'Riyadh King Khalid Intl', elevFt: 2049 },
+  OMDB: { lat: 25.2532, lon: 55.3657, name: 'Dubai International Airport', elevFt: 62 },
+  OMDW: { lat: 24.8964, lon: 55.1614, name: 'Dubai Al Maktoum Intl', elevFt: 114 },
+  OTHH: { lat: 25.2731, lon: 51.6081, name: 'Doha Hamad Intl', elevFt: 13 },
+  OIII: { lat: 35.6892, lon: 51.3134, name: 'Tehran Mehrabad Intl', elevFt: 3962 },
+  OPKC: { lat: 24.9065, lon: 67.1608, name: 'Karachi Jinnah Intl', elevFt: 100 },
+  VABB: { lat: 19.0887, lon: 72.8679, name: 'Mumbai Chhatrapati Shivaji Intl', elevFt: 39 },
+  VIDP: { lat: 28.5562, lon: 77.1000, name: 'New Delhi Indira Gandhi Intl', elevFt: 777 },
+  VGHS: { lat: 23.8433, lon: 90.3978, name: 'Dhaka Hazrat Shahjalal Intl', elevFt: 30 },
+  VCBI: { lat: 7.1808, lon: 79.8841, name: 'Colombo Bandaranaike Intl', elevFt: 30 },
+  WSSS: { lat: 1.3644, lon: 103.9915, name: 'Singapore Changi Intl', elevFt: 22 },
+  VHHH: { lat: 22.3080, lon: 113.9185, name: 'Hong Kong Intl', elevFt: 28 },
+  RJTT: { lat: 35.5494, lon: 139.7798, name: 'Tokyo Haneda Intl', elevFt: 35 }
 };
 
 export const WAYPOINT_COORDS_DB = {
@@ -72,11 +205,17 @@ export class NotamParser {
 
     const briefing = {
       isForeflight: false,
+      hasFlightEndpoints: false,
       route: '',
       depIcao: '',
       arrIcao: '',
+      altIcao: '',
       depName: '',
       arrName: '',
+      altName: '',
+      enrouteIcaos: [],
+      firIcaos: [],
+      stationFirMap: {},
       tailNumber: '',
       aircraftType: '',
       flightDateStr: '',
@@ -93,57 +232,96 @@ export class NotamParser {
       rawNotamCount: 0
     };
 
-    // 1. Detect ForeFlight Header: e.g. "SBJH — SGAS (Oct 02, 2026) in N650MV (GLF6)"
-    const headerMatch = cleaned.match(/([A-Z0-9]{4})\s*[—–-]\s*([A-Z0-9]{4})\s*\(([A-Za-z0-9\s,]+)\)\s*in\s*([A-Za-z0-9-]+)\s*\(([A-Za-z0-9]+)\)/i);
-    if (headerMatch) {
+    // 1. Detect ForeFlight / Dispatch Header: e.g. "SBJH — SGAS (Oct 02, 2026) in N650MV (GLF6)"
+    //    Also supports "KTEB to EGGW", "ROUTE: KTEB - EGGW", "VABB/OMDB", etc.
+    const topBannerSlice = cleaned.substring(0, 600);
+    const headerMatch =
+      cleaned.match(/([A-Z]{4})\s*(?:[—–\-➔>\/]|\bto\b)\s*([A-Z]{4})\s*\(([A-Za-z0-9\s,/-]+)\)(?:\s*in\s*([A-Za-z0-9-]+)(?:\s*\(([A-Za-z0-9]+)\))?)?/i) ||
+      cleaned.match(/(?:ROUTE|FLIGHT|BRIEFING)\s*[:\-]?\s*([A-Z]{4})\s*(?:[—–\-➔>\/]|\bto\b)\s*([A-Z]{4})\b/i) ||
+      topBannerSlice.match(/\b([A-Z]{4})\s*(?:[—–➔>]|\bto\b)\s*([A-Z]{4})\b/i);
+    const headerStopWords = new Set(['FROM', 'TIME', 'PAGE', 'WIND', 'TEMP', 'TURB', 'TRUE', 'SAFE', 'DATA', 'TEXT', 'INFO', 'NOTE', 'PART', 'NONE', 'WITH', 'OVER', 'NEXT', 'LAST']);
+    if (headerMatch && !headerStopWords.has(headerMatch[1].toUpperCase()) && !headerStopWords.has(headerMatch[2].toUpperCase())) {
       briefing.isForeflight = true;
       briefing.depIcao = headerMatch[1].toUpperCase();
       briefing.arrIcao = headerMatch[2].toUpperCase();
-      briefing.flightDateStr = headerMatch[3].trim();
-      briefing.tailNumber = headerMatch[4].toUpperCase();
-      briefing.aircraftType = headerMatch[5].toUpperCase();
+      if (headerMatch[3]) briefing.flightDateStr = headerMatch[3].trim();
+      if (headerMatch[4]) briefing.tailNumber = headerMatch[4].toUpperCase();
+      if (headerMatch[5]) briefing.aircraftType = headerMatch[5].toUpperCase();
       briefing.route = `${briefing.depIcao} — ${briefing.arrIcao}`;
     }
 
-    // 2. Extract Departure & Destination times & station names
-    const depMatch = cleaned.match(/Departure\s*\(([0-9]{4})Z\):\s*([A-Z0-9]{4})\s*(?:-\s*([^\n\r]+))?/i) ||
-                     cleaned.match(/Departure\s+([A-Z0-9]{4})\s*-\s*([^\n\r]+)/i);
-    if (depMatch) {
-      if (depMatch[3] !== undefined) {
-        briefing.depTimeUtcStr = depMatch[1].slice(0, 2) + ':' + depMatch[1].slice(2, 4) + 'Z';
-        if (!briefing.depIcao) briefing.depIcao = depMatch[2].toUpperCase();
-        briefing.depName = depMatch[3].trim();
-      } else if (depMatch[2]) {
-        if (!briefing.depIcao) briefing.depIcao = depMatch[1].toUpperCase();
-        briefing.depName = depMatch[2].trim();
-      }
+    // 2. Extract Departure, Destination & Alternate times & station names
+    const depTimedMatch = cleaned.match(/Departure\s*\(([0-9]{4})Z\):\s*([A-Z]{4})[ \t]*(?:-[ \t]*([^\n\r]+))?/i);
+    const depNamedMatch = !depTimedMatch && cleaned.match(/(?:^|\n)[ \t]*Departure(?:[ \t]+Airport|[ \t]+NOTAMs)?[ \t]*[:\-]?[ \t]*(?:\n[ \t]*)?([A-Z]{4})(?:(?:[ \t]*-[ \t]*|[ \t]+)([A-Za-z][^\n\r]*))?(?=[ \t]*\n|$)/i);
+    if (depTimedMatch) {
+      briefing.isForeflight = true;
+      briefing.depTimeUtcStr = depTimedMatch[1].slice(0, 2) + ':' + depTimedMatch[1].slice(2, 4) + 'Z';
+      if (!briefing.depIcao) briefing.depIcao = depTimedMatch[2].toUpperCase();
+      if (depTimedMatch[3]) briefing.depName = depTimedMatch[3].trim();
+    } else if (depNamedMatch && !headerStopWords.has(depNamedMatch[1].toUpperCase())) {
+      briefing.isForeflight = true;
+      if (!briefing.depIcao) briefing.depIcao = depNamedMatch[1].toUpperCase();
+      if (depNamedMatch[2] && !/NOTAM|[A-Z][0-9]{4}\/[0-9]{2}/i.test(depNamedMatch[2])) briefing.depName = depNamedMatch[2].trim();
     }
 
-    const arrMatch = cleaned.match(/Destination\s*\(([0-9]{4})Z\):\s*([A-Z0-9]{4})\s*(?:-\s*([^\n\r]+))?/i) ||
-                     cleaned.match(/Destination\s+([A-Z0-9]{4})\s*-\s*([^\n\r]+)/i);
-    if (arrMatch) {
-      if (arrMatch[3] !== undefined) {
-        briefing.arrTimeUtcStr = arrMatch[1].slice(0, 2) + ':' + arrMatch[1].slice(2, 4) + 'Z';
-        if (!briefing.arrIcao) briefing.arrIcao = arrMatch[2].toUpperCase();
-        briefing.arrName = arrMatch[3].trim();
-      } else if (arrMatch[2]) {
-        if (!briefing.arrIcao) briefing.arrIcao = arrMatch[1].toUpperCase();
-        briefing.arrName = arrMatch[2].trim();
+    const arrTimedMatch = cleaned.match(/Destination\s*\(([0-9]{4})Z\):\s*([A-Z]{4})[ \t]*(?:-[ \t]*([^\n\r]+))?/i);
+    const arrNamedMatch = !arrTimedMatch && cleaned.match(/(?:^|\n)[ \t]*Destination(?:[ \t]+Airport|[ \t]+NOTAMs)?[ \t]*[:\-]?[ \t]*(?:\n[ \t]*)?([A-Z]{4})(?:(?:[ \t]*-[ \t]*|[ \t]+)([A-Za-z][^\n\r]*))?(?=[ \t]*\n|$)/i);
+    if (arrTimedMatch) {
+      briefing.isForeflight = true;
+      briefing.arrTimeUtcStr = arrTimedMatch[1].slice(0, 2) + ':' + arrTimedMatch[1].slice(2, 4) + 'Z';
+      if (!briefing.arrIcao) briefing.arrIcao = arrTimedMatch[2].toUpperCase();
+      if (arrTimedMatch[3]) briefing.arrName = arrTimedMatch[3].trim();
+    } else if (arrNamedMatch && !headerStopWords.has(arrNamedMatch[1].toUpperCase())) {
+      briefing.isForeflight = true;
+      if (!briefing.arrIcao) briefing.arrIcao = arrNamedMatch[1].toUpperCase();
+      if (arrNamedMatch[2] && !/NOTAM|[A-Z][0-9]{4}\/[0-9]{2}/i.test(arrNamedMatch[2])) briefing.arrName = arrNamedMatch[2].trim();
+    }
+
+    const altMatch = cleaned.match(/(?:^|\n)[ \t]*Alternate(?:[ \t]+airport|[ \t]+NOTAMs)?[ \t]*(?:\([0-9]{4}Z\))?[ \t]*[:\-]?[ \t]*(?:\n[ \t]*)?([A-Z]{4})(?:(?:[ \t]*-[ \t]*|[ \t]+)([A-Za-z][^\n\r]*))?(?=[ \t]*\n|$)/i);
+    if (altMatch && /^[A-Z]{4}$/.test(altMatch[1].toUpperCase()) && !headerStopWords.has(altMatch[1].toUpperCase())) {
+      briefing.altIcao = altMatch[1].toUpperCase();
+      if (altMatch[2] && !/NOTAM|[A-Z][0-9]{4}\/[0-9]{2}/i.test(altMatch[2])) briefing.altName = altMatch[2].trim();
+    }
+
+    if (!briefing.flightDateStr) {
+      const genericDateMatch = topBannerSlice.match(/\b([0-9]{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+20[2-3][0-9]|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+[0-9]{1,2},?\s+20[2-3][0-9]|20[2-3][0-9]-[0-9]{2}-[0-9]{2})\b/i);
+      if (genericDateMatch) {
+        briefing.flightDateStr = genericDateMatch[1].trim();
+      }
+    }
+    if (!briefing.depTimeUtcStr) {
+      const genericTimeMatch = topBannerSlice.match(/\b([0-9]{2}:[0-9]{2})\s*(?:UTC|Z)\b/i) ||
+                               topBannerSlice.match(/\b([0-9]{2})([0-9]{2})\s*(?:UTC|Z)\b/i);
+      if (genericTimeMatch) {
+        briefing.depTimeUtcStr = genericTimeMatch[2]
+          ? `${genericTimeMatch[1]}:${genericTimeMatch[2]}Z`
+          : `${genericTimeMatch[1]}Z`;
       }
     }
 
     if (briefing.flightDateStr && briefing.depTimeUtcStr) {
       briefing.depTimeUtc = this.parseDateWithTime(briefing.flightDateStr, briefing.depTimeUtcStr);
+    } else if (briefing.flightDateStr) {
+      briefing.depTimeUtc = this.parseDateWithTime(briefing.flightDateStr, '12:00Z');
     }
     if (briefing.flightDateStr && briefing.arrTimeUtcStr) {
       briefing.arrTimeUtc = this.parseDateWithTime(briefing.flightDateStr, briefing.arrTimeUtcStr);
+      // Handle overnight flights crossing midnight UTC
+      if (briefing.depTimeUtc && briefing.arrTimeUtc && briefing.arrTimeUtc < briefing.depTimeUtc) {
+        briefing.arrTimeUtc = new Date(briefing.arrTimeUtc.getTime() + 24 * 3600000);
+      }
+    } else if (briefing.depTimeUtc) {
+      briefing.arrTimeUtc = new Date(briefing.depTimeUtc.getTime() + 3 * 3600000);
     }
 
-    // 3. Extract METARs (deduplicated by station)
+    // 3. Extract METARs (deduplicated by station; supports "METAR KTEB 060851Z..." or standalone "KTEB 060851Z 28012KT...")
     const seenMetars = new Set();
-    const metarMatches = cleaned.matchAll(/(?:METAR\s*●?\s*)?(METAR\s+([A-Z0-9]{4})\s+([0-9]{6}Z)\s+[^\n\r]+)/gi);
+    const metarMatches = [
+      ...cleaned.matchAll(/(?:METAR\s*●?\s*)?(METAR\s+(?:COR\s+|AUTO\s+)?([A-Z0-9]{4})\s+([0-9]{6}Z)\s+[^\n\r]+)/gi),
+      ...cleaned.matchAll(/(?:^|\n)\s*(([A-Z]{4})\s+([0-9]{6}Z)\s+(?:AUTO\s+|COR\s+)?(?:[0-9]{5}(?:G[0-9]{2})?KT|VRB[0-9]{2}KT|00000KT)[^\n\r]+)/gi)
+    ];
     for (const m of metarMatches) {
-      const fullMetar = m[1].trim();
+      const fullMetar = m[1].trim().startsWith('METAR') ? m[1].trim() : `METAR ${m[1].trim()}`;
       const station = m[2].toUpperCase();
       if (!seenMetars.has(station)) {
         seenMetars.add(station);
@@ -151,19 +329,39 @@ export class NotamParser {
       }
     }
 
-    // 4. Extract TAFs (associate with station in sequence)
-    const tafMatches = [...cleaned.matchAll(/TAF\s*●?\s*([0-9]{6}Z\s+[0-9]{4}\/[0-9]{4}\s+[^\n\r]+(?:\n\s*●[^\n\r]+)*)/gi)];
+    // 4. Extract TAFs (match explicit station code or nearest preceding METAR station)
+    const tafMatches = [
+      ...cleaned.matchAll(/TAF(?:\s+AMD|\s+COR)?\s*●?\s*(?:([A-Z]{4})\s+)?([0-9]{6}Z\s+[0-9]{4}\/[0-9]{4}\s+[^\n\r]+(?:\n\s*(?:●|BECMG|TEMPO|FM[0-9]{6}|PROB[0-9]{2})[^\n\r]+)*)/gi),
+      ...cleaned.matchAll(/(?:^|\n)\s*([A-Z]{4})\s+([0-9]{6}Z\s+[0-9]{4}\/[0-9]{4}\s+[^\n\r]+(?:\n\s*(?:●|BECMG|TEMPO|FM[0-9]{6}|PROB[0-9]{2})[^\n\r]+)*)/gi)
+    ];
+    const seenTafs = new Set();
     tafMatches.forEach((m, idx) => {
-      const station = idx === 0 ? briefing.depIcao : (idx === 1 ? briefing.arrIcao : '');
-      briefing.tafs.push({
-        icao: station,
-        raw: m[1].replace(/●/g, ' ').replace(/\s+/g, ' ').trim()
-      });
+      let station = m[1] ? m[1].toUpperCase() : '';
+      if (!station && m.index !== undefined) {
+        // Look backwards up to 600 chars for the station header or METAR
+        const lookback = cleaned.substring(Math.max(0, m.index - 600), m.index);
+        const prevMetar = [...lookback.matchAll(/METAR\s+(?:COR\s+|AUTO\s+)?([A-Z]{4})\b/gi)];
+        if (prevMetar.length > 0) {
+          station = prevMetar[prevMetar.length - 1][1].toUpperCase();
+        }
+      }
+      if (!station) {
+        station = idx === 0 ? briefing.depIcao : (idx === 1 ? briefing.arrIcao : (briefing.metars[idx]?.icao || ''));
+      }
+      const rawTaf = (station ? `${station} ` : '') + m[2].replace(/●/g, ' ').replace(/\s+/g, ' ').trim();
+      const tafKey = `${station}_${m[2].slice(0, 15).trim()}`;
+      if (!seenTafs.has(tafKey)) {
+        seenTafs.add(tafKey);
+        briefing.tafs.push({
+          icao: station,
+          raw: rawTaf
+        });
+      }
     });
 
     // 5. Extract SIGMETs / AIRMETs + Polygon Coordinates
     const seenSigmets = new Set();
-    const sigmetMatches = cleaned.matchAll(/([A-Z0-9]{4})\s+SIGMET\s+([0-9]+)\s+VALID\s+([0-9]{6}\/[0-9]{6})\s+([A-Z0-9]{4})\s*-\s*([\s\S]*?)(?=(?:\n\s*SIGMET|\n\s*No\s+SIGMET|\n\s*NOTAMs|$))/gi);
+    const sigmetMatches = cleaned.matchAll(/([A-Z0-9]{4})\s+SIGMET\s+([A-Z0-9]+)\s+VALID\s+([0-9]{6}\/[0-9]{6})\s+([A-Z0-9]{4})\s*-\s*([\s\S]*?)(?=(?:\n\s*[A-Z0-9]{4}\s+SIGMET|\n\s*SIGMET|\n\s*No\s+SIGMET|\n\s*NOTAMs|$))/gi);
     for (const m of sigmetMatches) {
       const fir = m[1].toUpperCase();
       const num = m[2];
@@ -196,8 +394,11 @@ export class NotamParser {
     }
 
     // 6. Split and Group NOTAMs by ForeFlight Sections if present
-    const sectionPattern = /(?:\n|^)\s*(Departure|Destination|Enroute airport|FIR)\s+([A-Z0-9]{4})(?:\s*-\s*([^\n\r]+))?(?=\s*\n)/g;
+    const sectionPattern = /(?:\n|^)[ \t]*(Departure(?:[ \t]+NOTAMs)?|Destination(?:[ \t]+NOTAMs)?|Alternate(?:[ \t]+airport|[ \t]+NOTAMs)?|Enroute(?:[ \t]+airport|[ \t]*\/[ \t]*FIR[ \t]+NOTAMs)?|FIR)[ \t]*(?:\n[ \t]*|[ \t]+)([A-Z0-9]{4})(?:(?:[ \t]*-[ \t]*|[ \t]+)([^\n\r]+))?(?=[ \t]*\n)/gi;
     const sectionMatches = [...cleaned.matchAll(sectionPattern)];
+
+    const enrouteSet = new Set();
+    const firSet = new Set();
 
     if (sectionMatches.length > 0) {
       briefing.isForeflight = true;
@@ -207,9 +408,32 @@ export class NotamParser {
         const label = cur[1].toUpperCase();
         const sectionType = label.includes('DEP') ? 'DEP'
                           : label.includes('DEST') ? 'ARR'
-                          : label.includes('ENROUTE') ? 'ENROUTE' : 'FIR';
+                          : label.includes('ALT') ? 'ENROUTE'
+                          : (label.includes('ENROUTE') && !label.includes('FIR')) ? 'ENROUTE' : 'FIR';
         const icao = cur[2].toUpperCase();
         const name = cur[3] ? cur[3].trim() : '';
+
+        // Populate top-level briefing stations from section headers if not already set
+        if (sectionType === 'DEP') {
+          if (!briefing.depIcao) briefing.depIcao = icao;
+          if (name && !briefing.depName) briefing.depName = name;
+        } else if (sectionType === 'ARR') {
+          if (!briefing.arrIcao) briefing.arrIcao = icao;
+          if (name && !briefing.arrName) briefing.arrName = name;
+        } else if (label.includes('ALT')) {
+          if (!briefing.altIcao) briefing.altIcao = icao;
+          if (name && !briefing.altName) briefing.altName = name;
+          enrouteSet.add(icao);
+        } else if (sectionType === 'ENROUTE') {
+          enrouteSet.add(icao);
+        } else if (sectionType === 'FIR') {
+          firSet.add(icao);
+        }
+
+        // Update AIRPORT_COORDS_DB station name if already in DB
+        if (sectionType !== 'FIR' && name && AIRPORT_COORDS_DB[icao]) {
+          AIRPORT_COORDS_DB[icao].name = name;
+        }
 
         const startIdx = cur.index + cur[0].length;
         const endIdx = next ? next.index : cleaned.length;
@@ -232,12 +456,21 @@ export class NotamParser {
           const parsed = this.parseNotam(block, icao);
           parsed.sectionType = sectionType;
           parsed.sectionIcao = icao;
-          parsed.stationName = name;
+          parsed.stationName = name || (AIRPORT_COORDS_DB[icao] ? AIRPORT_COORDS_DB[icao].name : '');
+          if (parsed.fir && /^[A-Z]{4}$/.test(parsed.fir)) {
+            firSet.add(parsed.fir);
+            if (sectionType !== 'FIR' && parsed.icao && parsed.icao !== parsed.fir) {
+              briefing.stationFirMap[parsed.icao] = parsed.fir;
+            }
+          }
+          // Ensure dynamically harvested airport coordinates get the human-readable station name
+          if (sectionType !== 'FIR' && name && AIRPORT_COORDS_DB[icao]) {
+            AIRPORT_COORDS_DB[icao].name = name;
+          }
           if (sectionType === 'FIR') {
             parsed.subLocation = parsed.icao !== icao ? parsed.icao : '';
             parsed.icao = icao;
           }
-          this.enrichNotamDistance(parsed, briefing.depIcao, briefing.arrIcao);
           return parsed;
         });
 
@@ -257,14 +490,67 @@ export class NotamParser {
       briefing.rawNotamCount = rawNotamBlocks.length;
       const parsedNotams = rawNotamBlocks.map(block => {
         const parsed = this.parseNotam(block, briefing.depIcao || '');
-        this.enrichNotamDistance(parsed, briefing.depIcao, briefing.arrIcao);
+        if (parsed.fir && /^[A-Z]{4}$/.test(parsed.fir)) {
+          firSet.add(parsed.fir);
+          if (parsed.icao && parsed.icao !== parsed.fir) {
+            briefing.stationFirMap[parsed.icao] = parsed.fir;
+          }
+        }
         return parsed;
       });
       briefing.allNotams = this.deduplicateNotams(parsedNotams);
     }
 
+    // Also collect any FIRs referenced on Q-lines across all parsed NOTAMs
+    briefing.allNotams.forEach(n => {
+      if (n.fir && /^[A-Z]{4}$/.test(n.fir)) {
+        firSet.add(n.fir);
+        if (n.icao && n.icao !== n.fir) {
+          briefing.stationFirMap[n.icao] = n.fir;
+        }
+      }
+    });
+
+    // If depIcao/arrIcao were still not resolved, infer from aerodrome METARs or non-FIR NOTAM ICAOs
+    if (!briefing.depIcao || !briefing.arrIcao) {
+      const distinctAerodromes = [
+        ...briefing.metars.map(m => m.icao),
+        ...briefing.allNotams.map(n => n.icao).filter(c => !firSet.has(c))
+      ].filter(c => /^[A-Z]{4}$/.test(c) && !firSet.has(c));
+      const uniqueStations = [...new Set(distinctAerodromes)];
+      if (!briefing.depIcao && uniqueStations[0]) briefing.depIcao = uniqueStations[0];
+      const arrCandidates = uniqueStations.filter(c => c !== briefing.depIcao && c !== briefing.altIcao);
+      if (!briefing.arrIcao && arrCandidates[0]) briefing.arrIcao = arrCandidates[0];
+      if (!briefing.arrIcao && uniqueStations[1]) briefing.arrIcao = uniqueStations[1];
+      if (!briefing.arrIcao && uniqueStations[0]) briefing.arrIcao = uniqueStations[0];
+      arrCandidates.slice(1).forEach(st => enrouteSet.add(st));
+    }
+
+    // Fallback names from AIRPORT_COORDS_DB if not extracted from text
+    if (briefing.depIcao && !briefing.depName && AIRPORT_COORDS_DB[briefing.depIcao]) {
+      briefing.depName = AIRPORT_COORDS_DB[briefing.depIcao].name;
+    }
+    if (briefing.arrIcao && !briefing.arrName && AIRPORT_COORDS_DB[briefing.arrIcao]) {
+      briefing.arrName = AIRPORT_COORDS_DB[briefing.arrIcao].name;
+    }
+
+    briefing.enrouteIcaos = Array.from(enrouteSet).filter(c => c !== briefing.depIcao && c !== briefing.arrIcao);
+    if (!briefing.altIcao && briefing.enrouteIcaos.length > 0) {
+      briefing.altIcao = briefing.enrouteIcaos[0];
+    }
+    briefing.firIcaos = Array.from(firSet);
+    briefing.hasFlightEndpoints = Boolean(briefing.depIcao || briefing.arrIcao);
+    if (briefing.depIcao && briefing.arrIcao) {
+      briefing.route = `${briefing.depIcao} — ${briefing.arrIcao}`;
+    }
+
+    // Now that all sections (and dynamic Q-line airport coordinates) have been parsed, enrich distances
+    briefing.allNotams.forEach(n => {
+      this.enrichNotamDistance(n, briefing.depIcao, briefing.arrIcao);
+    });
+
     // 7. Extract Route Profile & Waypoints
-    briefing.routeProfile = this.extractRouteProfile(cleaned, briefing.depIcao, briefing.arrIcao);
+    briefing.routeProfile = this.extractRouteProfile(cleaned, briefing.depIcao, briefing.arrIcao, briefing);
 
     return briefing;
   }
@@ -272,15 +558,17 @@ export class NotamParser {
   /**
    * Extract Route Profile, Waypoints, Cruise FL, Tropopause, and TOC/TOD from ForeFlight briefing.
    */
-  static extractRouteProfile(cleanedText, depIcao, arrIcao) {
+  static extractRouteProfile(cleanedText, depIcao, arrIcao, briefing = null) {
     const dep = (depIcao || 'SBJH').toUpperCase();
     const arr = (arrIcao || 'SGAS').toUpperCase();
 
-    const flMatch = cleanedText.match(/WIND\/TEMP\/TURB\s+FL\s*([0-9]{3})/i);
-    const cruiseFl = flMatch ? `FL${flMatch[1]}` : 'FL470';
+    const flMatch = cleanedText.match(/WIND\/TEMP\/TURB\s+FL\s*([0-9]{3})/i) ||
+                    cleanedText.match(/\bCRUISE\s+FL\s*([0-9]{3})\b/i);
+    const cruiseFl = flMatch ? `FL${flMatch[1]}` : 'FL450';
+    const cruiseFlNum = flMatch ? flMatch[1] : '450';
 
     const tropoMatch = cleanedText.match(/Tropopause\s+FL\s+([0-9\s]+)/i);
-    let tropoRange = 'FL500–545';
+    let tropoRange = 'FL480–530';
     if (tropoMatch) {
       const nums = tropoMatch[1].trim().split(/\s+/).map(Number).filter(n => n > 200 && n < 700);
       if (nums.length > 0) {
@@ -291,10 +579,10 @@ export class NotamParser {
     // If SBJH -> SGAS, build exact ForeFlight waypoint timeline from Page 1 & 2
     if (dep === 'SBJH' && arr === 'SGAS') {
       return {
-        cruiseFl,
-        tropoRange,
+        cruiseFl: flMatch ? `FL${flMatch[1]}` : 'FL470',
+        tropoRange: tropoMatch ? tropoRange : 'FL500–545',
         climbNote: 'Crosses SBCW Severe Icing layer (FL140–210) between 14:05Z–14:09Z (~4 min in climb).',
-        cruiseNote: `Smooth air at ${cruiseFl} (OAT -65°C, well below ${tropoRange} Tropopause). Light-mod turb (EDR 0.3) remains below at FL300 near BOLIR.`,
+        cruiseNote: `Smooth air at ${flMatch ? `FL${flMatch[1]}` : 'FL470'} (OAT -65°C, well below ${tropoRange} Tropopause). Light-mod turb (EDR 0.3) remains below at FL300 near BOLIR.`,
         waypoints: [
           { id: 'SBJH', time: '14:00Z', fl: '025', phase: 'DEP', lat: -23.4281, lon: -47.1653 },
           { id: 'EGIGI', time: '14:04Z', fl: '130', phase: 'CLB', lat: -23.3500, lon: -47.5200 },
@@ -312,28 +600,61 @@ export class NotamParser {
       };
     }
 
-    // Generic route profile between dep and arr if known in DB
+    // Dynamic route profile for ANY other uploaded or selected flight
     const depCoord = AIRPORT_COORDS_DB[dep];
     const arrCoord = AIRPORT_COORDS_DB[arr];
     if (depCoord && arrCoord) {
-      const tocLat = depCoord.lat + (arrCoord.lat - depCoord.lat) * 0.22;
-      const tocLon = depCoord.lon + (arrCoord.lon - depCoord.lon) * 0.22;
-      const midLat = depCoord.lat + (arrCoord.lat - depCoord.lat) * 0.5;
-      const midLon = depCoord.lon + (arrCoord.lon - depCoord.lon) * 0.5;
-      const todLat = depCoord.lat + (arrCoord.lat - depCoord.lat) * 0.80;
-      const todLon = depCoord.lon + (arrCoord.lon - depCoord.lon) * 0.80;
+      const etdLabel = (briefing && briefing.depTimeUtcStr) ? briefing.depTimeUtcStr : 'ETD';
+      const etaLabel = (briefing && briefing.arrTimeUtcStr) ? briefing.arrTimeUtcStr : 'ETA';
+      const sigmets = (briefing && briefing.sigmets) || [];
+      const climbNote = sigmets.length > 0
+        ? `Active SIGMET (${sigmets[0].fir}: ${sigmets[0].phenomenon} ${sigmets[0].flRange || ''}) — Monitor Wing/Cowl Anti-Ice & weather radar.`
+        : `Standard G650ER Mach 0.85 / 300 KIAS climb schedule (${dep} ➔ ${arr}).`;
+      const cruiseNote = `High-altitude Mach 0.85–0.88 executive cruise at ${cruiseFl} (Tropopause ${tropoRange}).`;
+
+      const tocLat = Number((depCoord.lat + (arrCoord.lat - depCoord.lat) * 0.20).toFixed(4));
+      const tocLon = Number((depCoord.lon + (arrCoord.lon - depCoord.lon) * 0.20).toFixed(4));
+      const todLat = Number((depCoord.lat + (arrCoord.lat - depCoord.lat) * 0.82).toFixed(4));
+      const todLon = Number((depCoord.lon + (arrCoord.lon - depCoord.lon) * 0.82).toFixed(4));
+
+      const waypoints = [
+        { id: dep, time: etdLabel, fl: 'GND', phase: 'DEP', lat: depCoord.lat, lon: depCoord.lon },
+        { id: 'TOC', time: '+18m', fl: '430', phase: 'TOC', lat: tocLat, lon: tocLon }
+      ];
+
+      // Include up to 3 intermediate en-route stations along the corridor if their coordinates are known
+      const enrouteCodes = (briefing && Array.isArray(briefing.enrouteIcaos)) ? briefing.enrouteIcaos.slice(0, 3) : [];
+      if (enrouteCodes.length > 0) {
+        enrouteCodes.forEach((code, idx) => {
+          const frac = (idx + 1) / (enrouteCodes.length + 1);
+          const interpLat = Number((tocLat + (todLat - tocLat) * frac).toFixed(4));
+          const interpLon = Number((tocLon + (todLon - tocLon) * frac).toFixed(4));
+          waypoints.push({
+            id: code,
+            time: 'CRZ',
+            fl: cruiseFlNum,
+            phase: 'CRZ',
+            lat: interpLat,
+            lon: interpLon
+          });
+        });
+      } else {
+        const midLat = Number((depCoord.lat + (arrCoord.lat - depCoord.lat) * 0.50).toFixed(4));
+        const midLon = Number((depCoord.lon + (arrCoord.lon - depCoord.lon) * 0.50).toFixed(4));
+        waypoints.push({ id: 'MID', time: 'CRZ', fl: cruiseFlNum, phase: 'CRZ', lat: midLat, lon: midLon });
+      }
+
+      waypoints.push(
+        { id: 'TOD', time: '-20m', fl: cruiseFlNum, phase: 'TOD', lat: todLat, lon: todLon },
+        { id: arr, time: etaLabel, fl: 'GND', phase: 'ARR', lat: arrCoord.lat, lon: arrCoord.lon }
+      );
+
       return {
-        cruiseFl: 'FL450',
-        tropoRange: 'FL480–520',
-        climbNote: 'Standard G650ER Mach 0.85 / 300 KIAS climb schedule.',
-        cruiseNote: 'High-altitude Mach 0.85–0.88 executive cruise profile.',
-        waypoints: [
-          { id: dep, time: 'ETD', fl: 'GND', phase: 'DEP', lat: depCoord.lat, lon: depCoord.lon },
-          { id: 'TOC', time: '+18m', fl: '430', phase: 'TOC', lat: tocLat, lon: tocLon },
-          { id: 'MID', time: 'CRZ', fl: '450', phase: 'CRZ', lat: midLat, lon: midLon },
-          { id: 'TOD', time: '-22m', fl: '450', phase: 'TOD', lat: todLat, lon: todLon },
-          { id: arr, time: 'ETA', fl: 'GND', phase: 'ARR', lat: arrCoord.lat, lon: arrCoord.lon }
-        ]
+        cruiseFl,
+        tropoRange,
+        climbNote,
+        cruiseNote,
+        waypoints
       };
     }
 

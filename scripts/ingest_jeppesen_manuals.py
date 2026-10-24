@@ -312,6 +312,231 @@ def build_fir_rules(extracted_meta: Dict[str, Any]) -> Dict[str, Any]:
             },
             "adizKey": None
         },
+        "SBRF": {
+            "firCode": "SBRF",
+            "name": "Recife FIR (Brazil)",
+            "region": "South America",
+            "cpdlc": {
+                "available": True,
+                "adsC": True,
+                "logonId": "SBRF",
+                "systemType": "FANS 1/A",
+                "minFlightLevel": "FL250",
+                "logonTiming": "10 to 25 minutes prior to entering SBRF FIR",
+                "logonWindowMin": [10, 25],
+                "notes": "FANS 1/A CPDLC operational in Recife upper sectors and EUR/SAM transition."
+            },
+            "pbnAdsB": {
+                "adsBMandatory": True,
+                "adsBNote": "1090ES ADS-B Out and Mode S required in RVSM airspace (FL290-FL410).",
+                "rnpRequired": "RNAV 5 / RNP 2 continental & RNP 10 coastal transition",
+                "lateralSeparation": "Radar / ADS-B surveillance"
+            },
+            "specialProcedures": {
+                "ifbp1269": False,
+                "slop": {
+                    "authorized": True,
+                    "offsetRule": "Centerline or 0.1 NM increments up to 2.0 NM right in oceanic/remote transition sectors",
+                    "IncrementNm": 0.1,
+                    "maxOffsetNm": 2.0
+                },
+                "brazilContingencyPlan": {
+                    "active": True,
+                    "tibaFreq": "123.45 MHz",
+                    "emergencyFreq": "121.5 MHz",
+                    "summary": "DECEA Contingency Plan applies: TIBA on 123.45 MHz, monitor 121.5 MHz, CGNA coordination mandatory."
+                },
+                "nicosiaRelay": False
+            },
+            "ssr": {
+                "uncontrolledVfrSquawk": "2000",
+                "entryUnassignedSquawk": "2000",
+                "emergencySquawks": ["7500", "7600", "7700"],
+                "transponderFailureRule": "Standard DECEA rule: proceed to first planned landing aerodrome for mandatory transponder repair."
+            },
+            "adizKey": None
+        },
+        "KZMA": {
+            "firCode": "KZMA",
+            "name": "Miami ARTCC / Oceanic FIR (US / Caribbean / WAT)",
+            "region": "North America / Caribbean",
+            "cpdlc": {
+                "available": True,
+                "adsC": True,
+                "logonId": "KZMA",
+                "systemType": "FANS 1/A+ (Domestic CPDLC & WAT Oceanic)",
+                "minFlightLevel": "FL180+",
+                "logonTiming": "15 to 45 minutes prior to entering KZMA Oceanic / WAT CTA",
+                "logonWindowMin": [15, 45],
+                "notes": "FANS 1/A+ CPDLC & ADS-C active in Miami Oceanic and West Atlantic Route System (WAT)."
+            },
+            "pbnAdsB": {
+                "adsBMandatory": True,
+                "adsBNote": "14 CFR 91.225: 1090ES ADS-B Out mandatory Class A (FL180+). RNP 10 (50 NM) or RNP 4 (23 NM) required in WAT CTA.",
+                "rnpRequired": "RNP 10 or RNP 4 (WAT Oceanic) / RNAV 2 (Domestic Q-Routes)",
+                "lateralSeparation": "50 NM (RNP 10) / 23 NM (RNP 4) in WAT CTA"
+            },
+            "specialProcedures": {
+                "ifbp1269": False,
+                "slop": {
+                    "authorized": True,
+                    "offsetRule": "SLOP authorized in Miami Oceanic CTA: centerline or 0.1 NM increments up to 2.0 NM right of track",
+                    "IncrementNm": 0.1,
+                    "maxOffsetNm": 2.0
+                },
+                "brazilContingencyPlan": False,
+                "nicosiaRelay": False
+            },
+            "ssr": {
+                "uncontrolledVfrSquawk": "1200",
+                "entryUnassignedSquawk": "2000",
+                "emergencySquawks": ["7500", "7600", "7700"],
+                "transponderFailureRule": "Maintain assigned discrete Mode S/3A code; advise Miami Center immediately on transponder or ADS-B failure."
+            },
+            "adizKey": "US_ALASKA"
+        },
+        "KZLA": {
+            "firCode": "KZLA",
+            "name": "Los Angeles ARTCC (United States)",
+            "region": "North America",
+            "cpdlc": {
+                "available": True,
+                "adsC": False,
+                "logonId": "KUSA",
+                "systemType": "FANS 1/A+ (US Domestic Enroute CPDLC)",
+                "minFlightLevel": "FL180+",
+                "logonTiming": "Logon to KUSA prior to departure (DCL) or in climb above FL100",
+                "logonWindowMin": [10, 30],
+                "notes": "US Domestic CPDLC uses single national logon 'KUSA'."
+            },
+            "pbnAdsB": {
+                "adsBMandatory": True,
+                "adsBNote": "14 CFR 91.225: 1090ES ADS-B Out mandatory in Class A/B/C and above 10,000 ft MSL.",
+                "rnpRequired": "RNAV 2 (Q-Routes) / RNAV 1 (SoCal Metroplex SIDs/STARs)",
+                "lateralSeparation": "3 NM / 5 NM Radar & ADS-B"
+            },
+            "specialProcedures": {
+                "ifbp1269": False,
+                "slop": False,
+                "brazilContingencyPlan": False,
+                "nicosiaRelay": False
+            },
+            "ssr": {
+                "uncontrolledVfrSquawk": "1200",
+                "entryUnassignedSquawk": "1200",
+                "emergencySquawks": ["7500", "7600", "7700"],
+                "transponderFailureRule": "Advise SoCal Approach / LA Center immediately; ATC clearance required to continue in Class A/B airspace."
+            },
+            "adizKey": "US_ALASKA"
+        },
+        "LECM": {
+            "firCode": "LECM",
+            "name": "Madrid FIR / UIR (Spain)",
+            "region": "Europe",
+            "cpdlc": {
+                "available": True,
+                "adsC": False,
+                "logonId": "LECM",
+                "systemType": "ATN B1 (VDL Mode 2)",
+                "minFlightLevel": "FL285",
+                "logonTiming": "10 to 15 minutes prior to entering LECM UIR above FL285",
+                "logonWindowMin": [10, 15],
+                "notes": "ATN B1 CPDLC operational above FL285; 8.33 kHz VHF spacing mandatory."
+            },
+            "pbnAdsB": {
+                "adsBMandatory": True,
+                "adsBNote": "EU Surveillance Mandate: Mode S EHS + 1090ES ADS-B Out required.",
+                "rnpRequired": "RNAV 5 / Free Route Airspace (HISPAFRA)",
+                "lateralSeparation": "5 NM Radar / ADS-B"
+            },
+            "specialProcedures": {
+                "ifbp1269": False,
+                "slop": False,
+                "brazilContingencyPlan": False,
+                "nicosiaRelay": False,
+                "customAlerts": [
+                    "Jeppesen Europe NCN p.118: Multiple Spanish airports (LEMD, LEBL, LEPA, LEAL, LEZL) have EGNOS/SBAS LPV approaches suspended until Sep 2027."
+                ]
+            },
+            "ssr": {
+                "uncontrolledVfrSquawk": "7000",
+                "entryUnassignedSquawk": "2000",
+                "emergencySquawks": ["7500", "7600", "7700"],
+                "transponderFailureRule": "Standard European SERA/ICAO rules: squawk 7000 VFR / 2000 IFR unassigned."
+            },
+            "adizKey": None
+        },
+        "EDGG": {
+            "firCode": "EDGG",
+            "name": "Langen FIR / Karlsruhe UIR (EDUU - Germany)",
+            "region": "Europe",
+            "cpdlc": {
+                "available": True,
+                "adsC": False,
+                "logonId": "EDUU",
+                "systemType": "ATN B1 (VDL Mode 2)",
+                "minFlightLevel": "FL285",
+                "logonTiming": "10 to 15 minutes prior to entering Karlsruhe UIR (EDUU) above FL285",
+                "logonWindowMin": [10, 15],
+                "notes": "Logon ID 'EDUU' applies for Karlsruhe UIR above FL285."
+            },
+            "pbnAdsB": {
+                "adsBMandatory": True,
+                "adsBNote": "EU 2020/587: 1090ES ADS-B Out & Mode S EHS mandatory.",
+                "rnpRequired": "RNAV 5 / RNP 1 (Terminal)",
+                "lateralSeparation": "3 NM / 5 NM Radar"
+            },
+            "specialProcedures": {
+                "ifbp1269": False,
+                "slop": False,
+                "brazilContingencyPlan": False,
+                "nicosiaRelay": False
+            },
+            "ssr": {
+                "uncontrolledVfrSquawk": "7000",
+                "entryUnassignedSquawk": "2000",
+                "emergencySquawks": ["7500", "7600", "7700"],
+                "transponderFailureRule": "Standard DFS/SERA rules: squawk 7000 VFR; advise ATC immediately on Mode S failure."
+            },
+            "adizKey": None
+        },
+        "OMAE": {
+            "firCode": "OMAE",
+            "name": "Emirates FIR (United Arab Emirates)",
+            "region": "Middle East",
+            "cpdlc": {
+                "available": False,
+                "adsC": False,
+                "logonId": "VHF Voice (Emirates Radar)",
+                "systemType": "VHF Voice / Mode S Radar",
+                "minFlightLevel": "FL150+",
+                "logonTiming": "Contact Emirates Radar on assigned sector VHF 10 mins prior to boundary",
+                "logonWindowMin": [10, 15],
+                "notes": "High-density RNAV 1 structured route network; strict speed and level constraints apply."
+            },
+            "pbnAdsB": {
+                "adsBMandatory": True,
+                "adsBNote": "UAE GCAA Mandate: 1090ES ADS-B Out and Mode S mandatory across all controlled airspace.",
+                "rnpRequired": "RNAV 1 (RNP 1) on all UAE ATS routes and SIDs/STARs",
+                "lateralSeparation": "3 NM / 5 NM Multi-Radar & ADS-B"
+            },
+            "specialProcedures": {
+                "ifbp1269": False,
+                "slop": False,
+                "brazilContingencyPlan": False,
+                "nicosiaRelay": False,
+                "customAlerts": [
+                    "Monitor GNSS/GPS integrity across Persian Gulf / Strait of Hormuz sectors; cross-check IRS/DME-DME position updating."
+                ]
+            },
+            "ssr": {
+                "uncontrolledVfrSquawk": "7000",
+                "entryUnassignedSquawk": "2000",
+                "emergencySquawks": ["7500", "7600", "7700"],
+                "transponderFailureRule": "Advise Emirates Radar immediately; Mode S + ADS-B Out mandatory in UAE airspace."
+            },
+            "adizKey": None
+        },
         "SGFA": {
             "firCode": "SGFA",
             "name": "Asuncion FIR (Paraguay)",
@@ -1957,6 +2182,238 @@ def build_aerodrome_notices(extracted_meta: Dict[str, Any]) -> Dict[str, Any]:
                 }
             ],
             "taxiRestrictions": "Avoid RWY 16L/34R (light GA training runway, 4,013 ft); use RWY 16R/34L and TWY A/B."
+        },
+        "SBGR": {
+            "icao": "SBGR",
+            "name": "São Paulo / Guarulhos — Gov. André Franco Montoro Intl",
+            "country": "Brazil",
+            "fir": "SBCW",
+            "dclAftn": "SBGRZPZX (ACARS DCL Logon: SBGR — 30 to 10 mins prior to EOBT)",
+            "wingspanLimitM": 80.0,
+            "g650erWingspanStatus": "COMPLIANT (Code F Aerodrome — G650ER 30.36m)",
+            "ccnNotices": [
+                {
+                    "id": "CCN-SAM-SBGR-01",
+                    "type": "CCN",
+                    "severity": "CAUTION",
+                    "title": "SBGR Simultaneous Parallel Operations & HIRL/ALS Maintenance Windows",
+                    "detail": "Independent/dependent parallel approaches on RWY 10L/10R & 28L/28R require strict FMS RNAV 1 STAR speed adherence and prompt runway vacation via high-speed exits.",
+                    "fmsDiscrepancy": False
+                }
+            ],
+            "ncnNotices": [
+                {
+                    "id": "NCN-2610-SBGR-01",
+                    "type": "NCN",
+                    "cycle": "2610/2611",
+                    "severity": "INFO",
+                    "title": "RNP AR / ILS CAT II/III RWY 10R/28L — Transition Altitude 8000 ft",
+                    "detail": "Verify Transition Altitude 8000 ft in São Paulo TMA and cross-check active WIP NOTAMs on TWY AA/BB/EE.",
+                    "fmsDiscrepancy": False
+                }
+            ],
+            "taxiRestrictions": "GAT / Executive Apron requires Follow-Me guidance and pushback clearance on Ground 121.7 / 121.9 MHz."
+        },
+        "SBSP": {
+            "icao": "SBSP",
+            "name": "São Paulo / Congonhas",
+            "country": "Brazil",
+            "fir": "SBCW",
+            "dclAftn": "SBSPZPZX (ACARS DCL Logon: SBSP / Delivery 121.05 MHz)",
+            "wingspanLimitM": 36.0,
+            "g650erWingspanStatus": "COMPLIANT WITH PERFORMANCE CHECK (1,940m EMAS Runway — Wet/Dry Landing Distance Check Mandatory)",
+            "ccnNotices": [
+                {
+                    "id": "CCN-SAM-SBSP-01",
+                    "type": "CCN",
+                    "severity": "WARNING",
+                    "title": "Congonhas (SBSP) Slot Mandate, 2300L–0600L Curfew & EMAS Overrun Beds",
+                    "detail": "RWY 17R/35L (1,940m x 45m) equipped with EMAS. Strict CGNA slot tolerance and noise curfew (0200Z–0900Z) enforced.",
+                    "fmsDiscrepancy": False
+                }
+            ],
+            "ncnNotices": [],
+            "taxiRestrictions": "General Aviation patios restricted by wingspan; verify FBO parking assignment prior to arrival."
+        },
+        "SBKP": {
+            "icao": "SBKP",
+            "name": "Campinas / Viracopos Intl",
+            "country": "Brazil",
+            "fir": "SBCW",
+            "dclAftn": "SBKPZPZX (ACARS DCL Logon: SBKP / Delivery 121.95 MHz)",
+            "wingspanLimitM": 80.0,
+            "g650erWingspanStatus": "COMPLIANT (Code F Aerodrome — 3,240m x 45m RWY 15/33)",
+            "ccnNotices": [
+                {
+                    "id": "CCN-SAM-SBKP-01",
+                    "type": "CCN",
+                    "severity": "INFO",
+                    "title": "Campinas (SBKP) 24-Hour Customs & Primary São Paulo TMA Alternate",
+                    "detail": "H24 international customs, RFF Cat 9, and ILS CAT I/II RWY 15 available.",
+                    "fmsDiscrepancy": False
+                }
+            ],
+            "ncnNotices": [],
+            "taxiRestrictions": "Follow standard taxiway routing to Executive/FBO aprons via TWY A/B/C."
+        },
+        "SBRJ": {
+            "icao": "SBRJ",
+            "name": "Rio de Janeiro / Santos Dumont",
+            "country": "Brazil",
+            "fir": "SBCW",
+            "dclAftn": "SBRJZPZX (ACARS DCL Logon: SBRJ / Delivery 121.7 MHz)",
+            "wingspanLimitM": 36.0,
+            "g650erWingspanStatus": "CRITICAL RUNWAY LENGTH (1,323m RWY 02R/20L — Prefer SBGL Galeão for G650ER Operations!)",
+            "ccnNotices": [
+                {
+                    "id": "CCN-SAM-SBRJ-01",
+                    "type": "CCN",
+                    "severity": "CRITICAL",
+                    "title": "SBRJ Short Runway (1,323m / 4,341 ft) & Guanabara Bay Visual / RNP AR Curvature",
+                    "detail": "RWY 02R/20L TORA/LDA is only 1,323m (4,341 ft) with Sugar Loaf (Pão de Açúcar) terrain constraints. Long-range G650ER missions typically utilize Rio Galeão (SBGL, 4,000m runway).",
+                    "fmsDiscrepancy": False
+                }
+            ],
+            "ncnNotices": [],
+            "taxiRestrictions": "Restricted apron span and jet-blast limits on General Aviation ramp."
+        },
+        "SBGL": {
+            "icao": "SBGL",
+            "name": "Rio de Janeiro / Galeão — Antonio Carlos Jobim Intl",
+            "country": "Brazil",
+            "fir": "SBCW",
+            "dclAftn": "SBGLZPZX (ACARS DCL Logon: SBGL / Delivery 121.65 MHz)",
+            "wingspanLimitM": 80.0,
+            "g650erWingspanStatus": "COMPLIANT (Code F Aerodrome — 4,000m RWY 10/28 & 3,180m RWY 15/33)",
+            "ccnNotices": [
+                {
+                    "id": "CCN-SAM-SBGL-01",
+                    "type": "CCN",
+                    "severity": "INFO",
+                    "title": "Rio Galeão (SBGL) Primary International Executive Gateway — H24 Customs & RFF Cat 9",
+                    "detail": "RWY 10/28 (13,123 ft / 4,000m) supports unrestricted MTOW G650ER intercontinental departures.",
+                    "fmsDiscrepancy": False
+                }
+            ],
+            "ncnNotices": [
+                {
+                    "id": "NCN-2610-SBGL-01",
+                    "type": "NCN",
+                    "cycle": "2610/2611",
+                    "severity": "CAUTION",
+                    "title": "Rio TMA Transition Altitude 7000 ft & SBRJ Traffic Separation",
+                    "detail": "Verify FMS Transition Altitude is set to 7000 ft in Rio TMA (vs 8000 ft in São Paulo TMA).",
+                    "fmsDiscrepancy": False
+                }
+            ],
+            "taxiRestrictions": "Executive Aviation Patio (Pátio Aviação Geral) requires follow-me guidance."
+        },
+        "SBBR": {
+            "icao": "SBBR",
+            "name": "Brasília / Pres. Juscelino Kubitschek Intl",
+            "country": "Brazil",
+            "fir": "SBBS",
+            "dclAftn": "SBBRZPZX (ACARS DCL Logon: SBBR / Delivery 121.8 MHz)",
+            "wingspanLimitM": 65.0,
+            "g650erWingspanStatus": "COMPLIANT (Independent Parallel RWY 11L/29R & 11R/29L)",
+            "ccnNotices": [
+                {
+                    "id": "CCN-SAM-SBBR-01",
+                    "type": "CCN",
+                    "severity": "CAUTION",
+                    "title": "Brasília Independent Parallel Approaches & Prohibited Areas SBP-401/402 (Praça dos Três Poderes)",
+                    "detail": "Do not overshoot final turn or penetrate Prohibited Area SBP-401 (Esplanada dos Ministérios) NW of aerodrome.",
+                    "fmsDiscrepancy": False
+                }
+            ],
+            "ncnNotices": [],
+            "taxiRestrictions": "Follow ground control instructions for crossing active parallel runways."
+        },
+        "SBCF": {
+            "icao": "SBCF",
+            "name": "Belo Horizonte / Tancredo Neves — Confins Intl",
+            "country": "Brazil",
+            "fir": "SBBS",
+            "dclAftn": "SBCFZPZX (ACARS DCL Logon: SBCF / Delivery 121.95 MHz)",
+            "wingspanLimitM": 65.0,
+            "g650erWingspanStatus": "COMPLIANT (3,600m x 45m RWY 16/34)",
+            "ccnNotices": [],
+            "ncnNotices": [
+                {
+                    "id": "NCN-2610-SBCF-01",
+                    "type": "NCN",
+                    "cycle": "2610/2611",
+                    "severity": "INFO",
+                    "title": "Belo Horizonte TMA Transition Altitude 8000 ft & High-Elevation Hot/High Performance",
+                    "detail": "Aerodrome elevation 2,715 ft MSL; verify RNP Z / ILS Y RWY 16 minimums.",
+                    "fmsDiscrepancy": False
+                }
+            ],
+            "taxiRestrictions": "Standard Apron 1/2/3 executive parking procedures."
+        },
+        "KMIA": {
+            "icao": "KMIA",
+            "name": "Miami International Airport",
+            "country": "United States",
+            "fir": "KZMA",
+            "dclAftn": "KMIA (CPDLC DCL / ACARS PDC Available — Logon 30 mins prior to EOBT)",
+            "wingspanLimitM": 80.0,
+            "g650erWingspanStatus": "COMPLIANT (Code F Aerodrome)",
+            "ccnNotices": [
+                {
+                    "id": "CCN-NAM-KMIA-01",
+                    "type": "CCN",
+                    "severity": "INFO",
+                    "title": "US CBP General Aviation Clearance & RVSM/WAT Oceanic Transition",
+                    "detail": "Ensure CBP APIS/overflight permit confirmation prior to departure from South America.",
+                    "fmsDiscrepancy": False
+                }
+            ],
+            "ncnNotices": [],
+            "taxiRestrictions": "Signature Flight Support / General Aviation Center (GAC) located on NW side; watch hotspot intersections at RWY 08L/26R & 09/27."
+        },
+        "LSZH": {
+            "icao": "LSZH",
+            "name": "Zurich Airport",
+            "country": "Switzerland",
+            "fir": "LSAS",
+            "dclAftn": "LSZHZTZX (ACARS DCL Logon: LSZH — 25 to 12 mins prior to EOBT)",
+            "wingspanLimitM": 80.0,
+            "g650erWingspanStatus": "COMPLIANT",
+            "ccnNotices": [],
+            "ncnNotices": [
+                {
+                    "id": "NCN-2610-LSZH-01",
+                    "type": "NCN",
+                    "cycle": "2610/2611",
+                    "severity": "CRITICAL",
+                    "title": "Jeppesen Europe NCN p.121: LSZH GLS RWY 14 Suspended — GBAS Out of Service",
+                    "detail": "LSZH Zurich: 'GLS Rwy 14 Apch Proc is suspended due to GBAS out of service (Est 31 Dec 2026).' Do not select GLS RWY 14 from FMS database; use ILS or RNP approaches.",
+                    "fmsDiscrepancy": True
+                }
+            ],
+            "taxiRestrictions": "GAC Sector West apron requires follow-me and strict crossing clearance for RWY 28 / 16."
+        },
+        "OMDB": {
+            "icao": "OMDB",
+            "name": "Dubai International Airport",
+            "country": "United Arab Emirates",
+            "fir": "OMAE",
+            "dclAftn": "OMDBZTZX (ACARS DCL Logon: OMDB — 60 to 15 mins prior to EOBT)",
+            "wingspanLimitM": 80.0,
+            "g650erWingspanStatus": "COMPLIANT",
+            "ccnNotices": [
+                {
+                    "id": "CCN-MEA-OMDB-01",
+                    "type": "CCN",
+                    "severity": "WARNING",
+                    "title": "Dubai closely-spaced parallel runways (12L/30R & 12R/30L) & RNAV 1 Mandate",
+                    "detail": "Strict adherence to RNAV 1 STAR speed constraints and immediate vacation of runway mandatory; executive flights may also be slotted at Al Maktoum Intl (OMDW).",
+                    "fmsDiscrepancy": False
+                }
+            ],
+            "ncnNotices": [],
+            "taxiRestrictions": "Follow-Me / A-SMGCS stop bars active H24; never cross illuminated red stop bars."
         }
     }
 

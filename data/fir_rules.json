@@ -2,7 +2,7 @@
   "_metadata": {
     "source": "Jeppesen Airway Manual (Enroute, Communications, ADS-B, CPDLC & SSR Sections)",
     "cycle": "2610 / 2611 (Eff 15 OCT 2026)",
-    "generatedAt": "2026-10-24T21:12:02.046485+00:00",
+    "generatedAt": "2026-10-24T22:46:41.396284+00:00",
     "ingestedManuals": [
       {
         "name": "Introduction to Jeppesen Navigation Charts.pdf",
@@ -243,6 +243,273 @@
         "7700"
       ],
       "transponderFailureRule": "Maintain Mode A/C 2000 in oceanic airspace for TCAS collision avoidance."
+    },
+    "adizKey": null
+  },
+  "SBRF": {
+    "firCode": "SBRF",
+    "name": "Recife FIR (Brazil)",
+    "region": "South America",
+    "cpdlc": {
+      "available": true,
+      "adsC": true,
+      "logonId": "SBRF",
+      "systemType": "FANS 1/A",
+      "minFlightLevel": "FL250",
+      "logonTiming": "10 to 25 minutes prior to entering SBRF FIR",
+      "logonWindowMin": [
+        10,
+        25
+      ],
+      "notes": "FANS 1/A CPDLC operational in Recife upper sectors and EUR/SAM transition."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "1090ES ADS-B Out and Mode S required in RVSM airspace (FL290-FL410).",
+      "rnpRequired": "RNAV 5 / RNP 2 continental & RNP 10 coastal transition",
+      "lateralSeparation": "Radar / ADS-B surveillance"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": true,
+        "offsetRule": "Centerline or 0.1 NM increments up to 2.0 NM right in oceanic/remote transition sectors",
+        "IncrementNm": 0.1,
+        "maxOffsetNm": 2.0
+      },
+      "brazilContingencyPlan": {
+        "active": true,
+        "tibaFreq": "123.45 MHz",
+        "emergencyFreq": "121.5 MHz",
+        "summary": "DECEA Contingency Plan applies: TIBA on 123.45 MHz, monitor 121.5 MHz, CGNA coordination mandatory."
+      },
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "2000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Standard DECEA rule: proceed to first planned landing aerodrome for mandatory transponder repair."
+    },
+    "adizKey": null
+  },
+  "KZMA": {
+    "firCode": "KZMA",
+    "name": "Miami ARTCC / Oceanic FIR (US / Caribbean / WAT)",
+    "region": "North America / Caribbean",
+    "cpdlc": {
+      "available": true,
+      "adsC": true,
+      "logonId": "KZMA",
+      "systemType": "FANS 1/A+ (Domestic CPDLC & WAT Oceanic)",
+      "minFlightLevel": "FL180+",
+      "logonTiming": "15 to 45 minutes prior to entering KZMA Oceanic / WAT CTA",
+      "logonWindowMin": [
+        15,
+        45
+      ],
+      "notes": "FANS 1/A+ CPDLC & ADS-C active in Miami Oceanic and West Atlantic Route System (WAT)."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "14 CFR 91.225: 1090ES ADS-B Out mandatory Class A (FL180+). RNP 10 (50 NM) or RNP 4 (23 NM) required in WAT CTA.",
+      "rnpRequired": "RNP 10 or RNP 4 (WAT Oceanic) / RNAV 2 (Domestic Q-Routes)",
+      "lateralSeparation": "50 NM (RNP 10) / 23 NM (RNP 4) in WAT CTA"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": true,
+        "offsetRule": "SLOP authorized in Miami Oceanic CTA: centerline or 0.1 NM increments up to 2.0 NM right of track",
+        "IncrementNm": 0.1,
+        "maxOffsetNm": 2.0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "1200",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Maintain assigned discrete Mode S/3A code; advise Miami Center immediately on transponder or ADS-B failure."
+    },
+    "adizKey": "US_ALASKA"
+  },
+  "KZLA": {
+    "firCode": "KZLA",
+    "name": "Los Angeles ARTCC (United States)",
+    "region": "North America",
+    "cpdlc": {
+      "available": true,
+      "adsC": false,
+      "logonId": "KUSA",
+      "systemType": "FANS 1/A+ (US Domestic Enroute CPDLC)",
+      "minFlightLevel": "FL180+",
+      "logonTiming": "Logon to KUSA prior to departure (DCL) or in climb above FL100",
+      "logonWindowMin": [
+        10,
+        30
+      ],
+      "notes": "US Domestic CPDLC uses single national logon 'KUSA'."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "14 CFR 91.225: 1090ES ADS-B Out mandatory in Class A/B/C and above 10,000 ft MSL.",
+      "rnpRequired": "RNAV 2 (Q-Routes) / RNAV 1 (SoCal Metroplex SIDs/STARs)",
+      "lateralSeparation": "3 NM / 5 NM Radar & ADS-B"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": false,
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "1200",
+      "entryUnassignedSquawk": "1200",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Advise SoCal Approach / LA Center immediately; ATC clearance required to continue in Class A/B airspace."
+    },
+    "adizKey": "US_ALASKA"
+  },
+  "LECM": {
+    "firCode": "LECM",
+    "name": "Madrid FIR / UIR (Spain)",
+    "region": "Europe",
+    "cpdlc": {
+      "available": true,
+      "adsC": false,
+      "logonId": "LECM",
+      "systemType": "ATN B1 (VDL Mode 2)",
+      "minFlightLevel": "FL285",
+      "logonTiming": "10 to 15 minutes prior to entering LECM UIR above FL285",
+      "logonWindowMin": [
+        10,
+        15
+      ],
+      "notes": "ATN B1 CPDLC operational above FL285; 8.33 kHz VHF spacing mandatory."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "EU Surveillance Mandate: Mode S EHS + 1090ES ADS-B Out required.",
+      "rnpRequired": "RNAV 5 / Free Route Airspace (HISPAFRA)",
+      "lateralSeparation": "5 NM Radar / ADS-B"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": false,
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false,
+      "customAlerts": [
+        "Jeppesen Europe NCN p.118: Multiple Spanish airports (LEMD, LEBL, LEPA, LEAL, LEZL) have EGNOS/SBAS LPV approaches suspended until Sep 2027."
+      ]
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "7000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Standard European SERA/ICAO rules: squawk 7000 VFR / 2000 IFR unassigned."
+    },
+    "adizKey": null
+  },
+  "EDGG": {
+    "firCode": "EDGG",
+    "name": "Langen FIR / Karlsruhe UIR (EDUU - Germany)",
+    "region": "Europe",
+    "cpdlc": {
+      "available": true,
+      "adsC": false,
+      "logonId": "EDUU",
+      "systemType": "ATN B1 (VDL Mode 2)",
+      "minFlightLevel": "FL285",
+      "logonTiming": "10 to 15 minutes prior to entering Karlsruhe UIR (EDUU) above FL285",
+      "logonWindowMin": [
+        10,
+        15
+      ],
+      "notes": "Logon ID 'EDUU' applies for Karlsruhe UIR above FL285."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "EU 2020/587: 1090ES ADS-B Out & Mode S EHS mandatory.",
+      "rnpRequired": "RNAV 5 / RNP 1 (Terminal)",
+      "lateralSeparation": "3 NM / 5 NM Radar"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": false,
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "7000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Standard DFS/SERA rules: squawk 7000 VFR; advise ATC immediately on Mode S failure."
+    },
+    "adizKey": null
+  },
+  "OMAE": {
+    "firCode": "OMAE",
+    "name": "Emirates FIR (United Arab Emirates)",
+    "region": "Middle East",
+    "cpdlc": {
+      "available": false,
+      "adsC": false,
+      "logonId": "VHF Voice (Emirates Radar)",
+      "systemType": "VHF Voice / Mode S Radar",
+      "minFlightLevel": "FL150+",
+      "logonTiming": "Contact Emirates Radar on assigned sector VHF 10 mins prior to boundary",
+      "logonWindowMin": [
+        10,
+        15
+      ],
+      "notes": "High-density RNAV 1 structured route network; strict speed and level constraints apply."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "UAE GCAA Mandate: 1090ES ADS-B Out and Mode S mandatory across all controlled airspace.",
+      "rnpRequired": "RNAV 1 (RNP 1) on all UAE ATS routes and SIDs/STARs",
+      "lateralSeparation": "3 NM / 5 NM Multi-Radar & ADS-B"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": false,
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false,
+      "customAlerts": [
+        "Monitor GNSS/GPS integrity across Persian Gulf / Strait of Hormuz sectors; cross-check IRS/DME-DME position updating."
+      ]
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "7000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Advise Emirates Radar immediately; Mode S + ADS-B Out mandatory in UAE airspace."
     },
     "adizKey": null
   },

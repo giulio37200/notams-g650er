@@ -1,18 +1,18 @@
 // AeroBrief G650ER - Network-First Service Worker with Offline Cockpit Fallback
-const CACHE_NAME = 'aerobrief-g650er-v7';
+const CACHE_NAME = 'aerobrief-g650er-v8';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './styles.css?v=6',
-  './app.js?v=7',
-  './notam-parser.js?v=7',
-  './g650er-rules.js?v=7',
-  './mock-briefings.js?v=7',
-  './jeppesen-compliance.js?v=7',
-  './data/fir_rules.json?v=7',
-  './data/adiz_rules.json?v=7',
-  './data/aerodrome_notices.json?v=7',
-  './data/aom_tables.json?v=7',
+  './app.js?v=8',
+  './notam-parser.js?v=8',
+  './g650er-rules.js?v=8',
+  './mock-briefings.js?v=8',
+  './jeppesen-compliance.js?v=8',
+  './data/fir_rules.json?v=8',
+  './data/adiz_rules.json?v=8',
+  './data/aerodrome_notices.json?v=8',
+  './data/aom_tables.json?v=8',
   './manifest.json'
 ];
 
