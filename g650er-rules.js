@@ -679,17 +679,44 @@ export class G650ERRulesEngine {
   }
 
   static checkAirspaceHazard(text, notam) {
+    const isFlightCheck = /\bFLTCK\b|FLIGHT\s+CHECK|CALIBRATION/i.test(text);
+    const isLightTest = /TESTING\s+AND\s+USING\s+LIGHTS/i.test(text);
     const isDrone = /FLT\s+RPA|REMOTELY\s+PILOTED|UNMANNED\s+AIRCRAFT|\bDRONE\b|\bUA\b\s+WILL\s+TAKE\s+PLACE|QWULW/i.test(text + ' ' + notam.qCode);
-    const isBalloon = /BALAO\s+LIVRE|BALONISMO|FREE\s+BALLOON|HOT\s+AIR\s+BALLOON|QWLLW/i.test(text + ' ' + notam.qCode);
+    const isBalloon = /BALAO\s+LIVRE|BALONISMO|FREE\s+BALLOON|HOT\s+AIR\s+BALLOON|AEROLOGICAL\s+OBSERVATORY|QWLLW/i.test(text + ' ' + notam.qCode);
     const isFireworks = /FIREWORKS|QWMLW/i.test(text + ' ' + notam.qCode);
     const isParachute = /PARACHUTE|\bPJE\b|MIL\s+PJE|QWPLW/i.test(text + ' ' + notam.qCode);
     const isRestrictedArea = /QRRCA|QRTCA|SGR-\d+|RESTRICTED\s+AREA\s+ACTIVATED/i.test(text + ' ' + notam.qCode);
 
     const upper = notam.upperLimit || 'Low Altitude';
+    const isHighAltitude = /^FL\s*[0-9]{3}/i.test(upper);
     const locNote = text.includes('BARUERI') ? ' (Barueri-SP)'
                   : text.includes('SOROCABA') ? ' (Sorocaba)'
+                  : text.includes('NU GUAZU') ? ' (Ñu Guazú / SGAS Approach)'
                   : text.includes('LUQUE') ? ' (Luque / SGAS Vicinity)'
+                  : text.includes('AEROLOGICAL') ? ' (SGAS Observatory)'
                   : text.includes('SGR-7') ? ' (SGR-7 Hayes)' : '';
+
+    if (isFlightCheck) {
+      return {
+        severity: 'CAUTION',
+        score: 62,
+        title: `Flight Check / Navaid Calibration Aircraft Active (FLTCK)`,
+        shortImpact: `Flight Check Ops (FLTCK)`,
+        summary: `Flight inspection / calibration aircraft operating in terminal airspace during daylight hours (${notam.scheduleRaw || 'SR-SS'}).`,
+        action: `Expect potential ATC vectors or brief holding if calibration aircraft is on final approach.`
+      };
+    }
+
+    if (isLightTest) {
+      return {
+        severity: 'INFO',
+        score: 24,
+        title: `Stadium Light Testing${locNote} — Up to ${upper}`,
+        shortImpact: `Light Testing (≤ ${upper})`,
+        summary: `High-intensity light testing at Olympic Committee complex${locNote} up to ${upper}.`,
+        action: `Routine visual awareness on night final approach.`
+      };
+    }
 
     if (isDrone) {
       return {
@@ -704,23 +731,23 @@ export class G650ERRulesEngine {
 
     if (isBalloon) {
       return {
-        severity: 'ADVISORY',
-        score: 40,
-        title: `Hot Air Balloon Activity${locNote} — Up to ${upper}`,
+        severity: isHighAltitude ? 'CAUTION' : 'ADVISORY',
+        score: isHighAltitude ? 60 : 40,
+        title: `Free Balloon Ascent${locNote} — Up to ${upper}`,
         shortImpact: `Balloons (≤ ${upper})`,
-        summary: `Free hot air ballooning${locNote} from surface up to ${upper}.${notam.groupedCount > 1 ? ` (${notam.groupedCount} duplicate notices merged)` : ''}`,
-        action: `Maintain visual lookout during initial climb/descent below ${upper}.`
+        summary: `Free balloon launch${locNote} from surface up to ${upper}${notam.scheduleRaw ? ` (${notam.scheduleRaw})` : ''}.${notam.groupedCount > 1 ? ` (${notam.groupedCount} duplicate notices merged)` : ''}`,
+        action: `Confirm launch window (${notam.scheduleRaw || 'published times'}) with ATC during climb/descent below ${upper}.`
       };
     }
 
     if (isParachute) {
       return {
-        severity: 'ADVISORY',
-        score: 45,
-        title: `Parachute Jumping Exercise${locNote} — Up to ${upper}`,
+        severity: isHighAltitude ? 'CAUTION' : 'ADVISORY',
+        score: isHighAltitude ? 66 : 45,
+        title: `Military Parachute Jumping${locNote} — Up to ${upper}`,
         shortImpact: `Parachute Ops (≤ ${upper})`,
-        summary: `Military/civil parachute jumping active within 0.5 NM radius up to ${upper}, coordinated with ATC.`,
-        action: `Monitor Tower/Approach frequency for active jump windows.`
+        summary: `Military parachute jumping (PJE) active${locNote} within 0.5 NM radius from surface up to ${upper}, subject to ATC coordination.`,
+        action: `Confirm jump status with Asunción Approach/Tower (118.1 / 118.85 MHz) prior to descending below ${upper}.`
       };
     }
 
@@ -737,12 +764,12 @@ export class G650ERRulesEngine {
 
     if (isRestrictedArea) {
       return {
-        severity: 'ADVISORY',
-        score: 42,
+        severity: isHighAltitude ? 'CAUTION' : 'ADVISORY',
+        score: isHighAltitude ? 64 : 42,
         title: `Restricted Airspace Activated${locNote} (${notam.lowerLimit || 'SFC'} to ${upper})`,
-        shortImpact: `Restricted Area (${upper})`,
-        summary: `Restricted airspace active from ${notam.lowerLimit || 'SFC'} to ${upper}.`,
-        action: `Verify flight plan routing clears active sector or stays above ${upper}.`
+        shortImpact: `Restricted Area (${notam.lowerLimit || 'SFC'}–${upper})`,
+        summary: `Restricted airspace${locNote} active from ${notam.lowerLimit || 'SFC'} to ${upper}${notam.scheduleRaw ? ` (${notam.scheduleRaw})` : ''}.`,
+        action: `Verify arrival/descent profile clears active sector or obtain ATC clearance through sector.`
       };
     }
 

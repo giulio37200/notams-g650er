@@ -1,5 +1,5 @@
 // AeroBrief G650ER - Network-First Service Worker with Offline Cockpit Fallback
-const CACHE_NAME = 'aerobrief-g650er-v3';
+const CACHE_NAME = 'aerobrief-g650er-v4';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

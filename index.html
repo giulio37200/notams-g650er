@@ -3,14 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AeroBrief G650ER | Executive Flight Deck Briefing</title>
-  <meta name="description" content="Focused, modern ForeFlight & ICAO NOTAM analyzer tailored for Gulfstream G650ER executive operations.">
+  <title>AeroBrief G650ER | Executive Flight Deck & Tactical Route Map</title>
+  <meta name="description" content="Focused ForeFlight & ICAO NOTAM analyzer with interactive route/NOTAM mapping and live onboard weather for Gulfstream G650ER operations.">
   
   <!-- Favicon & PWA -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✈️</text></svg>">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#090d16">
   
+  <!-- Leaflet Interactive Map CSS & JS (100% Free, Zero API Key) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
   <!-- Tailwind CSS, Lucide Icons & PDF.js -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -31,13 +35,13 @@
         <i data-lucide="file-up" class="w-8 h-8"></i>
       </div>
       <h2 class="text-lg font-bold text-white">Drop ForeFlight PDF Briefing</h2>
-      <p class="text-xs text-slate-400">Instant client-side extraction for Gulfstream G650ER</p>
+      <p class="text-xs text-slate-400">Extracts Route, NOTAM Coordinates, SIGMET Polygons &amp; Charts</p>
     </div>
   </div>
 
   <!-- Sleek Top Avionics Bar -->
   <header class="border-b border-slate-800/80 bg-[#0d1320]/95 backdrop-blur-md sticky top-0 z-40 px-4 lg:px-8 py-2.5 no-print">
-    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
       
       <!-- Brand & Active Mission Pill -->
       <div class="flex items-center gap-3">
@@ -72,10 +76,17 @@
 
       <!-- Primary Actions -->
       <div class="flex items-center gap-2">
+        <!-- Live Web Weather & Radar Refresh (For Onboard Wi-Fi) -->
+        <button id="btn-live-web-wx" title="Pull fresh live METARs, TAFs & Weather Radar from the web"
+                class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 font-semibold transition">
+          <i data-lucide="radio" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span id="live-wx-btn-label">Live Web WX</span>
+        </button>
+
         <!-- Upload / Flight Setup Drawer Toggle -->
         <button id="btn-toggle-setup" class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 font-semibold transition">
           <i data-lucide="upload-cloud" class="w-3.5 h-3.5"></i>
-          <span id="setup-btn-label">Upload PDF / Flight Setup</span>
+          <span id="setup-btn-label">Upload PDF / Route</span>
         </button>
 
         <!-- Share Dispatch Summary -->
@@ -89,7 +100,6 @@
         <button id="btn-print-briefing" title="Print Kneeboard Briefing"
                 class="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700/80 font-medium transition">
           <i data-lucide="printer" class="w-3.5 h-3.5 text-amber-400"></i>
-          <span class="hidden lg:inline">Print</span>
         </button>
 
         <!-- Glare / Night Mode -->
@@ -101,7 +111,7 @@
         <!-- G650ER Specs -->
         <button id="btn-aircraft-specs" title="Gulfstream G650ER Operational Limits"
                 class="p-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700/80 transition">
-          <i data-lucide="Sliders" class="w-4 h-4 text-cyan-400"></i>
+          <i data-lucide="sliders" class="w-4 h-4 text-cyan-400"></i>
         </button>
 
         <!-- Live UTC Clock -->
@@ -114,14 +124,14 @@
     </div>
   </header>
 
-  <!-- Collapsible Flight Setup & ForeFlight PDF Drawer (Hidden by default for a clean focused view) -->
+  <!-- Collapsible Flight Setup & ForeFlight PDF Drawer -->
   <section id="setup-drawer" class="hidden border-b border-slate-800 bg-[#0d1424] px-4 lg:px-8 py-5 no-print transition-all">
-    <div class="max-w-6xl mx-auto space-y-4">
+    <div class="max-w-7xl mx-auto space-y-4">
       
       <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
         <div class="flex items-center gap-2">
           <span class="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
-            <i data-lucide="folder-up" class="w-4 h-4"></i> Briefing Source & Flight Parameters
+            <i data-lucide="folder-up" class="w-4 h-4"></i> Briefing Source &amp; Flight Parameters
           </span>
           <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400" id="banner-source-tag">ForeFlight Briefing Loaded</span>
         </div>
@@ -157,7 +167,7 @@
               <input type="file" id="file-input" accept=".pdf,.txt,.log" class="hidden">
               <i data-lucide="upload-cloud" class="w-7 h-7 text-cyan-400 mb-1.5"></i>
               <p class="text-xs font-bold text-white">Drop ForeFlight Briefing PDF or click to browse</p>
-              <p class="text-[11px] text-slate-400 mt-0.5">Extracts Route, Times, METAR/TAF, SIGMETs & NOTAMs locally</p>
+              <p class="text-[11px] text-slate-400 mt-0.5">Plots Route, NOTAM Coordinates, SIGMETs &amp; PDF Charts locally</p>
             </div>
           </div>
 
@@ -224,7 +234,8 @@
                 <select id="select-time-buffer"
                         class="w-full bg-slate-950 border border-slate-700 rounded-lg px-1.5 py-1 text-xs font-mono text-slate-200">
                   <option value="1">±1h</option>
-                  <option value="2" selected>±2h</option>
+                  <option value="1.5" selected>±1.5h</option>
+                  <option value="2">±2h</option>
                   <option value="3">±3h</option>
                   <option value="24">All</option>
                 </select>
@@ -242,16 +253,20 @@
   </section>
 
   <!-- Main Focused Workspace -->
-  <main class="flex-1 max-w-6xl w-full mx-auto px-4 lg:px-8 py-5 space-y-5">
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-5 space-y-5">
 
     <!-- Focused View Navigation Bar + Compact Status Strip -->
     <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/90 pb-3 no-print">
       
       <!-- Segmented Perspective Tabs -->
       <div class="flex flex-wrap items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800" id="perspective-tabs">
-        <button data-view="brief" class="view-tab active text-xs px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5">
+        <button data-view="brief" class="view-tab active text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5">
           <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
           <span>Flight Brief</span>
+        </button>
+        <button data-view="MAP" class="view-tab text-xs px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
+          <i data-lucide="map" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span>Tactical Map</span>
         </button>
         <button data-view="DEP" class="view-tab text-xs px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
           <i data-lucide="plane-takeoff" class="w-3.5 h-3.5 text-amber-400"></i>
@@ -267,8 +282,13 @@
         </button>
         <button data-view="ENROUTE" class="view-tab text-xs px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
           <i data-lucide="compass" class="w-3.5 h-3.5 text-cyan-400"></i>
-          <span>En-Route & FIRs</span>
+          <span>En-Route &amp; FIRs</span>
           <span id="tab-badge-enroute" class="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-slate-800 text-slate-300">0</span>
+        </button>
+        <button data-view="CHARTS" id="btn-tab-charts" class="view-tab hidden text-xs px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
+          <i data-lucide="file-Spreadsheet" class="w-3.5 h-3.5 text-purple-400"></i>
+          <span>PDF Charts</span>
+          <span id="tab-badge-charts" class="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-purple-500/20 text-purple-300">3</span>
         </button>
         <button data-view="ALL" class="view-tab text-xs px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
           <i data-lucide="list-filter" class="w-3.5 h-3.5 text-slate-400"></i>
@@ -277,7 +297,7 @@
         </button>
       </div>
 
-      <!-- Compact Status Pill Counters (Click to jump to filtered view) -->
+      <!-- Compact Status Pill Counters -->
       <div class="flex items-center gap-2 font-mono text-xs">
         <button data-quick-filter="critical" class="quick-kpi-pill flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition" title="Active Critical Hazards">
           <span class="w-2 h-2 rounded-full bg-red-500"></span>
@@ -304,11 +324,72 @@
     </div>
 
     <!-- ===================================================================== -->
+    <!-- INTERACTIVE TACTICAL ROUTE & NOTAM MAP PANEL (Shared across Brief/Map)-->
+    <!-- ===================================================================== -->
+    <div id="tactical-map-card" class="avionics-card rounded-2xl border border-slate-800/90 overflow-hidden">
+      <!-- Map Header & Layer Controls -->
+      <div class="px-4 py-2.5 bg-slate-900/90 border-b border-slate-800/90 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5">
+          <span class="flex items-center gap-1.5 text-xs font-bold text-white uppercase tracking-wider">
+            <i data-lucide="compass" class="w-4 h-4 text-cyan-400"></i>
+            Interactive Route, SIGMET &amp; NOTAM Map
+          </span>
+          <span id="live-radar-badge" class="hidden text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+            LIVE RADAR ACTIVE
+          </span>
+        </div>
+
+        <!-- Quick Zoom & Layer Toolbar -->
+        <div class="flex flex-wrap items-center gap-1.5 text-[11px] font-mono">
+          <button type="button" id="btn-map-fit-route" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+            Full Route
+          </button>
+          <button type="button" id="btn-map-zoom-dep" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 transition">
+            Dep (<span id="map-btn-dep-lbl">SBJH</span>)
+          </button>
+          <button type="button" id="btn-map-zoom-arr" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700 transition">
+            Dest (<span id="map-btn-arr-lbl">SGAS</span>)
+          </button>
+          <div class="h-4 w-[1px] bg-slate-800 mx-0.5"></div>
+          <button type="button" id="btn-map-toggle-radar" class="px-2.5 py-1 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 transition flex items-center gap-1">
+            <i data-lucide="cloud-rain" class="w-3 h-3"></i>
+            <span>Wx Radar</span>
+          </button>
+          <button type="button" id="btn-map-toggle-sat" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+            Satellite
+          </button>
+          <button type="button" id="btn-map-expand" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" title="Toggle Full Height Map">
+            <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Leaflet Map Canvas -->
+      <div class="relative">
+        <div id="route-map-canvas" class="w-full h-[340px] transition-all duration-200 bg-[#070b12]"></div>
+
+        <!-- Map Legend Overlay -->
+        <div class="absolute bottom-3 left-3 z-[400] bg-slate-950/90 backdrop-blur-md border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] font-mono text-slate-300 flex flex-wrap items-center gap-3 shadow-lg pointer-events-none">
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span> Critical</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span> Caution / PJE / Restr</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-cyan-400 inline-block"></span> Drone / Balloon</span>
+          <span class="flex items-center gap-1"><span class="w-3 h-2 bg-amber-500/40 border border-amber-400 inline-block"></span> SIGMET Icing</span>
+          <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-cyan-400 inline-block"></span> GLF6 Route</span>
+        </div>
+      </div>
+
+      <!-- Interactive Route Waypoint & Vertical Profile Timeline Strip -->
+      <div id="route-timeline-strip" class="px-4 py-2.5 bg-slate-950/80 border-t border-slate-800/90 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <!-- Populated dynamically by JS -->
+      </div>
+    </div>
+
+    <!-- ===================================================================== -->
     <!-- VIEW 1: FOCUSED EXECUTIVE FLIGHT BRIEF (Default Single-Screen View)   -->
     <!-- ===================================================================== -->
     <div id="view-flight-brief" class="space-y-4">
 
-      <!-- Active En-Route SIGMET Alert Banner (Auto-hides if none) -->
+      <!-- Active En-Route SIGMET Alert Banner -->
       <div id="sigmet-banner-container" class="hidden"></div>
 
       <!-- Primary Side-by-Side Departure & Destination Readiness Cards -->
@@ -341,7 +422,7 @@
             <!-- Actionable Departure Watchlist -->
             <div class="space-y-1.5 pt-1">
               <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
-                <span>Operational Impacts at ETD</span>
+                <span>Operational Impacts at ETD &amp; Climb</span>
                 <button data-jump-view="DEP" class="text-[11px] text-cyan-400 hover:underline font-mono flex items-center gap-0.5 no-print">
                   View All <i data-lucide="chevron-right" class="w-3 h-3"></i>
                 </button>
@@ -378,7 +459,7 @@
             <!-- Actionable Destination & Terminal Watchlist -->
             <div class="space-y-1.5 pt-1">
               <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
-                <span>Operational Impacts at ETA & Terminal Area</span>
+                <span>Operational Impacts at ETA &amp; Terminal Area</span>
                 <button data-jump-view="ARR" class="text-[11px] text-cyan-400 hover:underline font-mono flex items-center gap-0.5 no-print">
                   View All <i data-lucide="chevron-right" class="w-3 h-3"></i>
                 </button>
@@ -395,7 +476,7 @@
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="flex items-center gap-2">
             <i data-lucide="compass" class="w-4 h-4 text-cyan-400"></i>
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-200">En-Route Alternates & FIR Airspace Summary</h3>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-200">En-Route Alternates &amp; FIR Airspace Summary</h3>
           </div>
           <button data-jump-view="ENROUTE" class="text-xs text-cyan-400 hover:text-cyan-300 font-mono flex items-center gap-1 no-print">
             <span>Inspect En-Route Details</span>
@@ -411,7 +492,23 @@
     </div>
 
     <!-- ===================================================================== -->
-    <!-- VIEW 2: FOCUSED NOTAM ACCORDION FEED (Shown on Station / All Tabs)    -->
+    <!-- VIEW 2: FOREFLIGHT PDF VISUAL CHARTS TAB (Rendered from uploaded PDF) -->
+    <!-- ===================================================================== -->
+    <div id="view-charts-section" class="hidden space-y-4">
+      <div class="avionics-card rounded-2xl p-4 border border-slate-800/90 flex items-center justify-between">
+        <div>
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
+            ForeFlight Briefing Visual Charts (Vertical Cross Section, Winds Aloft &amp; SigWx)
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Rendered directly from your uploaded ForeFlight PDF package</p>
+        </div>
+      </div>
+      <div id="pdf-charts-container" class="space-y-4"></div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 3: FOCUSED NOTAM ACCORDION FEED (Shown on Station / All Tabs)    -->
     <!-- ===================================================================== -->
     <div id="view-notams-section" class="hidden space-y-3">
 
@@ -420,10 +517,10 @@
         
         <div class="flex flex-wrap items-center gap-1.5" id="filter-pill-container">
           <button data-filter="all" class="filter-pill active text-xs px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold transition">All Relevant</button>
-          <button data-filter="critical-caution" class="filter-pill text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 text-amber-300 hover:bg-slate-700 transition">Critical & Caution</button>
+          <button data-filter="critical-caution" class="filter-pill text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 text-amber-300 hover:bg-slate-700 transition">Critical &amp; Caution</button>
           <button data-filter="runway" class="filter-pill text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Runways</button>
           <button data-filter="navaid" class="filter-pill text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">ILS / Navaids / Comms</button>
-          <button data-filter="airspace" class="filter-pill text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Drones & Airspace</button>
+          <button data-filter="airspace" class="filter-pill text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Drones &amp; Airspace</button>
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
@@ -506,7 +603,7 @@
       </div>
 
       <div class="text-[11px] text-slate-400 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-        <span class="font-bold text-amber-400">Notice to Flight Crew:</span> Bilingual duplicate NOTAMs (English/Portuguese) and regional drone clusters are automatically merged to keep your cockpit view focused. Click any NOTAM row to inspect full raw ICAO text.
+        <span class="font-bold text-amber-400">Notice to Flight Crew:</span> Bilingual duplicate NOTAMs (English/Portuguese) and regional drone clusters are automatically merged. Click any NOTAM pin on the map or row in the list for full raw ICAO text.
       </div>
     </div>
   </div>
@@ -517,7 +614,7 @@
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
         <div class="flex items-center gap-2">
           <i data-lucide="cloud-download" class="w-5 h-5 text-cyan-400"></i>
-          <h3 class="text-base font-bold text-white">Live NOTAM Data Fetch</h3>
+          <h3 class="text-base font-bold text-white">Live Web Weather &amp; NOTAM Fetch</h3>
         </div>
         <button id="btn-close-fetch-modal" class="text-slate-400 hover:text-white">
           <i data-lucide="x" class="w-5 h-5"></i>
@@ -525,14 +622,14 @@
       </div>
 
       <p class="text-xs text-slate-300">
-        Fetch live NOTAMs for departure (<span id="modal-dep-icao" class="font-mono font-bold text-amber-400">SBJH</span>) and destination (<span id="modal-arr-icao" class="font-mono font-bold text-emerald-400">SGAS</span>).
+        Fetch live METARs, TAFs, SIGMETs &amp; airport notices for departure (<span id="modal-dep-icao" class="font-mono font-bold text-amber-400">SBJH</span>) and destination (<span id="modal-arr-icao" class="font-mono font-bold text-emerald-400">SGAS</span>).
       </p>
 
       <div class="space-y-3">
         <div>
           <label class="text-xs text-slate-400 block mb-1">Data Source Connector</label>
           <select id="select-fetch-provider" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white">
-            <option value="faa-open">FAA Public Direct Query</option>
+            <option value="noaa-live">AviationWeather.gov (Live METAR/TAF/SIGMET) + Route</option>
             <option value="cors-proxy">Open Aviation Proxy</option>
             <option value="custom-key">Custom API Key (CheckWX / SkyLink)</option>
           </select>
@@ -544,7 +641,7 @@
         </div>
 
         <button id="btn-execute-fetch" class="w-full py-2.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs tracking-wide flex items-center justify-center gap-2 transition">
-          <i data-lucide="download-cloud" class="w-4 h-4"></i> Query Airport NOTAMs
+          <i data-lucide="download-cloud" class="w-4 h-4"></i> Pull Live Flight Data
         </button>
       </div>
     </div>
@@ -552,10 +649,10 @@
 
   <!-- Minimal Footer -->
   <footer class="border-t border-slate-800/60 bg-[#090d16] text-slate-500 text-[11px] py-3 px-4 text-center mt-auto no-print">
-    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
       <span class="text-slate-400 flex items-center gap-1.5">
         <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
-        Gulfstream G650ER Executive Flight Deck • 100% Local Client-Side PDF Processing
+        Gulfstream G650ER Executive Flight Deck • Interactive Route &amp; NOTAM Mapping + Live Onboard WX
       </span>
       <span class="font-mono text-slate-500">Drop a ForeFlight PDF anywhere on screen to load</span>
     </div>

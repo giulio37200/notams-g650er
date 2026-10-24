@@ -229,6 +229,39 @@ body.theme-glare .badge-active-window {
   border: 1px solid rgba(71, 85, 105, 0.35);
 }
 
+/* Leaflet Dark Cockpit Map Overrides */
+.leaflet-container {
+  background-color: #070b12 !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+}
+.leaflet-popup-content-wrapper {
+  background: rgba(15, 23, 42, 0.96) !important;
+  color: #f1f5f9 !important;
+  border: 1px solid rgba(71, 85, 105, 0.8) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65) !important;
+  padding: 2px !important;
+}
+.leaflet-popup-tip {
+  background: rgba(15, 23, 42, 0.96) !important;
+}
+.leaflet-popup-close-button {
+  color: #94a3b8 !important;
+}
+.leaflet-control-zoom a {
+  background-color: rgba(15, 23, 42, 0.9) !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+.leaflet-control-attribution {
+  background: rgba(9, 13, 22, 0.7) !important;
+  color: #64748b !important;
+  font-size: 9px !important;
+}
+.leaflet-control-attribution a {
+  color: #94a3b8 !important;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
