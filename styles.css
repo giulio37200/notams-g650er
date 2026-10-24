@@ -19,6 +19,7 @@ body {
   background-color: var(--bg-primary);
   color: #f3f4f6;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .font-mono {
@@ -32,6 +33,7 @@ body {
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(55, 65, 81, 0.7);
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
 }
 
 .avionics-card-glow-red {
@@ -49,6 +51,63 @@ body {
   box-shadow: 0 0 20px -5px rgba(6, 182, 212, 0.15);
 }
 
+/* Day Mode / High-Altitude Direct Glare Theme */
+body.theme-glare {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+body.theme-glare header {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+}
+body.theme-glare .avionics-card {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  color: #0f172a;
+}
+body.theme-glare .bg-slate-900,
+body.theme-glare .bg-slate-900\/90,
+body.theme-glare .bg-slate-900\/80,
+body.theme-glare .bg-slate-900\/60,
+body.theme-glare .bg-slate-900\/40 {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+body.theme-glare .bg-slate-950,
+body.theme-glare .bg-slate-950\/90,
+body.theme-glare .bg-slate-950\/70 {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+body.theme-glare .bg-slate-800,
+body.theme-glare .bg-slate-800\/80 {
+  background-color: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+}
+body.theme-glare .text-slate-100,
+body.theme-glare .text-slate-200,
+body.theme-glare .text-slate-300 {
+  color: #1e293b !important;
+}
+body.theme-glare .text-slate-400,
+body.theme-glare .text-slate-500 {
+  color: #64748b !important;
+}
+body.theme-glare .border-slate-800,
+body.theme-glare .border-slate-700 {
+  border-color: #cbd5e1 !important;
+}
+body.theme-glare input,
+body.theme-glare select,
+body.theme-glare textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #94a3b8 !important;
+}
+
 /* Pulsing radar dot */
 @keyframes radar-pulse {
   0% { transform: scale(0.95); opacity: 0.8; }
@@ -60,11 +119,28 @@ body {
   animation: radar-pulse 2s infinite ease-in-out;
 }
 
+/* Drag and Drop Zone */
+.dropzone {
+  border: 2px dashed rgba(100, 116, 139, 0.6);
+  transition: all 0.2s ease-in-out;
+}
+
+.dropzone-active {
+  border-color: #06b6d4 !important;
+  background-color: rgba(6, 182, 212, 0.1) !important;
+  box-shadow: 0 0 25px rgba(6, 182, 212, 0.25) !important;
+}
+
 /* Severity Tag Badges */
 .badge-critical {
   background-color: rgba(239, 68, 68, 0.2);
   color: #fca5a5;
   border: 1px solid rgba(239, 68, 68, 0.5);
+}
+body.theme-glare .badge-critical {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border-color: #ef4444;
 }
 
 .badge-caution {
@@ -72,11 +148,21 @@ body {
   color: #fde68a;
   border: 1px solid rgba(245, 158, 11, 0.5);
 }
+body.theme-glare .badge-caution {
+  background-color: #fef3c7;
+  color: #b45309;
+  border-color: #f59e0b;
+}
 
 .badge-advisory {
   background-color: rgba(59, 130, 246, 0.2);
   color: #93c5fd;
   border: 1px solid rgba(59, 130, 246, 0.4);
+}
+body.theme-glare .badge-advisory {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+  border-color: #3b82f6;
 }
 
 .badge-info {
@@ -90,6 +176,11 @@ body {
   color: #6ee7b7;
   border: 1px solid rgba(16, 185, 129, 0.5);
 }
+body.theme-glare .badge-active-window {
+  background-color: #d1fae5;
+  color: #047857;
+  border-color: #10b981;
+}
 
 .badge-inactive-window {
   background-color: rgba(75, 85, 99, 0.2);
@@ -97,7 +188,7 @@ body {
   border: 1px solid rgba(75, 85, 99, 0.4);
 }
 
-/* Custom Scrollbar for Flight Decks */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -111,6 +202,20 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #475569;
+}
+
+/* Toast notification */
+.toast-notice {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100;
+  animation: toast-in 0.3s ease forwards;
+}
+
+@keyframes toast-in {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 /* High Contrast Print Stylesheet for iPad/Cockpit Kneeboard */

@@ -1,12 +1,140 @@
 /**
  * AeroBrief G650ER - Real-World Executive Flight Briefing Presets
- * Authentic ICAO and FAA NOTAM packages for typical G650ER missions.
+ * Authentic ICAO and ForeFlight packages for typical G650ER missions.
  */
 
 export const MOCK_FLIGHT_PRESETS = [
   {
+    id: 'SBJH_SGAS',
+    name: 'Mission 1: Catarina (SBJH) ➡️ Asunción (SGAS) [N650MV]',
+    routeDescription: 'Executive Flight: São Paulo Catarina to Asunción Silvio Pettirossi (ForeFlight Full Briefing)',
+    depIcao: 'SBJH',
+    depName: 'Sao Paulo Catarina Aeroporto Executivo',
+    arrIcao: 'SGAS',
+    arrName: 'Silvio Pettirossi International (Asuncion, Paraguay)',
+    altIcao: 'SBFI',
+    altName: 'Foz do Iguaçu Cataratas (En-route Alternate)',
+    hoursFromNowDep: 2,
+    hoursFromNowArr: 3.5,
+    notamsText: `
+METARs / TAFs
+SBJH — SGAS (Oct 02, 2026) in N650MV (GLF6) IFR Created Oct 02 2026 1217Z
+Departure (1400Z): SBJH - Sao Paulo Catarina Aeroporto Executivo
+METAR ● METAR SBJH 021200Z 13009KT 090V160 9999 BKN010 BKN100 18/15 Q1019
+TAF ● 020900Z 0212/0224 13010KT 9999 BKN020 TX20/0216Z TN15/0224Z
+● TEMPO 0215/0218 SCT020
+● BECMG 0219/0221 CAVOK RMK PGN=
+
+Destination (1527Z): SGAS - Silvio Pettirossi International
+METAR ● METAR SGAS 021200Z 16005KT CAVOK 20/12 Q1017
+TAF ● 020920Z 0212/0312 17007KT CAVOK TX29/0218Z TN18/0310Z
+
+SIGMETs / AIRMETs
+SBCW
+SIGMET
+WSBZ23 SBGL 021125
+SBCW SIGMET 13 VALID 021130/021530 SBCW - SBCW CURITIBA FIR SEV ICE FCST WI S2125 W05304 - S2335 W05059 - S2429 W04820 - S2632 W04623 - S2602 W04448 - S2625 W04320 - S2415 W04031 - S2110 W04401 - S2055 W04416 - S2248 W04546 - S2314 W04552 - S2338 W04639 - S2307 W04734 - S2220 W04955 - S2052 W05102 - S2125 W05304 FL140/210 MOV E 10KT NC=
+
+NOTAMs
+SBJH — SGAS (Oct 02, 2026) in N650MV (GLF6) IFR Created Oct 02 2026 1217Z
+Departure SBJH - Sao Paulo Catarina Aeroporto Executivo
+RUNWAY CLOSED (NEW TODAY)
+[Inactive at ETD]
+K1197/26 NOTAMN
+Q) SBCW/QMRLC/IV/NBO/A/000/999/2326S04710W005
+A) SBJH
+B) 2610030200 C) 2610050900
+D) DAILY 0200-0900
+E) RWY 12/30 CLSD DUE TO WIP
+
+RUNWAY CLOSED (NEW TODAY)
+[Inactive at ETD]
+E6742/26 NOTAMN
+Q) SBCW/QMRLC/IV/NBO/A/000/999/2326S04710W005
+A) SBJH
+B) 2610030200 C) 2610050900
+D) DAILY 0200-0900
+E) RWY 12/30 CLSD DEVIDO OBRAS
+
+Destination SGAS - Silvio Pettirossi International
+No relevant Notams found
+
+Enroute airport SBLO - Governador José Richa
+AERODROME CONTROL TOWER HOURS OF SERVICE ARE NOW
+K0993/26 NOTAMN
+Q) SBCW/QSTAH/IV/BO/A/000/999/2320S05108W005
+A) SBLO
+B) 2608061556 C) 2610282359
+E) TWR HR SER 0900-0300. RMK: THIS AERONAUTICAL INFORMATION WILL BE EXTENDED BY A AIP SUP
+
+RUNWAY CLOSED
+E6234/26 NOTAMN
+Q) SBCW/QMRLC/IV/NBO/A/000/999/2320S05108W005
+A) SBLO
+B) 2609140400 C) 2610030745
+D) DAILY 0400-0745
+E) RWY 13/31 CLSD DEVIDO SER MAINT
+
+RUNWAY OPERATING BUT CAUTION ADVISED DUE TO..
+E5198/26 NOTAMN
+Q) SBCW/QMBCH/IV/BO/A/000/999/2320S05108W005
+A) SBLO
+B) 2608050000 C) PERM
+E) RESISTENCIA PISO RWY 13/31 MODIFICADO PARA PCR 560/F/A/X/T. REF: AIP AD 2.24 ADC
+
+Enroute airport SBMG - Silvio Name Junior
+APPROACH LIGHTING SYSTEM
+K1214/26 NOTAMN
+Q) SBCW/QLAXX/IV/NBO/A/000/999/2329S05201W005
+A) SBMG
+B) 2609251721 C) 2612231013
+E) ALS (ALSF-1) RWY 10 OPR WITHOUT FLASH
+
+Enroute airport SBFI - Cataratas
+RUNWAY CLOSED
+Z2382/26 NOTAMN 1
+A) SBFI
+B) 202609030001
+C) 202610242359
+D) DAILY 0330-0750
+E) (JEPPESEN TERMINAL CHART CHANGE NOTICE) RUNWAY 15/33 CLOSED DUE TO MAINTENANCE SERVICE. DAILY 0330-0750 UTC.
+
+VOR/DME UNSERVICEABLE
+K1128/26 NOTAMN
+Q) SBCW/QNMAS/IV/BO/AE/000/999/2535S05430W040
+A) SBFI
+B) 2609120157 C) 2611252359
+E) VOR/DME (DVOR) FOZ FREQ 112.100MHZ CH58X U/S
+
+FIR SBCW
+TEMPORARY RESTRICTED AREA ACTIVATED
+F5390/26 NOTAMN
+Q) SBBS/QRTCA/IV/BO/W/000/027/2330S04651W001
+A) SBCW
+B) 2609141300 C) 2612130200
+E) AREA RESTRITA TEMPORARIAMENTE (FLT RPA, BARUERI-SP) WI COORD 233012S0465054W ACT. F) SFC G) 2700FT AMSL
+
+ASCENT OF FREE BALLOON WILL TAKE PLACE
+K1000/26 NOTAMR K0439/26
+Q) SBCW/QWLLW/IV/M/W/000/031/2329S04736W009
+A) SBCW
+B) 2608070940 C) 2611042125
+D) AUG 07 - NOV 04 SR-1130 1900-SS
+E) ASCENT OF FREE BALLOON (HOT AIR BALLOONING) SUBJ COOR/AUTH SOROCABA TWR WILL TAKE PLACE. F) GND G) 3100FT AMSL
+
+FIR SGFA
+UNMANNED AIRCRAFT WILL TAKE PLACE
+A0620/26 NOTAMN
+Q) SGFA/QWULW/IV/BO/W/000/999/2515S05732W001
+A) SGFA
+B) 2610010930 C) 2610182158
+D) SR-SS
+E) UA WILL TAKE PLACE COMITE OLIMPICO PARAGUAYO (WORLD SKATE GAMES ASU26) LUQUE CITY CENTRAL DEPARTMENT COORD. HGT: 40M AGL. F) GND G) 40M AGL
+`
+  },
+  {
     id: 'TEB_SS',
-    name: 'Mission 1: Teterboro (KTEB) ➡️ London Stansted (EGSS)',
+    name: 'Mission 2: Teterboro (KTEB) ➡️ London Stansted (EGSS)',
     routeDescription: 'Transatlantic Executive Flight: New York Metro to London Executive FBO Hub',
     depIcao: 'KTEB',
     depName: 'Teterboro Airport (New York, USA)',
@@ -14,7 +142,6 @@ export const MOCK_FLIGHT_PRESETS = [
     arrName: 'London Stansted Airport (London, UK)',
     altIcao: 'EGGW',
     altName: 'London Luton Airport',
-    // Realistic departure time in UTC (today or tomorrow)
     hoursFromNowDep: 2,
     hoursFromNowArr: 9,
     notamsText: `
@@ -57,7 +184,7 @@ E) UK BORDER FORCE UKBF CUSTOMS AND IMMIGRATION CLEARANCE FOR PRIVATE ARRIVALS A
   },
   {
     id: 'HKG_LAX',
-    name: 'Mission 2: Hong Kong (VHHH) ➡️ Los Angeles (KLAX)',
+    name: 'Mission 3: Hong Kong (VHHH) ➡️ Los Angeles (KLAX)',
     routeDescription: 'Ultra Long Range Transpacific Mission (13.5 Hours, High Fuel Load & MTOW Operations)',
     depIcao: 'VHHH',
     depName: 'Hong Kong International (Chek Lap Kok)',
@@ -91,7 +218,7 @@ E) TWY A1 AND A2 CLSD FOR TAXIWAY RECONSTRUCTION. DEPARTING AIRCRAFT FROM BUSINE
   },
   {
     id: 'PBI_NCE',
-    name: 'Mission 3: Palm Beach (KPBI) ➡️ Nice Côte d\'Azur (LFMN)',
+    name: 'Mission 4: Palm Beach (KPBI) ➡️ Nice Côte d\'Azur (LFMN)',
     routeDescription: 'VIP Transatlantic Seasonal Mission: Florida to the French Riviera',
     depIcao: 'KPBI',
     depName: 'Palm Beach International (West Palm Beach, USA)',
@@ -137,7 +264,7 @@ E) ILS RWY 04R LOCALIZER OTS FOR ROUTINE CALIBRATION FLIGHT. RNP APCH OR VOR-DME
   },
   {
     id: 'ASE_HPN',
-    name: 'Mission 4: Aspen (KASE) ➡️ White Plains (KHPN)',
+    name: 'Mission 5: Aspen (KASE) ➡️ White Plains (KHPN)',
     routeDescription: 'Challenging Mountain & Strict Weight/Wingspan Airport Operations',
     depIcao: 'KASE',
     depName: 'Aspen-Pitkin County Airport (Colorado, USA)',
