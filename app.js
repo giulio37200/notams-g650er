@@ -7,21 +7,30 @@
  * - Smart Bilingual & Cluster NOTAM Deduplication + Haversine Distance Badges
  */
 
-import { NotamParser, AIRPORT_COORDS_DB } from './notam-parser.js?v=6';
-import { G650ERRulesEngine } from './g650er-rules.js?v=6';
-import { MOCK_FLIGHT_PRESETS } from './mock-briefings.js?v=6';
+import { NotamParser, AIRPORT_COORDS_DB } from './notam-parser.js?v=7';
+import { G650ERRulesEngine } from './g650er-rules.js?v=7';
+import { MOCK_FLIGHT_PRESETS } from './mock-briefings.js?v=7';
+import {
+  JeppesenComplianceEngine,
+  DEFAULT_PRESET_FIRS,
+  GLOBAL_COMPLIANCE_SCENARIOS
+} from './jeppesen-compliance.js?v=7';
 
 class AeroBriefApp {
   constructor() {
     this.currentPresetIndex = 0;
     this.currentBriefing = null;
     this.evaluatedNotams = [];
-    this.currentView = 'brief'; // 'brief' | 'MAP' | 'DEP' | 'ARR' | 'ENROUTE' | 'CHARTS' | 'ALL'
+    this.currentView = 'brief'; // 'brief' | 'MAP' | 'DEP' | 'ARR' | 'ENROUTE' | 'JEPPESEN' | 'CHARTS' | 'ALL'
     this.activeFilter = 'all';
     this.showInactive = true;
     this.searchQuery = '';
     this.isGlareMode = false;
     this.selectedEnrouteStation = null;
+
+    // Jeppesen Airway Manual Compliance Engine State
+    this.jeppesenEngine = new JeppesenComplianceEngine();
+    this.activeScenarioExtraIcaos = ['SBJH', 'SGAS', 'SBFI', 'SBLO', 'SBMG', 'SGES'];
 
     // Leaflet Map State
     this.map = null;
@@ -42,6 +51,7 @@ class AeroBriefApp {
     this.initMap();
     this.initEventListeners();
     this.initDropZone();
+    this.initJeppesenModule();
 
     // Load default mission (SBJH -> SGAS N650MV)
     this.loadPreset(0);
@@ -163,7 +173,54 @@ class AeroBriefApp {
       btnExecuteFetch: document.getElementById('btn-execute-fetch'),
       selectFetchProvider: document.getElementById('select-fetch-provider'),
       apiKeyContainer: document.getElementById('api-key-container'),
-      inputApiKey: document.getElementById('input-api-key')
+      inputApiKey: document.getElementById('input-api-key'),
+
+      // Jeppesen Airway Manual Compliance Elements
+      inputRouteFirs: document.getElementById('input-route-firs'),
+      capFans1a: document.getElementById('cap-fans1a'),
+      capAtnb1: document.getElementById('cap-atnb1'),
+      capAdsb: document.getElementById('cap-adsb'),
+      capRnp: document.getElementById('cap-rnp'),
+      capHudEfvs: document.getElementById('cap-hud-efvs'),
+
+      btnTabJeppesen: document.getElementById('btn-tab-jeppesen'),
+      tabBadgeJeppesen: document.getElementById('tab-badge-jeppesen'),
+      briefJeppesenSummaryGrid: document.getElementById('brief-jeppesen-summary-grid'),
+      viewJeppesenSection: document.getElementById('view-jeppesen-section'),
+      jeppScenarioButtons: document.getElementById('jepp-scenario-buttons'),
+      jeppInlineFirs: document.getElementById('jepp-inline-firs'),
+      btnJeppApplyFirs: document.getElementById('btn-jepp-apply-firs'),
+      jeppCnsStatusBadge: document.getElementById('jepp-cns-status-badge'),
+      jeppCpdlcTimelineContainer: document.getElementById('jepp-cpdlc-timeline-container'),
+      jeppPbnValidatorContainer: document.getElementById('jepp-pbn-validator-container'),
+      jeppSpecialAlertsContainer: document.getElementById('jepp-special-alerts-container'),
+      jeppAdizDelaySlider: document.getElementById('jepp-adiz-delay-slider'),
+      jeppAdizDelayLabel: document.getElementById('jepp-adiz-delay-label'),
+      jeppShowAllAdiz: document.getElementById('jepp-show-all-adiz'),
+      jeppAdizCardsContainer: document.getElementById('jepp-adiz-cards-container'),
+
+      btnJeppSyncDestNotams: document.getElementById('btn-jepp-sync-dest-notams'),
+      aomLvtoRegime: document.getElementById('aom-lvto-regime'),
+      aomLvpActive: document.getElementById('aom-lvp-active'),
+      aomLvtoHirl: document.getElementById('aom-lvto-hirl'),
+      aomLvtoCl: document.getElementById('aom-lvto-cl'),
+      aomLvtoRclm: document.getElementById('aom-lvto-rclm'),
+      aomLvtoHud: document.getElementById('aom-lvto-hud'),
+      aomLvtoResultBox: document.getElementById('aom-lvto-result-box'),
+
+      aomAppType: document.getElementById('aom-app-type'),
+      aomAppDh: document.getElementById('aom-app-dh'),
+      aomDegAlsOut: document.getElementById('aom-deg-als-out'),
+      aomDegTdzOut: document.getElementById('aom-deg-tdz-out'),
+      aomDegNofd: document.getElementById('aom-deg-nofd'),
+      aomDegObstacles: document.getElementById('aom-deg-obstacles'),
+      aomDegEfvs: document.getElementById('aom-deg-efvs'),
+      aomAppResultBox: document.getElementById('aom-app-result-box'),
+
+      jeppShowGlobalNcn: document.getElementById('jepp-show-global-ncn'),
+      jeppCcnNcnContainer: document.getElementById('jepp-ccn-ncn-container'),
+      jeppSsrRouteCards: document.getElementById('jepp-ssr-route-cards'),
+      jeppSsrGlobalTable: document.getElementById('jepp-ssr-global-table')
     };
   }
 
@@ -729,6 +786,21 @@ class AeroBriefApp {
 
     this.elements.rawNotamsTextarea.value = preset.notamsText.trim();
 
+    // Sync default Route FIRs & AOM regime for this mission
+    const pairKey = `${preset.depIcao}-${preset.arrIcao}`;
+    const defaultFirs = DEFAULT_PRESET_FIRS[pairKey] || 'SBCW SGFA';
+    if (this.elements.inputRouteFirs) this.elements.inputRouteFirs.value = defaultFirs;
+    if (this.elements.jeppInlineFirs) this.elements.jeppInlineFirs.value = defaultFirs;
+    if (this.elements.aomLvtoRegime) {
+      if (preset.arrIcao.startsWith('SG') || preset.depIcao.startsWith('SB')) {
+        this.elements.aomLvtoRegime.value = 'SAM_AIC';
+      } else if (preset.depIcao.startsWith('K')) {
+        this.elements.aomLvtoRegime.value = 'FAA_TERPS';
+      } else {
+        this.elements.aomLvtoRegime.value = 'EASA_ICAO';
+      }
+    }
+
     this.initPresetButtons();
     this.updateUtcDisplays();
     this.processBriefingText(preset.notamsText.trim());
@@ -1229,6 +1301,10 @@ class AeroBriefApp {
     });
 
     // Show/hide sections based on perspective
+    if (this.elements.viewJeppesenSection) {
+      this.elements.viewJeppesenSection.classList.toggle('hidden', viewName !== 'JEPPESEN');
+    }
+
     if (viewName === 'brief') {
       this.elements.tacticalMapCard.classList.remove('hidden');
       this.elements.routeMapCanvas.style.height = this.isMapExpanded ? '620px' : '420px';
@@ -1243,6 +1319,12 @@ class AeroBriefApp {
       this.elements.viewNotamsSection.classList.remove('hidden');
       this.renderStationViewWeather('ALL');
       this.renderNotamsFeed();
+    } else if (viewName === 'JEPPESEN') {
+      this.elements.tacticalMapCard.classList.add('hidden');
+      this.elements.viewFlightBrief.classList.add('hidden');
+      this.elements.viewChartsSection.classList.add('hidden');
+      this.elements.viewNotamsSection.classList.add('hidden');
+      this.renderJeppesenComplianceDeck();
     } else if (viewName === 'CHARTS') {
       this.elements.tacticalMapCard.classList.add('hidden');
       this.elements.viewFlightBrief.classList.add('hidden');
@@ -1403,7 +1485,8 @@ class AeroBriefApp {
     this.renderFlightBriefView();
     this.renderRouteTimelineStrip();
     this.renderMapOverlays();
-    if (this.currentView !== 'brief' && this.currentView !== 'CHARTS') {
+    this.renderJeppesenComplianceDeck();
+    if (this.currentView !== 'brief' && this.currentView !== 'CHARTS' && this.currentView !== 'JEPPESEN') {
       this.renderStationViewWeather(this.currentView);
       this.renderNotamsFeed();
     }
@@ -2125,6 +2208,717 @@ class AeroBriefApp {
       await this.fetchLiveWebWeather();
     } finally {
       this.elements.btnExecuteFetch.disabled = false;
+    }
+  }
+
+  // ===========================================================================
+  // JEPPESEN AIRWAY MANUAL COMPLIANCE & BRIEFING MODULE (5 SUB-MODULES)
+  // ===========================================================================
+  async initJeppesenModule() {
+    // Render Global Compliance Scenario buttons
+    if (this.elements.jeppScenarioButtons) {
+      this.elements.jeppScenarioButtons.innerHTML = GLOBAL_COMPLIANCE_SCENARIOS.map((sc, idx) => `
+        <button type="button" data-jepp-scenario="${sc.id}" title="${sc.description}"
+                class="jepp-scenario-btn text-[11px] px-2.5 py-1 rounded-lg font-mono transition border ${
+                  idx === 0
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold'
+                    : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                }">
+          ${sc.label}
+        </button>
+      `).join('');
+
+      this.elements.jeppScenarioButtons.addEventListener('click', (e) => {
+        const btn = e.target.closest('.jepp-scenario-btn');
+        if (!btn) return;
+        const scId = btn.getAttribute('data-jepp-scenario');
+        const sc = GLOBAL_COMPLIANCE_SCENARIOS.find(s => s.id === scId);
+        if (!sc) return;
+
+        document.querySelectorAll('.jepp-scenario-btn').forEach(b => {
+          const active = b.getAttribute('data-jepp-scenario') === scId;
+          b.className = `jepp-scenario-btn text-[11px] px-2.5 py-1 rounded-lg font-mono transition border ${
+            active
+              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold'
+              : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+          }`;
+        });
+
+        if (this.elements.inputRouteFirs) this.elements.inputRouteFirs.value = sc.firs;
+        if (this.elements.jeppInlineFirs) this.elements.jeppInlineFirs.value = sc.firs;
+        this.activeScenarioExtraIcaos = sc.extraIcaos || [];
+        this.renderJeppesenComplianceDeck();
+        this.showToast(`Loaded Jeppesen Corridor: ${sc.label}`);
+      });
+    }
+
+    // Sync Route FIR inputs between Setup Drawer & Jeppesen Deck
+    if (this.elements.inputRouteFirs) {
+      this.elements.inputRouteFirs.addEventListener('change', () => {
+        if (this.elements.jeppInlineFirs) {
+          this.elements.jeppInlineFirs.value = this.elements.inputRouteFirs.value.toUpperCase();
+        }
+        this.renderJeppesenComplianceDeck();
+      });
+    }
+
+    if (this.elements.btnJeppApplyFirs && this.elements.jeppInlineFirs) {
+      const applyInlineFirs = () => {
+        const val = this.elements.jeppInlineFirs.value.toUpperCase().trim();
+        if (this.elements.inputRouteFirs) this.elements.inputRouteFirs.value = val;
+        this.renderJeppesenComplianceDeck();
+      };
+      this.elements.btnJeppApplyFirs.addEventListener('click', applyInlineFirs);
+      this.elements.jeppInlineFirs.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') applyInlineFirs();
+      });
+    }
+
+    // Sync Avionics Capabilities checkboxes between Setup Drawer & Inline Bar
+    const capMap = [
+      { drawerEl: this.elements.capFans1a, key: 'fans1a' },
+      { drawerEl: this.elements.capAtnb1, key: 'atnB1' },
+      { drawerEl: this.elements.capAdsb, key: 'adsbOut' },
+      { drawerEl: this.elements.capRnp, key: 'rnp4_10' },
+      { drawerEl: this.elements.capHudEfvs, key: 'hudEfvs' }
+    ];
+
+    capMap.forEach(({ drawerEl, key }) => {
+      const inlineEl = document.querySelector(`[data-jepp-cap="${key}"]`);
+      if (drawerEl) {
+        drawerEl.addEventListener('change', () => {
+          if (inlineEl) inlineEl.checked = drawerEl.checked;
+          if (key === 'hudEfvs' && this.elements.aomLvtoHud) {
+            this.elements.aomLvtoHud.checked = drawerEl.checked;
+          }
+          this.renderJeppesenComplianceDeck();
+        });
+      }
+      if (inlineEl) {
+        inlineEl.addEventListener('change', () => {
+          if (drawerEl) drawerEl.checked = inlineEl.checked;
+          if (key === 'hudEfvs' && this.elements.aomLvtoHud) {
+            this.elements.aomLvtoHud.checked = inlineEl.checked;
+          }
+          this.renderJeppesenComplianceDeck();
+        });
+      }
+    });
+
+    // ADIZ Delay Slider & Show All ADIZ Toggle
+    if (this.elements.jeppAdizDelaySlider) {
+      this.elements.jeppAdizDelaySlider.addEventListener('input', (e) => {
+        const mins = Number(e.target.value) || 0;
+        if (this.elements.jeppAdizDelayLabel) {
+          this.elements.jeppAdizDelayLabel.textContent = `+${mins} min`;
+        }
+        this.renderJeppesenComplianceDeck();
+      });
+    }
+    if (this.elements.jeppShowAllAdiz) {
+      this.elements.jeppShowAllAdiz.addEventListener('change', () => this.renderJeppesenComplianceDeck());
+    }
+
+    // Dynamic AOM Calculator Toggles & Inputs
+    const aomControls = [
+      this.elements.aomLvtoRegime,
+      this.elements.aomLvpActive,
+      this.elements.aomLvtoHirl,
+      this.elements.aomLvtoCl,
+      this.elements.aomLvtoRclm,
+      this.elements.aomLvtoHud,
+      this.elements.aomAppType,
+      this.elements.aomAppDh,
+      this.elements.aomDegAlsOut,
+      this.elements.aomDegTdzOut,
+      this.elements.aomDegNofd,
+      this.elements.aomDegObstacles,
+      this.elements.aomDegEfvs
+    ];
+
+    aomControls.forEach(ctrl => {
+      if (!ctrl) return;
+      ctrl.addEventListener('change', () => {
+        if (ctrl === this.elements.aomAppType && this.elements.aomAppDh) {
+          const defaultDhs = {
+            ILS_CAT_II: 100,
+            ILS_CAT_I: 200,
+            RNP_LPV: 250,
+            RNP_LNAV_VNAV: 300,
+            NPA_2D_CDFA: 350,
+            NPA_2D_STEPDOWN: 400
+          };
+          this.elements.aomAppDh.value = defaultDhs[this.elements.aomAppType.value] || 200;
+        }
+        this.renderAomCalculator();
+      });
+    });
+
+    if (this.elements.btnJeppSyncDestNotams) {
+      this.elements.btnJeppSyncDestNotams.addEventListener('click', () => {
+        this.syncDestinationNotamDowngrades(true);
+      });
+    }
+
+    // CCN / NCN Global Watchlist Toggle
+    if (this.elements.jeppShowGlobalNcn) {
+      this.elements.jeppShowGlobalNcn.addEventListener('change', () => this.renderJeppesenComplianceDeck());
+    }
+
+    // Load the 4 structured JSON files from ./data/*.json
+    await this.jeppesenEngine.loadData();
+    this.renderJeppesenComplianceDeck();
+  }
+
+  getCapabilitiesState() {
+    return {
+      fans1a: this.elements.capFans1a ? this.elements.capFans1a.checked : true,
+      atnB1: this.elements.capAtnb1 ? this.elements.capAtnb1.checked : true,
+      adsbOut: this.elements.capAdsb ? this.elements.capAdsb.checked : true,
+      rnp4_10: this.elements.capRnp ? this.elements.capRnp.checked : true,
+      hudEfvs: this.elements.capHudEfvs ? this.elements.capHudEfvs.checked : true
+    };
+  }
+
+  syncDestinationNotamDowngrades(showFeedback = false) {
+    const arrIcao = (this.elements.inputArrIcao ? this.elements.inputArrIcao.value : 'SGAS').toUpperCase().trim();
+    const rawNotams = this.evaluatedNotams.map(it => ({
+      ...it.parsed,
+      isActiveInWindow: it.isActiveInWindow
+    }));
+
+    const deg = this.jeppesenEngine.detectNotamApproachDegradations(arrIcao, rawNotams);
+    if (this.elements.aomDegAlsOut) this.elements.aomDegAlsOut.checked = deg.alsOut;
+    if (this.elements.aomDegTdzOut) this.elements.aomDegTdzOut.checked = deg.tdzClOut;
+    if (this.elements.aomDegObstacles) this.elements.aomDegObstacles.checked = deg.visualObstacles;
+    if (deg.gsOut && this.elements.aomAppType) {
+      this.elements.aomAppType.value = 'NPA_2D_CDFA';
+      if (this.elements.aomAppDh) this.elements.aomAppDh.value = 380;
+    }
+
+    this.renderAomCalculator();
+    if (showFeedback) {
+      if (deg.summaryNotes.length > 0) {
+        this.showToast(`Synced ${deg.summaryNotes.length} active NOTAM downgrade(s) for ${arrIcao}`);
+      } else {
+        this.showToast(`No ALS/GS/TDZ NOTAM downgrades active at ${arrIcao} — Standard CAT I minimums set`);
+      }
+    }
+  }
+
+  renderJeppesenComplianceDeck() {
+    if (!this.jeppesenEngine) return;
+
+    const depIcao = (this.elements.inputDepIcao ? this.elements.inputDepIcao.value : 'SBJH').toUpperCase().trim();
+    const arrIcao = (this.elements.inputArrIcao ? this.elements.inputArrIcao.value : 'SGAS').toUpperCase().trim();
+    const altIcao = (this.elements.inputAltIcao ? this.elements.inputAltIcao.value : 'SBFI').toUpperCase().trim();
+    const rawFirs = (this.elements.inputRouteFirs ? this.elements.inputRouteFirs.value : 'SBCW SGFA').toUpperCase().trim();
+    const eobtUtc = this.getUtcFromInput(this.elements.inputDepTime);
+    const caps = this.getCapabilitiesState();
+
+    const routeFirs = this.jeppesenEngine.resolveRouteFirs(depIcao, arrIcao, altIcao, rawFirs, this.currentBriefing);
+
+    // -------------------------------------------------------------------------
+    // 1. Evaluate Enroute & CNS Compliance Engine
+    // -------------------------------------------------------------------------
+    const cns = this.jeppesenEngine.evaluateEnrouteCns(routeFirs, caps, eobtUtc, rawFirs);
+
+    const hasCnsDeficit =
+      cns.cpdlcTimeline.some(c => c.equipmentStatus === 'DEFICIT') ||
+      cns.pbnValidators.some(p => p.status !== 'COMPLIANT');
+
+    if (this.elements.jeppCnsStatusBadge) {
+      if (hasCnsDeficit) {
+        this.elements.jeppCnsStatusBadge.textContent = 'ACTION REQUIRED: CNS / PBN DEFICIT';
+        this.elements.jeppCnsStatusBadge.className = 'px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-red-500/20 text-red-300 border border-red-500/40';
+      } else {
+        this.elements.jeppCnsStatusBadge.textContent = `G650ER CNS & PBN VERIFIED (${routeFirs.length} FIRs)`;
+        this.elements.jeppCnsStatusBadge.className = 'px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30';
+      }
+    }
+
+    if (this.elements.jeppCpdlcTimelineContainer) {
+      this.elements.jeppCpdlcTimelineContainer.innerHTML = `
+        <table class="w-full text-left border-collapse text-xs font-mono">
+          <thead>
+            <tr class="border-b border-slate-800 text-[10px] text-slate-400 uppercase bg-slate-950/60">
+              <th class="py-2 px-3">FIR</th>
+              <th class="py-2 px-3">Logon ID</th>
+              <th class="py-2 px-3">System Type</th>
+              <th class="py-2 px-3">ADS-C</th>
+              <th class="py-2 px-3">Logon Timing Trigger</th>
+              <th class="py-2 px-3">Computed UTC Window</th>
+              <th class="py-2 px-3">G650ER Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800/70">
+            ${cns.cpdlcTimeline.map(row => {
+              const badgeCls = row.equipmentStatus === 'DEFICIT'
+                ? 'bg-red-500/20 text-red-300 border-red-500/40'
+                : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
+              return `
+                <tr class="hover:bg-slate-900/50 transition">
+                  <td class="py-2.5 px-3">
+                    <span class="font-bold text-white">${row.firCode}</span>
+                    <span class="block text-[10px] text-slate-400 font-sans">${row.firName}</span>
+                  </td>
+                  <td class="py-2.5 px-3">
+                    <span class="px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-bold">${row.logonId}</span>
+                  </td>
+                  <td class="py-2.5 px-3 text-slate-200">${row.systemType} <span class="text-[10px] text-slate-400 block">${row.minFlightLevel || ''}</span></td>
+                  <td class="py-2.5 px-3">
+                    ${row.adsC
+                      ? '<span class="text-emerald-400 font-bold">ACTIVE</span>'
+                      : '<span class="text-slate-500">N/A</span>'}
+                  </td>
+                  <td class="py-2.5 px-3 text-slate-300 font-sans text-[11px] max-w-xs">
+                    ${row.logonTiming}
+                    ${row.notes ? `<span class="block text-[10px] text-slate-400 mt-0.5">${row.notes}</span>` : ''}
+                  </td>
+                  <td class="py-2.5 px-3 text-amber-300 font-bold whitespace-nowrap">${row.computedWindowUtc}</td>
+                  <td class="py-2.5 px-3">
+                    <span class="px-2 py-0.5 rounded border text-[10px] font-bold ${badgeCls}">${row.equipmentStatus}</span>
+                    <span class="block text-[10px] text-slate-400 font-sans mt-0.5">${row.equipmentNote}</span>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    if (this.elements.jeppPbnValidatorContainer) {
+      this.elements.jeppPbnValidatorContainer.innerHTML = cns.pbnValidators.map(p => {
+        const borderCls = p.status === 'CRITICAL'
+          ? 'border-red-500/50 bg-red-500/10'
+          : (p.status === 'WARNING' ? 'border-amber-500/50 bg-amber-500/10' : 'border-slate-800 bg-slate-950/60');
+        const pillCls = p.status === 'CRITICAL'
+          ? 'bg-red-500/20 text-red-300 border-red-500/40'
+          : (p.status === 'WARNING' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30');
+        return `
+          <div class="p-3 rounded-xl border ${borderCls} space-y-1.5 text-xs">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="font-mono font-bold text-white px-2 py-0.5 rounded bg-slate-900 border border-slate-700">${p.firCode}</span>
+                <span class="font-semibold text-slate-200">${p.rnpRequired}</span>
+              </div>
+              <span class="px-2 py-0.5 rounded border font-mono text-[10px] font-bold ${pillCls}">${p.status}</span>
+            </div>
+            <p class="text-[11px] text-slate-400">${p.adsBNote}</p>
+            <div class="text-[11px] font-mono text-cyan-300">Separation: ${p.lateralSeparation}</div>
+            <ul class="space-y-1 pt-1 border-t border-slate-800/80 text-[11px] text-slate-200">
+              ${p.actionItems.map(act => `<li class="flex items-start gap-1.5"><span class="text-amber-400">▸</span><span>${act}</span></li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }).join('');
+    }
+
+    if (this.elements.jeppSpecialAlertsContainer) {
+      if (cns.specialAlerts.length === 0) {
+        this.elements.jeppSpecialAlertsContainer.innerHTML = `
+          <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800 text-xs text-slate-400 font-mono">
+            No special IFBP 126.9, Nicosia relay, or oceanic SLOP mandates active for these FIRs.
+          </div>
+        `;
+      } else {
+        const colorMap = {
+          amber: 'border-amber-500/40 bg-amber-500/10 text-amber-300',
+          red: 'border-red-500/40 bg-red-500/10 text-red-300',
+          cyan: 'border-cyan-500/40 bg-cyan-500/10 text-cyan-300',
+          purple: 'border-purple-500/40 bg-purple-500/10 text-purple-300',
+          emerald: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
+        };
+        this.elements.jeppSpecialAlertsContainer.innerHTML = cns.specialAlerts.map(al => {
+          const cls = colorMap[al.badgeColor] || colorMap.cyan;
+          return `
+            <div class="p-3 rounded-xl border ${cls} space-y-1.5 text-xs">
+              <div class="flex items-center justify-between gap-2">
+                <span class="font-mono text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-slate-950/80 border border-current">${al.category}</span>
+                <span class="font-mono text-[11px] font-bold">${al.firCode} FIR</span>
+              </div>
+              <div class="font-bold text-white text-xs">${al.title}</div>
+              <p class="text-[11px] text-slate-300 leading-relaxed">${al.detail}</p>
+              <ul class="space-y-1 pt-1 text-[11px] text-slate-200 font-mono">
+                ${(al.triggers || []).map(t => `<li class="flex items-start gap-1.5"><span class="text-amber-400">•</span><span>${t}</span></li>`).join('')}
+              </ul>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 2. Evaluate ADIZ & Defense Clearance Tracker
+    // -------------------------------------------------------------------------
+    const delayMin = this.elements.jeppAdizDelaySlider ? Number(this.elements.jeppAdizDelaySlider.value) || 0 : 0;
+    const showAllAdiz = this.elements.jeppShowAllAdiz ? this.elements.jeppShowAllAdiz.checked : false;
+    const extraAdiz = showAllAdiz
+      ? ['INDIA', 'PAKISTAN', 'IRAN', 'BANGLADESH', 'SRI_LANKA', 'CANADA', 'US_ALASKA', 'BRAZIL_BORDER']
+      : [];
+
+    const adizCards = this.jeppesenEngine.evaluateAdizTracker(
+      routeFirs,
+      depIcao,
+      arrIcao,
+      eobtUtc,
+      delayMin,
+      extraAdiz
+    );
+
+    if (this.elements.jeppAdizCardsContainer) {
+      if (adizCards.length === 0) {
+        this.elements.jeppAdizCardsContainer.innerHTML = `
+          <div class="md:col-span-2 p-4 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between text-xs">
+            <span class="text-slate-300">No sovereign ADIZ penetration detected along ${routeFirs.join(' ➔ ')}.</span>
+            <span class="text-[11px] font-mono text-amber-400">Toggle "Show All Global ADIZ Rules" above to inspect India/Pakistan/Iran/Bangladesh/Canada windows</span>
+          </div>
+        `;
+      } else {
+        this.elements.jeppAdizCardsContainer.innerHTML = adizCards.map(card => {
+          const isExpired = card.status === 'EXPIRED_REAPPLY';
+          const borderCls = isExpired
+            ? 'border-red-500/60 bg-red-500/10'
+            : 'border-slate-800 bg-slate-950/70';
+          const statusCls = isExpired
+            ? 'bg-red-500/25 text-red-200 border-red-500/50'
+            : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
+          const chk = card.inFlightCheckIn || {};
+          return `
+            <div class="p-4 rounded-xl border ${borderCls} space-y-2.5 text-xs">
+              <div class="flex flex-wrap items-start justify-between gap-2 border-b border-slate-800/80 pb-2">
+                <div>
+                  <span class="text-[10px] font-mono font-bold uppercase text-amber-400">${card.regionKey} ADIZ</span>
+                  <h4 class="font-bold text-white text-sm">${card.name}</h4>
+                </div>
+                <span class="px-2 py-0.5 rounded border font-mono text-[10px] font-bold ${statusCls}">
+                  ${card.statusBadgeText}
+                </span>
+              </div>
+
+              <div class="grid grid-cols-3 gap-2 bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 font-mono text-[11px]">
+                <div>
+                  <span class="text-slate-400 block text-[10px]">FILED EOBT</span>
+                  <strong class="text-white">${card.eobtUtcStr}</strong>
+                </div>
+                <div>
+                  <span class="text-slate-400 block text-[10px]">ADC VALID WINDOW</span>
+                  <strong class="text-amber-300">${card.windowStartUtcStr} – ${card.windowEndUtcStr}</strong>
+                  <span class="block text-[9px] text-slate-400">(${card.windowLabel})</span>
+                </div>
+                <div>
+                  <span class="text-slate-400 block text-[10px]">SIMULATED ETD (+${card.simulatedDelayMin}m)</span>
+                  <strong class="${isExpired ? 'text-red-400' : 'text-emerald-400'}">${card.actualDepUtcStr}</strong>
+                </div>
+              </div>
+
+              <p class="text-[11px] text-slate-300 leading-relaxed">${card.ruleText}</p>
+
+              <div class="p-2.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 space-y-1">
+                <div class="flex items-center justify-between text-[11px] font-mono font-bold text-cyan-300">
+                  <span>IN-FLIGHT RADIO CHECK-IN TRIGGER</span>
+                  <span>${chk.leadDistanceNm ? `${chk.leadDistanceNm} NM PRIOR` : `${chk.leadTimeMinutes || 10} MIN PRIOR`}</span>
+                </div>
+                <div class="text-[11px] text-slate-200">
+                  <strong>Station:</strong> ${chk.station || 'FIC / ACC'} • <strong>Freq:</strong> <span class="font-mono text-amber-300">${(chk.frequencies || []).join(' / ')}</span>
+                </div>
+                <div class="text-[11px] text-slate-300">${chk.tolerance || ''}</div>
+              </div>
+
+              <div class="text-[10px] font-mono text-red-300/90 flex items-start gap-1.5">
+                <span class="text-red-400 font-bold">⚠️</span>
+                <span>${card.interceptionWarning}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 3. Render Dynamic Aerodrome Operating Minimums (AOM) Calculator
+    // -------------------------------------------------------------------------
+    this.renderAomCalculator();
+
+    // -------------------------------------------------------------------------
+    // 4. Evaluate Chart & NavData Change Notice (CCN/NCN) Scanner
+    // -------------------------------------------------------------------------
+    const includeGlobalNcn = this.elements.jeppShowGlobalNcn ? this.elements.jeppShowGlobalNcn.checked : true;
+    const scanIcaos = [
+      depIcao,
+      arrIcao,
+      altIcao,
+      ...(this.activeScenarioExtraIcaos || [])
+    ];
+    const aeroNotices = this.jeppesenEngine.scanAerodromeNotices(scanIcaos, includeGlobalNcn);
+
+    if (this.elements.jeppCcnNcnContainer) {
+      this.elements.jeppCcnNcnContainer.innerHTML = aeroNotices.map(station => {
+        const isPrimary = [depIcao, arrIcao, altIcao].includes(station.icao);
+        const roleBadge = station.icao === depIcao
+          ? '<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-mono font-bold">DEPARTURE</span>'
+          : (station.icao === arrIcao
+            ? '<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono font-bold">DESTINATION</span>'
+            : (station.icao === altIcao
+              ? '<span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[10px] font-mono font-bold">ALTERNATE</span>'
+              : '<span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 text-[10px] font-mono">EN-ROUTE / WATCHLIST</span>'));
+
+        const fmsBadge = station.hasFmsDiscrepancy
+          ? '<span class="px-2 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/40 text-[10px] font-mono font-bold">FMS NAVDATA DISCREPANCY</span>'
+          : '';
+
+        const allItems = [...(station.ncnNotices || []), ...(station.ccnNotices || [])];
+
+        return `
+          <div class="p-4 rounded-xl border ${isPrimary ? 'border-cyan-500/40 bg-slate-950/90' : 'border-slate-800 bg-slate-950/60'} space-y-2.5 text-xs">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-mono font-extrabold text-white px-2 py-0.5 rounded bg-slate-900 border border-slate-700">${station.icao}</span>
+                <div>
+                  <div class="font-bold text-slate-200">${station.name}</div>
+                  <div class="text-[10px] font-mono text-slate-400">${station.country} • FIR ${station.fir}</div>
+                </div>
+              </div>
+              <div class="flex flex-wrap items-center gap-1.5">
+                ${roleBadge}
+                ${fmsBadge}
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+              <div>
+                <span class="text-slate-400 block text-[10px]">DCL / CLEARANCE AFTN LOGON</span>
+                <span class="text-cyan-300 font-bold">${station.dclAftn || 'VHF Voice Delivery'}</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block text-[10px]">G650ER WINGSPAN (30.36m / 99\'7")</span>
+                <span class="${station.wingspanLimitM < 30.36 ? 'text-red-400 font-bold' : 'text-emerald-300'}">${station.g650erWingspanStatus}</span>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              ${allItems.map(item => {
+                const isCrit = item.severity === 'CRITICAL';
+                const itemCls = isCrit
+                  ? 'border-red-500/40 bg-red-500/10'
+                  : (item.severity === 'WARNING' ? 'border-amber-500/40 bg-amber-500/10' : 'border-slate-800 bg-slate-900/60');
+                return `
+                  <div class="p-2.5 rounded-lg border ${itemCls} space-y-1">
+                    <div class="flex items-center justify-between gap-2 font-mono text-[10px]">
+                      <span class="font-bold ${isCrit ? 'text-red-300' : 'text-amber-300'}">[${item.type}${item.cycle ? ' ' + item.cycle : ''}] ${item.title}</span>
+                      ${item.fmsDiscrepancy ? '<span class="px-1.5 py-0.2 rounded bg-red-500/30 text-red-200 font-bold">DO NOT USE IN FMS</span>' : ''}
+                    </div>
+                    <p class="text-[11px] text-slate-300 leading-relaxed">${item.detail}</p>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+
+            ${station.taxiRestrictions ? `
+              <div class="text-[11px] text-slate-400 border-t border-slate-800/80 pt-1.5">
+                <strong class="text-slate-300 font-mono">Ground / Taxi:</strong> ${station.taxiRestrictions}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // -------------------------------------------------------------------------
+    // 5. Render SSR Transponder & Contingency Quick-Card
+    // -------------------------------------------------------------------------
+    const ssrData = this.jeppesenEngine.getSsrContingencyCards(routeFirs);
+
+    if (this.elements.jeppSsrRouteCards) {
+      this.elements.jeppSsrRouteCards.innerHTML = ssrData.firCards.map(card => `
+        <div class="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2 text-xs">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <div>
+              <span class="font-mono font-extrabold text-white text-sm">${card.firCode}</span>
+              <span class="text-[11px] text-slate-400 block">${card.firName}</span>
+            </div>
+            <div class="text-right font-mono">
+              <span class="text-[10px] text-slate-400 block">UNCONTROLLED / VFR</span>
+              <span class="text-sm font-extrabold text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded border border-amber-500/30">${card.uncontrolledVfrSquawk}</span>
+            </div>
+          </div>
+          <div class="text-[11px] text-slate-300 leading-relaxed">
+            <strong class="text-cyan-400 font-mono">Transponder Failure Rule:</strong> ${card.transponderFailureRule}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    if (this.elements.jeppSsrGlobalTable) {
+      this.elements.jeppSsrGlobalTable.innerHTML = `
+        <table class="w-full text-left border-collapse text-xs font-mono">
+          <thead>
+            <tr class="border-b border-slate-800 text-[10px] text-slate-400 uppercase bg-slate-950/60">
+              <th class="py-2 px-3">Squawk Code</th>
+              <th class="py-2 px-3">Applicable FIRs / States (Jeppesen SSR Tables)</th>
+              <th class="py-2 px-3">Operational Rule</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800/70">
+            ${ssrData.globalQuickTable.map(r => `
+              <tr class="hover:bg-slate-900/40">
+                <td class="py-2 px-3">
+                  <span class="px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-bold">${r.code}</span>
+                </td>
+                <td class="py-2 px-3 text-slate-200 font-sans text-[11px]">${r.regions}</td>
+                <td class="py-2 px-3 text-slate-400 font-sans text-[11px]">${r.usage}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    // -------------------------------------------------------------------------
+    // 6. Update Flight Brief Summary Strip (#brief-jeppesen-summary-grid)
+    // -------------------------------------------------------------------------
+    if (this.elements.briefJeppesenSummaryGrid) {
+      const primaryCpdlc = cns.cpdlcTimeline.find(c => c.available) || cns.cpdlcTimeline[0];
+      const primaryAdiz = adizCards[0];
+      const fmsDiscrepancyCount = aeroNotices.filter(a => a.hasFmsDiscrepancy).length;
+      const aomSnap = this.getCurrentAomResult();
+
+      this.elements.briefJeppesenSummaryGrid.innerHTML = `
+        <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+          <div class="flex items-center justify-between text-[10px] font-mono text-cyan-400 font-bold">
+            <span>1. CPDLC / CNS LOGON</span>
+            <span>${routeFirs.join(' ➔ ')}</span>
+          </div>
+          <div class="text-xs font-bold text-white font-mono">
+            ${primaryCpdlc ? `${primaryCpdlc.logonId} (${primaryCpdlc.systemType})` : 'VHF Voice'}
+          </div>
+          <div class="text-[11px] text-slate-400 truncate">${primaryCpdlc ? primaryCpdlc.logonTiming : ''}</div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+          <div class="flex items-center justify-between text-[10px] font-mono text-amber-400 font-bold">
+            <span>2. ADIZ / DEFENSE TRACKER</span>
+            <span>${primaryAdiz ? primaryAdiz.regionKey : 'CLEAR'}</span>
+          </div>
+          <div class="text-xs font-bold text-white font-mono">
+            ${primaryAdiz ? `Window ${primaryAdiz.windowStartUtcStr}–${primaryAdiz.windowEndUtcStr}` : 'No Sovereign ADC Required'}
+          </div>
+          <div class="text-[11px] text-slate-400 truncate">
+            ${primaryAdiz ? `Check-in ${primaryAdiz.inFlightCheckIn.leadDistanceNm ? primaryAdiz.inFlightCheckIn.leadDistanceNm + ' NM' : (primaryAdiz.inFlightCheckIn.leadTimeMinutes || 10) + 'm'} prior` : 'Standard FIR boundary check-in'}
+          </div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+          <div class="flex items-center justify-between text-[10px] font-mono text-emerald-400 font-bold">
+            <span>3. DYNAMIC AOM (CAT C)</span>
+            <span>${aomSnap.lvto.lvpInForce ? 'LVP ON' : 'NON-LVP FLOOR'}</span>
+          </div>
+          <div class="text-xs font-bold text-white font-mono">
+            TO: RVR ${aomSnap.lvto.rvrM}m • APCH: ${aomSnap.approach.adjustedRvrM}m
+          </div>
+          <div class="text-[11px] text-slate-400 truncate">${aomSnap.approach.label} (${aomSnap.approach.dhFt} ft)</div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+          <div class="flex items-center justify-between text-[10px] font-mono text-purple-400 font-bold">
+            <span>4. CCN / NCN &amp; SSR</span>
+            <span>${fmsDiscrepancyCount} FMS ALERTS</span>
+          </div>
+          <div class="text-xs font-bold text-white font-mono">
+            ${aeroNotices.length} Stations Scanned • Squawk ${ssrData.firCards[0] ? ssrData.firCards[0].uncontrolledVfrSquawk : '2000'}
+          </div>
+          <div class="text-[11px] text-slate-400 truncate">SGES/SBLO VOR U/S, HECA GPS &amp; EGNOS LPV Watch</div>
+        </div>
+      `;
+    }
+
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  getCurrentAomResult() {
+    const config = {
+      aomRegime: this.elements.aomLvtoRegime ? this.elements.aomLvtoRegime.value : 'SAM_AIC',
+      lvpInForce: this.elements.aomLvpActive ? this.elements.aomLvpActive.checked : false,
+      hasHirl: this.elements.aomLvtoHirl ? this.elements.aomLvtoHirl.checked : true,
+      hasCl: this.elements.aomLvtoCl ? this.elements.aomLvtoCl.checked : true,
+      hasRclm: this.elements.aomLvtoRclm ? this.elements.aomLvtoRclm.checked : true,
+      hasHudEfvs: this.elements.aomLvtoHud ? this.elements.aomLvtoHud.checked : true,
+      approachType: this.elements.aomAppType ? this.elements.aomAppType.value : 'ILS_CAT_I',
+      customDhFt: this.elements.aomAppDh ? Number(this.elements.aomAppDh.value) || 200 : 200,
+      alsOut: this.elements.aomDegAlsOut ? this.elements.aomDegAlsOut.checked : false,
+      tdzClOut: this.elements.aomDegTdzOut ? this.elements.aomDegTdzOut.checked : false,
+      noFdApToDa: this.elements.aomDegNofd ? this.elements.aomDegNofd.checked : false,
+      visualSegmentObstacles: this.elements.aomDegObstacles ? this.elements.aomDegObstacles.checked : false,
+      applyEfvsCredit: this.elements.aomDegEfvs ? this.elements.aomDegEfvs.checked : false
+    };
+    return this.jeppesenEngine.calculateDynamicAom(config);
+  }
+
+  renderAomCalculator() {
+    if (!this.jeppesenEngine) return;
+    const res = this.getCurrentAomResult();
+
+    if (this.elements.aomLvtoResultBox) {
+      const lv = res.lvto;
+      this.elements.aomLvtoResultBox.innerHTML = `
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <span class="text-[10px] font-mono uppercase text-slate-400 block">Computed Minimum Takeoff RVR</span>
+            <div class="text-xl font-mono font-extrabold text-amber-400">
+              RVR ${lv.rvrM} m <span class="text-sm text-slate-400 font-normal">(${lv.rvrFt} ft)</span>
+            </div>
+          </div>
+          <span class="px-2.5 py-1 rounded-lg font-mono text-[10px] font-bold ${
+            lv.floorEnforced
+              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+              : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+          }">
+            ${lv.floorEnforced ? 'NON-LVP >=400m/550m FLOOR ENFORCED' : 'LVP CREDIT ACTIVE'}
+          </span>
+        </div>
+        <div class="text-[11px] text-slate-200 mt-2 font-mono">${lv.ruleApplied}</div>
+        ${lv.notes.length > 0 ? `
+          <ul class="mt-2 pt-2 border-t border-slate-800 text-[11px] text-amber-300/90 space-y-1">
+            ${lv.notes.map(n => `<li>• ${n}</li>`).join('')}
+          </ul>
+        ` : ''}
+      `;
+    }
+
+    if (this.elements.aomAppResultBox) {
+      const ap = res.approach;
+      const isDegraded = ap.adjustedRvrM > ap.baseRvrM || ap.warnings.length > 0;
+      this.elements.aomAppResultBox.innerHTML = `
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <span class="text-[10px] font-mono uppercase text-slate-400 block">${ap.dimension} Approach Minimums • ${ap.dhOrMdaLabel}: ${ap.dhFt} ft</span>
+            <div class="text-xl font-mono font-extrabold ${isDegraded ? 'text-amber-400' : 'text-emerald-400'}">
+              RVR ${ap.adjustedRvrM} m <span class="text-sm text-slate-400 font-normal">(${ap.adjustedRvrFt} ft)</span>
+              ${ap.adjustedRvrM !== ap.baseRvrM ? `<span class="text-xs text-slate-500 line-through ml-1">${ap.baseRvrM}m</span>` : ''}
+            </div>
+          </div>
+          <span class="px-2.5 py-1 rounded-lg font-mono text-[10px] font-bold ${
+            isDegraded
+              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+              : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+          }">
+            ${ap.label}
+          </span>
+        </div>
+
+        ${ap.penaltiesApplied.length > 0 ? `
+          <ul class="mt-2 pt-2 border-t border-slate-800 text-[11px] font-mono text-slate-200 space-y-1">
+            ${ap.penaltiesApplied.map(p => `<li class="flex items-start gap-1.5"><span class="text-amber-400">▸</span><span>${p}</span></li>`).join('')}
+          </ul>
+        ` : `<div class="text-[11px] text-slate-400 mt-1.5 font-mono">Full visual &amp; non-visual aids operational — standard chart baseline RVR (${ap.baseRvrM}m).</div>`}
+
+        ${ap.warnings.length > 0 ? `
+          <div class="mt-2.5 p-2.5 rounded-lg bg-red-500/15 border border-red-500/40 text-[11px] text-red-200 space-y-1">
+            ${ap.warnings.map(w => `<div><strong>⚠️</strong> ${w}</div>`).join('')}
+          </div>
+        ` : ''}
+      `;
     }
   }
 }

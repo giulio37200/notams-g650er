@@ -1,0 +1,198 @@
+{
+  "_metadata": {
+    "source": "Jeppesen Airway Manual - General (Briefing Bulletins p.18-25, p.34-39: ICAO AWOM, EASA Air Ops, US Lower-Than-Standard Takeoff Minimums Sept 2026)",
+    "aircraftCategory": "CAT C (Gulfstream G650ER — Vref 128-137 kt)",
+    "generatedAt": "2026-10-24T21:12:02.046734+00:00"
+  },
+  "lvtoTables": {
+    "easaIcaoRules": {
+      "nonLvpFloorRvrM": 400,
+      "standardNonLvpFloorRvrM": 550,
+      "southAmericaAicFloorM": 400,
+      "tiers": [
+        {
+          "id": "LVTO_125M",
+          "rvrM": 125,
+          "rvrFt": 400,
+          "requiresLvp": true,
+          "requiresApproval": true,
+          "requiredAids": [
+            "HIRL",
+            "CL",
+            "RCLM"
+          ],
+          "requiresHudEfvs": false,
+          "description": "EASA/ICAO Approved LVTO with HIRL + Runway Centerline Lights (CL <=15m spacing) + RCLM + multiple controlling RVR sensors (TDZ, MID, ROLLOUT)."
+        },
+        {
+          "id": "LVTO_150M",
+          "rvrM": 150,
+          "rvrFt": 500,
+          "requiresLvp": true,
+          "requiresApproval": true,
+          "requiredAids": [
+            "HIRL",
+            "CL",
+            "RCLM"
+          ],
+          "requiresHudEfvs": false,
+          "description": "Standard LVTO with HIRL + CL + RCLM and LVP in force (or FAA OpSpec C078/C079 RVR 500 ft)."
+        },
+        {
+          "id": "LVTO_90M_HUD_EFVS",
+          "rvrM": 90,
+          "rvrFt": 300,
+          "requiresLvp": true,
+          "requiresApproval": true,
+          "requiredAids": [
+            "HIRL",
+            "CL",
+            "HUD_EFVS"
+          ],
+          "requiresHudEfvs": true,
+          "description": "FAA OpSpec C078/C079 (Sept 2026 Bulletin p.39) / EASA HUD/EFVS Guided LVTO: RVR 300 ft (90m) at TDZ/Mid/Rollout with HUD (CAT IIIE LOC) or EFVS (derived vis >=1600 ft) + CL + HIRL."
+        },
+        {
+          "id": "LVTO_300M_HIRL_CL",
+          "rvrM": 300,
+          "rvrFt": 1000,
+          "requiresLvp": true,
+          "requiresApproval": true,
+          "requiredAids": [
+            "HIRL_OR_CL",
+            "RCLM"
+          ],
+          "requiresHudEfvs": false,
+          "description": "FAA OpSpec C078/C079 RVR 1000 ft (300m) / EASA LVTO with CL or (HIRL + RCLM) or (HUD + RCLM)."
+        },
+        {
+          "id": "LVTO_400M_NON_LVP_FLOOR",
+          "rvrM": 400,
+          "rvrFt": 1300,
+          "requiresLvp": false,
+          "requiresApproval": false,
+          "requiredAids": [
+            "HIRL_OR_CL_OR_RCLM"
+          ],
+          "requiresHudEfvs": false,
+          "description": "EASA Air Ops / ICAO AWOM / Paraguay AIC A004/24 Non-LVP Floor with Runway Edge Lights (HIRL) and/or Centerline Markings (RCLM): 400m RVR."
+        },
+        {
+          "id": "LVTO_500M_BARE",
+          "rvrM": 500,
+          "rvrFt": 1600,
+          "requiresLvp": false,
+          "requiresApproval": false,
+          "requiredAids": [
+            "ADEQUATE_VISUAL_REF"
+          ],
+          "requiresHudEfvs": false,
+          "description": "Day/Night Takeoff without HIRL/CL/RCLM credit (or LVP not in force without facility credit): 500m - 550m RVR (FAA TDZ RVR 1600 ft)."
+        }
+      ]
+    }
+  },
+  "approachTables": {
+    "catCBaseline": {
+      "ILS_CAT_II": {
+        "label": "3D — ILS CAT II / SA CAT II",
+        "dimension": "3D",
+        "defaultDhFt": 100,
+        "fullAlsRvrM": 300,
+        "intermAlsRvrM": 350,
+        "basicAlsRvrM": 400,
+        "noAlsRvrM": 450,
+        "requiresAutopilotOrHud": true,
+        "requiresTdzCl": true
+      },
+      "ILS_CAT_I": {
+        "label": "3D — ILS / GLS CAT I",
+        "dimension": "3D",
+        "defaultDhFt": 200,
+        "fullAlsRvrM": 550,
+        "intermAlsRvrM": 700,
+        "basicAlsRvrM": 800,
+        "noAlsRvrM": 1000,
+        "requiresAutopilotOrHud": false,
+        "requiresTdzCl": false
+      },
+      "RNP_LPV": {
+        "label": "3D — RNP APCH to LPV (SBAS)",
+        "dimension": "3D",
+        "defaultDhFt": 250,
+        "fullAlsRvrM": 600,
+        "intermAlsRvrM": 750,
+        "basicAlsRvrM": 850,
+        "noAlsRvrM": 1100,
+        "requiresAutopilotOrHud": false,
+        "requiresTdzCl": false
+      },
+      "RNP_LNAV_VNAV": {
+        "label": "3D — RNP APCH to LNAV/VNAV (Baro-VNAV)",
+        "dimension": "3D",
+        "defaultDhFt": 300,
+        "fullAlsRvrM": 750,
+        "intermAlsRvrM": 900,
+        "basicAlsRvrM": 1000,
+        "noAlsRvrM": 1200,
+        "requiresAutopilotOrHud": false,
+        "requiresTdzCl": false
+      },
+      "NPA_2D_CDFA": {
+        "label": "2D (CDFA) — LOC / LNAV / VOR (Continuous Descent)",
+        "dimension": "2D_CDFA",
+        "defaultDhFt": 350,
+        "fullAlsRvrM": 800,
+        "intermAlsRvrM": 1000,
+        "basicAlsRvrM": 1100,
+        "noAlsRvrM": 1300,
+        "requiresAutopilotOrHud": false,
+        "requiresTdzCl": false
+      },
+      "NPA_2D_STEPDOWN": {
+        "label": "2D (Non-CDFA Stepdown) — LOC / LNAV / VOR / NDB",
+        "dimension": "2D_NON_CDFA",
+        "defaultDhFt": 400,
+        "fullAlsRvrM": 1200,
+        "intermAlsRvrM": 1400,
+        "basicAlsRvrM": 1500,
+        "noAlsRvrM": 1600,
+        "requiresAutopilotOrHud": false,
+        "requiresTdzCl": false
+      }
+    },
+    "degradationPenalties": {
+      "alsOut": {
+        "label": "ALS Out (Approach Lighting System U/S)",
+        "rvrFloorM": 750,
+        "catIPenaltyAddM": 450,
+        "catCMinNoAlsAt200FtM": 1000,
+        "ruleSummary": "Per EASA Air Ops / ICAO Doc 9365 AWOM: With ALS Out on CAT I / APV (DH 200-250 ft), RVR increases from 550m to 1000m-1100m (and never below the 750m non-FALS floor)."
+      },
+      "tdzClOut": {
+        "label": "TDZ / CL Lights Out",
+        "rvrFloorM": 750,
+        "catIISingleAidFloorM": 400,
+        "catIIBothOutFloorM": 550,
+        "ruleSummary": "Touchdown Zone (TDZ) and/or Runway Centerline (CL) lights unserviceable: enforces 750m RVR floor on CAT I without HUD/FD/AP credit, and degrades CAT II (300m) to 400m/550m CAT I."
+      },
+      "noFdApToDa": {
+        "label": "No FD / AP / HUD to DA",
+        "rvrFloorM": 750,
+        "ruleSummary": "Without Flight Director (FD), Autopilot (AP), or HUD/EFVS used down to DA/DH, a minimum RVR floor of 750m applies (CAT II prohibited)."
+      },
+      "visualSegmentObstacles": {
+        "label": "Visual Segment - Obstacles Flag",
+        "warningText": "CHART BALL NOTE: 'Visual Segment - Obstacles' — Obstacles penetrate the visual segment surface below MDA/DA. Do NOT descend below MDA/DA until the runway threshold and obstacle clearance path are distinctly visible; EFVS to touchdown credit prohibited unless obstacle-cleared.",
+        "prohibitEfvsCredit": true,
+        "minVisibilityFloorM": 1500
+      },
+      "efvsCredit": {
+        "label": "G650ER EFVS / HUD Operational Credit",
+        "reductionFactor": 0.67,
+        "minFloorRvrM": 550,
+        "ruleSummary": "Approved EFVS-A (Enhanced Flight Vision System to 100 ft) allows 1/3 RVR reduction on straight-in 3D/CDFA approaches (subject to 550m floor unless LVP in force)."
+      }
+    }
+  }
+}

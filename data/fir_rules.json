@@ -1,0 +1,1375 @@
+{
+  "_metadata": {
+    "source": "Jeppesen Airway Manual (Enroute, Communications, ADS-B, CPDLC & SSR Sections)",
+    "cycle": "2610 / 2611 (Eff 15 OCT 2026)",
+    "generatedAt": "2026-10-24T21:12:02.046485+00:00",
+    "ingestedManuals": [
+      {
+        "name": "Introduction to Jeppesen Navigation Charts.pdf",
+        "sizeMb": 102.02
+      },
+      {
+        "name": "Jeppesen Airway Manual - Africa.pdf",
+        "sizeMb": 6.9
+      },
+      {
+        "name": "Jeppesen Airway Manual - Eastern Europe.pdf",
+        "sizeMb": 12.35
+      },
+      {
+        "name": "Jeppesen Airway Manual - Europe.pdf",
+        "sizeMb": 23.81
+      },
+      {
+        "name": "Jeppesen Airway Manual - General.pdf",
+        "sizeMb": 32.56
+      },
+      {
+        "name": "Jeppesen Airway Manual - Middle East.pdf",
+        "sizeMb": 10.79
+      },
+      {
+        "name": "Jeppesen Airway Manual - North America.pdf",
+        "sizeMb": 45.71
+      },
+      {
+        "name": "Jeppesen Airway Manual - Pacific.pdf",
+        "sizeMb": 24.17
+      },
+      {
+        "name": "Jeppesen Airway Manual - South America.pdf",
+        "sizeMb": 8.29
+      }
+    ]
+  },
+  "SBCW": {
+    "firCode": "SBCW",
+    "name": "Curitiba FIR (Brazil)",
+    "region": "South America",
+    "cpdlc": {
+      "available": true,
+      "adsC": true,
+      "logonId": "SBCW",
+      "systemType": "FANS 1/A",
+      "minFlightLevel": "FL250",
+      "logonTiming": "10 to 25 minutes prior to entering SBCW FIR (or before departure when departing from SBJH/SBGR/SBKP/SBSP)",
+      "logonWindowMin": [
+        10,
+        25
+      ],
+      "notes": "Compulsory initial voice contact on sector VHF frequency before CPDLC data link transfer. Downlink initial CPDLC position report upon connection."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "1090ES ADS-B Out and Mode S required in RVSM airspace (FL290-FL410).",
+      "rnpRequired": "RNAV 5 / RNP 2 continental upper routes",
+      "lateralSeparation": "Standard continental radar / ADS-B surveillance"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": true,
+        "offsetRule": "Centerline or 0.1 NM increments up to 2.0 NM RIGHT of centerline in oceanic/remote sectors",
+        "IncrementNm": 0.1,
+        "maxOffsetNm": 2.0
+      },
+      "brazilContingencyPlan": {
+        "active": true,
+        "tibaFreq": "123.45 MHz",
+        "emergencyFreq": "121.5 MHz",
+        "summary": "In ATS contingency within Brazilian FIRs, prior takeoff authorization from CGNA is mandatory. Monitor 123.45 MHz (TIBA) & 121.5 MHz, broadcast 10 min prior to FIR entry and 5 min prior to waypoints, keep exterior lights ON, never climb/descend through occupied FLs."
+      },
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "2000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "After departure: ATC units endeavor to allow continuation to first planned landing aerodrome where repair must be performed. Before departure: Inform ATC prior to filing FPL, insert 'N' in Item 10b, fly most direct route to repair station."
+    },
+    "adizKey": "BRAZIL_BORDER"
+  },
+  "SBBS": {
+    "firCode": "SBBS",
+    "name": "Brasilia FIR (Brazil)",
+    "region": "South America",
+    "cpdlc": {
+      "available": true,
+      "adsC": true,
+      "logonId": "SBBS",
+      "systemType": "FANS 1/A",
+      "minFlightLevel": "FL250",
+      "logonTiming": "10 to 25 minutes prior to entering SBBS FIR",
+      "logonWindowMin": [
+        10,
+        25
+      ],
+      "notes": "FANS 1/A CPDLC operational in upper airspace. Primary VHF voice retained in continental radar sectors."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "ADS-B Out 1090ES required FL290+.",
+      "rnpRequired": "RNAV 5 / RNP 2",
+      "lateralSeparation": "Radar / ADS-B"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": true,
+        "offsetRule": "Up to 2.0 NM right of track in 0.1 NM increments",
+        "IncrementNm": 0.1,
+        "maxOffsetNm": 2.0
+      },
+      "brazilContingencyPlan": {
+        "active": true,
+        "tibaFreq": "123.45 MHz",
+        "emergencyFreq": "121.5 MHz",
+        "summary": "Brazilian FIR National & International Contingency Plan applies: TIBA on 123.45 MHz, CGNA slot/entry coordination required."
+      },
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "2000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Standard ICAO & DECEA procedures: continue to first planned landing aerodrome for mandatory transponder restoration."
+    },
+    "adizKey": null
+  },
+  "SBAZ": {
+    "firCode": "SBAZ",
+    "name": "Amazonica FIR (Brazil)",
+    "region": "South America",
+    "cpdlc": {
+      "available": true,
+      "adsC": true,
+      "logonId": "SBAZ",
+      "systemType": "FANS 1/A",
+      "minFlightLevel": "FL250",
+      "logonTiming": "10 to 25 minutes prior to entering Amazonica FIR",
+      "logonWindowMin": [
+        10,
+        25
+      ],
+      "notes": "FANS 1/A CPDLC & ADS-C active across remote Amazonia sectors; HF backup required."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "ADS-B Out and FANS 1/A ADS-C used for surveillance in remote Amazon sectors.",
+      "rnpRequired": "RNAV 5 / RNP 10",
+      "lateralSeparation": "50 NM / Surveillance"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": true,
+        "offsetRule": "0.1 NM increments up to 2.0 NM right of centerline recommended in remote continental segments",
+        "IncrementNm": 0.1,
+        "maxOffsetNm": 2.0
+      },
+      "brazilContingencyPlan": {
+        "active": true,
+        "tibaFreq": "123.45 MHz",
+        "emergencyFreq": "121.5 MHz",
+        "summary": "DECEA Contingency Plan: TIBA 123.45 MHz broadcasts 10 min prior to FIR entry and 5 min prior to reporting points."
+      },
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "2000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Inform ACC immediately; repair required at next landing."
+    },
+    "adizKey": "BRAZIL_BORDER"
+  },
+  "SBAO": {
+    "firCode": "SBAO",
+    "name": "Atlantico Oceanic FIR (Brazil)",
+    "region": "South America / South Atlantic",
+    "cpdlc": {
+      "available": true,
+      "adsC": true,
+      "logonId": "SBAO",
+      "systemType": "FANS 1/A",
+      "minFlightLevel": "All EUR/SAM Corridor FLs",
+      "logonTiming": "10 to 25 minutes prior to SBAO FIR boundary",
+      "logonWindowMin": [
+        10,
+        25
+      ],
+      "notes": "Compulsory FANS 1/A CPDLC & ADS-C in EUR/SAM corridor. Downlink initial position report upon logon."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "Space-based ADS-B & ADS-C surveillance active in EUR/SAM Corridor.",
+      "rnpRequired": "RNP 4 / RNP 10 (PBN/A1 or PBN/L1)",
+      "lateralSeparation": "30 NM (RNP 4) / 50 NM (RNP 10) Lateral Separation in EUR/SAM Oceanic"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": true,
+        "offsetRule": "Mandatory SLOP eligibility: centerline or 0.1 NM increments up to 2.0 NM RIGHT of track without ATC clearance",
+        "IncrementNm": 0.1,
+        "maxOffsetNm": 2.0
+      },
+      "brazilContingencyPlan": {
+        "active": true,
+        "tibaFreq": "123.45 MHz",
+        "emergencyFreq": "121.5 MHz",
+        "summary": "South Atlantic Contingency routes and TIBA 123.45 MHz procedures apply."
+      },
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "2000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Maintain Mode A/C 2000 in oceanic airspace for TCAS collision avoidance."
+    },
+    "adizKey": null
+  },
+  "SGFA": {
+    "firCode": "SGFA",
+    "name": "Asuncion FIR (Paraguay)",
+    "region": "South America",
+    "cpdlc": {
+      "available": false,
+      "adsC": false,
+      "logonId": "N/A (VHF Voice 128.4 / 124.9 MHz)",
+      "systemType": "VHF Voice Only",
+      "minFlightLevel": "GND-UNL",
+      "logonTiming": "Establish VHF voice contact with Asuncion ACC 10 mins prior to FIR boundary (FOZ / GUAIRA transition)",
+      "logonWindowMin": [
+        10,
+        15
+      ],
+      "notes": "No CPDLC in SGFA FIR. Monitor Asuncion ACC on VHF and verify SGES (Ciudad del Este) VES VOR/DME outage impacts."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": false,
+      "adsBNote": "SSR Mode A/C/S surveillance; RNAV 5 on upper routes (UL/UM/UN).",
+      "rnpRequired": "RNAV 5 (Upper Airspace FL245+)",
+      "lateralSeparation": "Radar / Procedural"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": true,
+        "offsetRule": "Standard procedural separation; SLOP up to 2.0 NM right when outside radar coverage",
+        "IncrementNm": 0.1,
+        "maxOffsetNm": 2.0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false,
+      "customAlerts": [
+        "AIC A004/24 (Paraguay): Minimum meteorological visibility required for takeoff at all Paraguayan airports is 400m.",
+        "AIP SUP (Paraguay): VES VOR/DME (114.1 MHz) at SGES (Guaraní Intl) unserviceable — VOR/DME approaches suspended."
+      ]
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "2000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Standard ICAO procedure: Squawk 2000 if unassigned. Inform Asuncion ACC prior to entry if transponder unserviceable."
+    },
+    "adizKey": "BRAZIL_BORDER"
+  },
+  "SAEZ": {
+    "firCode": "SAEZ",
+    "name": "Ezeiza FIR (Argentina)",
+    "region": "South America",
+    "cpdlc": {
+      "available": true,
+      "adsC": true,
+      "logonId": "SAEZ",
+      "systemType": "FANS 1/A",
+      "minFlightLevel": "FL245 (Oceanic Sectors)",
+      "logonTiming": "15 to 45 minutes prior to entering Ezeiza Oceanic sector",
+      "logonWindowMin": [
+        15,
+        45
+      ],
+      "notes": "FANS 1/A CPDLC/ADS-C in Oceanic sector; VHF voice in continental sectors."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": false,
+      "adsBNote": "Mode S / SSR required in controlled airspace.",
+      "rnpRequired": "RNAV 5 / RNP 10 (Oceanic)",
+      "lateralSeparation": "50 NM Oceanic / Radar Continental"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": true,
+        "offsetRule": "0.1 NM increments up to 2.0 NM right of track in oceanic airspace",
+        "IncrementNm": 0.1,
+        "maxOffsetNm": 2.0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "2000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Standard ICAO transponder failure rules apply. Obtain ATC clearance before entering TMA."
+    },
+    "adizKey": null
+  },
+  "SOOO": {
+    "firCode": "SOOO",
+    "name": "Cayenne FIR (French Guiana)",
+    "region": "South America",
+    "cpdlc": {
+      "available": true,
+      "adsC": true,
+      "logonId": "SOOO",
+      "systemType": "FANS 1/A",
+      "minFlightLevel": "FL245",
+      "logonTiming": "15 to 45 minutes prior to entering Cayenne FIR",
+      "logonWindowMin": [
+        15,
+        45
+      ],
+      "notes": "From Jeppesen SAM Enroute p.143: Logon to SOOO between 15 and 45 minutes prior to entry."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "ADS-B / ADS-C active above FL245.",
+      "rnpRequired": "RNP 10 / RNP 4 (Oceanic routes)",
+      "lateralSeparation": "50 NM Lateral Separation"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": true,
+        "offsetRule": "0.1 NM increments up to 2.0 NM right of centerline",
+        "IncrementNm": 0.1,
+        "maxOffsetNm": 2.0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "2000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Standard ICAO procedures; notify Rochambeau ACC immediately."
+    },
+    "adizKey": null
+  },
+  "KZWY": {
+    "firCode": "KZWY",
+    "name": "New York Oceanic FIR / WAT CTA (USA)",
+    "region": "North America / North Atlantic",
+    "cpdlc": {
+      "available": true,
+      "adsC": true,
+      "logonId": "KZWY",
+      "systemType": "FANS 1/A+",
+      "minFlightLevel": "All Oceanic FLs",
+      "logonTiming": "15 to 45 minutes prior to entering New York Oceanic FIR / WAT CTA",
+      "logonWindowMin": [
+        15,
+        45
+      ],
+      "notes": "PBCS (RCP240/RSP180) required for reduced separation tracks. HF backup via New York ARINC required."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "1090ES ADS-B Out mandatory in US Class A/B/C and WAT/NAT surveillance corridors (14 CFR 91.225).",
+      "rnpRequired": "RNP 10 (PBN/A1) or RNP 4 (PBN/L1) required for 50 NM / 23 NM lateral separation in WAT/GoMex CTAs",
+      "lateralSeparation": "50 NM (RNP 10) / 23 NM (RNP 4 + PBCS) in West Atlantic (WAT) & Gulf of Mexico CTAs. Non-RNP10 must file RMK/NON-RNP10 and state 'Negative RNP 10'."
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": true,
+        "offsetRule": "Mandatory SLOP in NAT/WAT Oceanic: Centerline or 0.1 NM increments up to 2.0 NM RIGHT of track without ATC clearance",
+        "IncrementNm": 0.1,
+        "maxOffsetNm": 2.0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "1200",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Squawk 2000 in NAT Oceanic after 30 mins unless assigned discrete code. Domestic US VFR squawk 1200."
+    },
+    "adizKey": "US_ALASKA"
+  },
+  "CZQX": {
+    "firCode": "CZQX",
+    "name": "Gander Oceanic FIR (Canada)",
+    "region": "North America / North Atlantic",
+    "cpdlc": {
+      "available": true,
+      "adsC": true,
+      "logonId": "CZQX",
+      "systemType": "FANS 1/A+",
+      "minFlightLevel": "FL285+ (NAT HLA)",
+      "logonTiming": "15 to 45 minutes prior to entering Gander Oceanic OCA",
+      "logonWindowMin": [
+        15,
+        45
+      ],
+      "notes": "Aircraft filing B1/B2 ADS-B in Item 10b are considered identified above FL285 in Gander OCA. CPDLC Uplink Latency Monitor active."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "Space-based ADS-B Out 1090ES mandatory across Canadian Class A/B and Gander OCA.",
+      "rnpRequired": "RNP 4 (PBN/L1) or RNP 10 (PBN/A1) — NAT HLA & PBCS Tracks",
+      "lateralSeparation": "19 NM / 23 NM PBCS Lateral Separation"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": true,
+        "offsetRule": "NAT HLA SLOP: Centerline or micro-offsets in 0.1 NM increments up to 2.0 NM RIGHT of track",
+        "IncrementNm": 0.1,
+        "maxOffsetNm": 2.0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "1200",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Squawk 2000 30 mins after oceanic entry (except retain discrete code on polar/continental radar corridors)."
+    },
+    "adizKey": "CANADA"
+  },
+  "EGGX": {
+    "firCode": "EGGX",
+    "name": "Shanwick Oceanic FIR (UK / Ireland)",
+    "region": "North Atlantic / Europe",
+    "cpdlc": {
+      "available": true,
+      "adsC": true,
+      "logonId": "EGGX",
+      "systemType": "FANS 1/A+",
+      "minFlightLevel": "FL285+ (NAT HLA)",
+      "logonTiming": "10 to 25 minutes prior to Shanwick Oceanic boundary (Oceanic Clearance via RCL/VOICE 30-90 mins prior)",
+      "logonWindowMin": [
+        10,
+        25
+      ],
+      "notes": "NAT Oceanic Clearance Procedures (RCL via CPDLC/ACARS replaced legacy voice OCA where equipped). Uplink latency monitor mandatory."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "From Jeppesen Europe p.126: ADS-B equipage is mandatory on routes T9 and T290 within Shanwick Oceanic and above FL285.",
+      "rnpRequired": "RNP 4 (PBN/L1) / RNP 10 (PBN/A1) — NAT HLA & PBCS Tracks",
+      "lateralSeparation": "19 NM / 23 NM PBCS Tracks"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": true,
+        "offsetRule": "NAT HLA SLOP: 0.1 NM increments up to 2.0 NM RIGHT of track (0 NM or 0.1-2.0 NM right)",
+        "IncrementNm": 0.1,
+        "maxOffsetNm": 2.0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "7000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Squawk 2000 in Shanwick OCA; set 7000 in European uncontrolled airspace unless assigned."
+    },
+    "adizKey": null
+  },
+  "BIRD": {
+    "firCode": "BIRD",
+    "name": "Reykjavik FIR & Greenland Corridor (Iceland)",
+    "region": "North Atlantic / Europe",
+    "cpdlc": {
+      "available": true,
+      "adsC": true,
+      "logonId": "BIRD",
+      "systemType": "FANS 1/A+",
+      "minFlightLevel": "FL195+",
+      "logonTiming": "15 to 45 minutes prior to entering BIRD FIR",
+      "logonWindowMin": [
+        15,
+        45
+      ],
+      "notes": "FANS 1/A CPDLC and ADS-C operational throughout Reykjavik OCA."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "From Jeppesen Europe p.127: Iceland has mandated ADS-B (1090ES) and Mode S for all aircraft in BIRD FIR and the Greenland Corridor (65N-69N / GUNPA-EMBOK at FL290+).",
+      "rnpRequired": "RNP 4 / RNP 10 (NAT HLA)",
+      "lateralSeparation": "ADS-B Surveillance / PBCS"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": true,
+        "offsetRule": "0.1 NM increments up to 2.0 NM right of centerline",
+        "IncrementNm": 0.1,
+        "maxOffsetNm": 2.0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "7000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Mode S and 1090ES ADS-B mandatory; exemption from Iceland ATS required prior to entry if unserviceable."
+    },
+    "adizKey": null
+  },
+  "ENOR": {
+    "firCode": "ENOR",
+    "name": "Polaris / Bodo Oceanic Corridor (Norway)",
+    "region": "Europe / North Atlantic",
+    "cpdlc": {
+      "available": true,
+      "adsC": true,
+      "logonId": "ENOR (Continental ATN) / ENOB (Bodo Oceanic FANS 1/A)",
+      "systemType": "ATN B1 / FANS 1/A",
+      "minFlightLevel": "FL285+",
+      "logonTiming": "15 minutes prior to FIR entry",
+      "logonWindowMin": [
+        10,
+        20
+      ],
+      "notes": "ATN B1 above FL285 in continental Polaris FIR; FANS 1/A in Bodo Oceanic (ENOB)."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "From Jeppesen Europe p.127-128: Transponder with 1090ES ADS-B extended squitter mandatory in the Bodo Corridor (6645N 000E to 81N 030E).",
+      "rnpRequired": "RNAV 5 / RNP 4 (Bodo OCA)",
+      "lateralSeparation": "ADS-B Surveillance Corridor"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": true,
+        "offsetRule": "0.1 NM increments up to 2.0 NM right in Bodo Oceanic airspace",
+        "IncrementNm": 0.1,
+        "maxOffsetNm": 2.0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "7000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Standard European SSR rules; Squawk 7000 VFR."
+    },
+    "adizKey": null
+  },
+  "EGTT": {
+    "firCode": "EGTT",
+    "name": "London FIR/UIR (United Kingdom)",
+    "region": "Europe",
+    "cpdlc": {
+      "available": true,
+      "adsC": false,
+      "logonId": "EGTT",
+      "systemType": "ATN B1 (VDL Mode 2)",
+      "minFlightLevel": "FL285+",
+      "logonTiming": "10 to 15 minutes prior to entering London UIR above FL285",
+      "logonWindowMin": [
+        10,
+        15
+      ],
+      "notes": "European Single Sky Data Link Mandate (DLM) via ATN B1 / VDL Mode 2 above FL285."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "1090ES ADS-B Out & Mode S Enhanced Surveillance (EHS) mandatory.",
+      "rnpRequired": "RNAV 5 / RNAV 1 (TMA SIDs/STARs)",
+      "lateralSeparation": "5 NM Radar / ADS-B"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": false,
+        "offsetRule": "SLOP not authorized in domestic European radar airspace unless instructed by ATC",
+        "IncrementNm": 0,
+        "maxOffsetNm": 0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "7000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Mode S EHS required; notify London Control immediately if transponder degrades."
+    },
+    "adizKey": null
+  },
+  "LFFF": {
+    "firCode": "LFFF",
+    "name": "Paris FIR / France UIR",
+    "region": "Europe",
+    "cpdlc": {
+      "available": true,
+      "adsC": false,
+      "logonId": "LFFF",
+      "systemType": "ATN B1 (VDL Mode 2)",
+      "minFlightLevel": "FL195+",
+      "logonTiming": "10 to 15 minutes prior to entering France UIR",
+      "logonWindowMin": [
+        10,
+        15
+      ],
+      "notes": "ATN B1 CPDLC operational across French UIRs (LFFF/LFEE/LFMM/LFBB/LFRR)."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "EU ADS-B Out 1090ES & Mode S EHS mandate applies.",
+      "rnpRequired": "RNAV 5 (FRA) / RNAV 1 (Paris & Geneva TMAs)",
+      "lateralSeparation": "Radar / ADS-B"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": false,
+        "offsetRule": "No SLOP in domestic European radar airspace",
+        "IncrementNm": 0,
+        "maxOffsetNm": 0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "7000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Squawk 7000 VFR; prior authorization required if departing without serviceable Mode S transponder."
+    },
+    "adizKey": null
+  },
+  "LSAS": {
+    "firCode": "LSAS",
+    "name": "Switzerland FIR/UIR (Geneva / Zurich)",
+    "region": "Europe",
+    "cpdlc": {
+      "available": true,
+      "adsC": false,
+      "logonId": "LSAG (Geneva) / LSAZ (Zurich) / EDUU",
+      "systemType": "ATN B1 (VDL Mode 2)",
+      "minFlightLevel": "FL150+",
+      "logonTiming": "10 minutes prior to entering Swiss FIR",
+      "logonWindowMin": [
+        10,
+        15
+      ],
+      "notes": "Skyguide ATN B1 CPDLC active; initial voice check-in mandatory on sector transfer."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "Mode S EHS & ADS-B Out required.",
+      "rnpRequired": "RNAV 1 / RNP 1 (TMA) & RNAV 5 (Enroute)",
+      "lateralSeparation": "3 NM / 5 NM Radar"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": false,
+        "offsetRule": "No SLOP in Swiss radar airspace",
+        "IncrementNm": 0,
+        "maxOffsetNm": 0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "7000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Squawk 7000 VFR below FL100 (or 7000 throughout Europe uncontrolled)."
+    },
+    "adizKey": null
+  },
+  "LCCC": {
+    "firCode": "LCCC",
+    "name": "Nicosia FIR (Cyprus)",
+    "region": "Europe / Middle East",
+    "cpdlc": {
+      "available": true,
+      "adsC": false,
+      "logonId": "LCCC",
+      "systemType": "ATN B1",
+      "minFlightLevel": "FL285+",
+      "logonTiming": "5 to 10 minutes prior to entry into Nicosia FIR",
+      "logonWindowMin": [
+        5,
+        10
+      ],
+      "notes": "From Jeppesen Middle East p.68: CPDLC mandatory above FL285 via ATN B1 (Logon LCCC 5-10 mins prior)."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "ADS-B Out & Mode S required above FL285.",
+      "rnpRequired": "RNAV 5",
+      "lateralSeparation": "Radar / Procedural"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": false,
+        "offsetRule": "Maintain assigned centerline; strict level/track adherence due to uncoordinated Ankara/Ercan boundary",
+        "IncrementNm": 0,
+        "maxOffsetNm": 0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": {
+        "active": true,
+        "bulletinRef": "Jeppesen Briefing Bulletin JEP 06 / IATA Operational Notice 004/21 (General p.13-14)",
+        "ercanFreq": "126.70 MHz",
+        "preEntryNoticeMin": 10,
+        "summary": "No direct coordination exists between Ankara and Nicosia ACCs. Authority in LCCC FIR rests SOLELY with Nicosia ACC — accept ATC instructions & SSR codes ONLY from Nicosia ACC. Southbound from Ankara: contact Nicosia ACC >=10 mins prior to VESAR/TOMBI. Northbound to Ankara: relay flight info >=10 mins prior on 126.70 MHz (Ercan) for relay to Ankara. Eastbound to Damascus: contact 10 mins prior to NIKAS or relay via Latakia Radio at VESAR/ALSUS/BALMA."
+      }
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "7000 (Class G training areas: 2000)",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Accept SSR code allocations ONLY from Nicosia ACC within LCCC FIR."
+    },
+    "adizKey": null
+  },
+  "DIII": {
+    "firCode": "DIII",
+    "name": "Abidjan FIS / Dakar & Roberts Corridor (West Africa)",
+    "region": "Africa",
+    "cpdlc": {
+      "available": true,
+      "adsC": true,
+      "logonId": "DIII",
+      "systemType": "FANS 1/A",
+      "minFlightLevel": "FL245+",
+      "logonTiming": "20 to 45 minutes prior to entry into Abidjan FIS (DGAC/FCCC: 15 to 45 mins prior)",
+      "logonWindowMin": [
+        20,
+        45
+      ],
+      "notes": "From Jeppesen Africa p.79: Logon to DIII should be initiated between 20 and 45 minutes prior to entry into Abidjan FIS."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "From Jeppesen Africa p.62: Space-based ADS-B services implemented within Abidjan FIS, Dakar, Niamey, N'Djamena, and Brazzaville FIRs.",
+      "rnpRequired": "RNP 10 (AFI Oceanic/Remote routes)",
+      "lateralSeparation": "50 NM Lateral Separation"
+    },
+    "specialProcedures": {
+      "ifbp1269": {
+        "active": true,
+        "frequency": "126.9 MHz",
+        "listenBeforeEntryMin": 10,
+        "broadcastIntervalMin": 20,
+        "summary": "IATA In-Flight Broadcast Procedure (IFBP) in Africa (Jeppesen Africa p.74-77): Maintain continuous listening watch on 126.9 MHz starting 10 mins prior to entry. Broadcast in English: 10 mins prior to FIR entry, upon entry, 10 mins prior to crossing/joining ATS routes, every 20 mins, and before/after any FL change. Operate TCAS in TA/RA at max range and display exterior lights during level changes."
+      },
+      "slop": {
+        "authorized": true,
+        "offsetRule": "SLOP promoted across AFI region: Centerline or 0.1 NM increments up to 2.0 NM RIGHT of track",
+        "IncrementNm": 0.1,
+        "maxOffsetNm": 2.0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "2000 (AFI ORCAM PA West)",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "From Jeppesen Africa p.64-70: In case of transponder failure on a flight entering Abidjan, Dakar, Niamey, Ouagadougou, Cotonou, Douala, or Brazzaville TMA/UTA, the crew MUST inform the respective ACC/Approach at least 15 minutes before entering the airspace."
+    },
+    "adizKey": null
+  },
+  "FCCC": {
+    "firCode": "FCCC",
+    "name": "Brazzaville FIR (Central Africa)",
+    "region": "Africa",
+    "cpdlc": {
+      "available": true,
+      "adsC": true,
+      "logonId": "FCCC",
+      "systemType": "FANS 1/A",
+      "minFlightLevel": "FL245+",
+      "logonTiming": "15 to 45 minutes prior to entry into Brazzaville FIR",
+      "logonWindowMin": [
+        15,
+        45
+      ],
+      "notes": "From Jeppesen Africa p.79: CPDLC is primary means of communication in Brazzaville FIR (excluding Douala, Libreville, and Sao Tome UTA)."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "Space-based ADS-B operational across Brazzaville FIR.",
+      "rnpRequired": "RNP 10 / RNAV 5",
+      "lateralSeparation": "50 NM / Space-Based ADS-B"
+    },
+    "specialProcedures": {
+      "ifbp1269": {
+        "active": true,
+        "frequency": "126.9 MHz",
+        "listenBeforeEntryMin": 10,
+        "broadcastIntervalMin": 20,
+        "summary": "Mandatory AFI IATA IFBP zone (Brazzaville FIR): Broadcast on 126.9 MHz 10 mins prior to entry, upon entry, every 20 mins, and before/after any FL change."
+      },
+      "slop": {
+        "authorized": true,
+        "offsetRule": "AFI SLOP: 0.1 NM increments up to 2.0 NM RIGHT of centerline",
+        "IncrementNm": 0.1,
+        "maxOffsetNm": 2.0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "2000 (PA Central ORCAM)",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Mandatory 15-minute prior notification to Brazzaville ACC / Douala ACC before entering TMA/UTA with a failed transponder."
+    },
+    "adizKey": null
+  },
+  "HECC": {
+    "firCode": "HECC",
+    "name": "Cairo FIR (Egypt)",
+    "region": "Africa / Middle East",
+    "cpdlc": {
+      "available": false,
+      "adsC": false,
+      "logonId": "N/A (VHF Voice Cairo ACC)",
+      "systemType": "VHF Voice",
+      "minFlightLevel": "FL195+",
+      "logonTiming": "Contact Cairo ACC on assigned VHF frequency 10 mins prior to FIR boundary",
+      "logonWindowMin": [
+        10,
+        15
+      ],
+      "notes": "Verify extensive Egypt RNAV route changes (L81, L604, M872, T223) in Cycle 2610/2611."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": false,
+      "adsBNote": "SSR Mode A/C/S surveillance.",
+      "rnpRequired": "RNAV 5 between FL160-FL460 (Note: HECA 10 NM GPS jamming prohibits RNAV GNSS approaches at Cairo)",
+      "lateralSeparation": "Radar"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": false,
+        "offsetRule": "Radar controlled airspace; do not offset without ATC clearance",
+        "IncrementNm": 0,
+        "maxOffsetNm": 0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "7000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "From Jeppesen Africa p.65: Squawk 7000 as an uncontrolled flight; standard ICAO transponder failure rules."
+    },
+    "adizKey": null
+  },
+  "VABF": {
+    "firCode": "VABF",
+    "name": "Mumbai FIR (India)",
+    "region": "Middle East / South Asia",
+    "cpdlc": {
+      "available": true,
+      "adsC": true,
+      "logonId": "VABF",
+      "systemType": "FANS 1/A",
+      "minFlightLevel": "FL290+",
+      "logonTiming": "10 minutes prior to entry into Mumbai FIR",
+      "logonWindowMin": [
+        10,
+        15
+      ],
+      "notes": "From Jeppesen Middle East p.68: Logon to VABF 10 mins prior to entry. Downlink initial CPDLC position report upon connection; HF backup via Mumbai Radio (3443/5601/6661/8879/10084 kHz)."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "From Jeppesen Middle East p.63: All aircraft flying on PBN routes (L, M, N, P, Q, T and A201/A474/G450/W-routes) at or above FL290 in Indian airspace MUST carry serviceable 1090MHz ES ADS-B Out. Non-ADS-B restricted below FL290.",
+      "rnpRequired": "RNP 10 (Oceanic) / RNAV 5 (Continental PBN routes)",
+      "lateralSeparation": "50 NM Oceanic / ADS-B Continental"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": true,
+        "offsetRule": "Arabian Sea Oceanic: Centerline or 0.1 NM increments up to 2.0 NM RIGHT of track",
+        "IncrementNm": 0.1,
+        "maxOffsetNm": 2.0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "2000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Standard ICAO SSR procedures; valid Air Defense Clearance (ADC) number mandatory before entry."
+    },
+    "adizKey": "INDIA"
+  },
+  "VIDF": {
+    "firCode": "VIDF",
+    "name": "Delhi FIR (India)",
+    "region": "Middle East / South Asia",
+    "cpdlc": {
+      "available": true,
+      "adsC": true,
+      "logonId": "VIDF",
+      "systemType": "FANS 1/A",
+      "minFlightLevel": "FL290+",
+      "logonTiming": "10 minutes prior to entry into Delhi FIR",
+      "logonWindowMin": [
+        10,
+        15
+      ],
+      "notes": "From Jeppesen Middle East p.67: Logon to VIDF 10 mins prior to entry."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "1090MHz ES ADS-B Out mandatory at or above FL290 on all Indian PBN routes (L, M, N, P, Q, T).",
+      "rnpRequired": "RNAV 5 / RNP 10",
+      "lateralSeparation": "Radar / ADS-B"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": false,
+        "offsetRule": "Continental radar airspace; offset only on ATC instruction",
+        "IncrementNm": 0,
+        "maxOffsetNm": 0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "2000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Standard ICAO SSR procedures; ADC number required 10 mins prior to FIR entry."
+    },
+    "adizKey": "INDIA"
+  },
+  "VOMF": {
+    "firCode": "VOMF",
+    "name": "Chennai FIR (India)",
+    "region": "Middle East / South Asia",
+    "cpdlc": {
+      "available": true,
+      "adsC": true,
+      "logonId": "VOMF",
+      "systemType": "FANS 1/A",
+      "minFlightLevel": "FL290+",
+      "logonTiming": "10 minutes prior to entry into Chennai FIR",
+      "logonWindowMin": [
+        10,
+        15
+      ],
+      "notes": "From Jeppesen Middle East p.67: Logon to VOMF 10 mins prior to entry; downlink initial CPDLC position report."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "1090ES ADS-B Out mandatory at or above FL290 on all PBN routes and Bay of Bengal oceanic routes.",
+      "rnpRequired": "RNP 10 / RNP 4 (Bay of Bengal)",
+      "lateralSeparation": "50 NM / 30 NM Oceanic"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": true,
+        "offsetRule": "Bay of Bengal Oceanic: 0.1 NM increments up to 2.0 NM right of centerline",
+        "IncrementNm": 0.1,
+        "maxOffsetNm": 2.0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "2000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Standard ICAO SSR procedures; India ADC required."
+    },
+    "adizKey": "INDIA"
+  },
+  "OPKR": {
+    "firCode": "OPKR",
+    "name": "Karachi FIR (Pakistan)",
+    "region": "Middle East / South Asia",
+    "cpdlc": {
+      "available": false,
+      "adsC": false,
+      "logonId": "N/A (Karachi Control VHF / HF)",
+      "systemType": "VHF / HF Voice",
+      "minFlightLevel": "FL150+",
+      "logonTiming": "Obtain ADC from Karachi FIC at least 15 minutes prior to entering Pakistan airspace/ADIZ",
+      "logonWindowMin": [
+        15,
+        20
+      ],
+      "notes": "Must report estimate for ADIZ entry point and cross within ±5 minutes."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": false,
+      "adsBNote": "SSR Mode A/C/S surveillance.",
+      "rnpRequired": "RNAV 5 / RNP 10",
+      "lateralSeparation": "Radar / Procedural"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": true,
+        "offsetRule": "1 NM or 2 NM right of centerline in oceanic sector south of Karachi",
+        "IncrementNm": 0.1,
+        "maxOffsetNm": 2.0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "2000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Standard ICAO SSR procedures; never enter Pakistan ADIZ without valid ADC and discrete squawk."
+    },
+    "adizKey": "PAKISTAN"
+  },
+  "OIIX": {
+    "firCode": "OIIX",
+    "name": "Tehran FIR (Iran)",
+    "region": "Middle East",
+    "cpdlc": {
+      "available": false,
+      "adsC": false,
+      "logonId": "N/A (VHF Voice + Air Defense Radar 127.8 / 135.1 MHz)",
+      "systemType": "VHF Voice + Air Defense Check-In",
+      "minFlightLevel": "FL150+ (Mandatory minimum entry FL)",
+      "logonTiming": "Contact Iran Air Defense Radar on 127.8 MHz or 135.1 MHz at least 40 NM prior to entering Tehran FIR",
+      "logonWindowMin": [
+        10,
+        15
+      ],
+      "notes": "From Jeppesen Middle East p.54: Must enter at FL150+ via published ATS routes within ±5 mins of estimate. Forbidden to cross Bushehr VORDME 'BUZ' at FL280 or below."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": false,
+      "adsBNote": "SSR Mode A/C/S mandatory; domestic squawk 0000.",
+      "rnpRequired": "RNAV 5 / Preferential Route System (Middle East p.69-70)",
+      "lateralSeparation": "Radar"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": false,
+        "offsetRule": "Strictly prohibited to deviate from published ATS route centerline inside Iran ADIZ",
+        "IncrementNm": 0,
+        "maxOffsetNm": 0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "0000 (Domestic) / 2000 (Intl Entry)",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Prior permission required if unable to maintain Mode A/C transponder or FL150+ entry."
+    },
+    "adizKey": "IRAN"
+  },
+  "VGFR": {
+    "firCode": "VGFR",
+    "name": "Dhaka FIR (Bangladesh)",
+    "region": "Middle East / South Asia",
+    "cpdlc": {
+      "available": false,
+      "adsC": false,
+      "logonId": "N/A (Dhaka Control VHF / HF)",
+      "systemType": "VHF / HF Voice",
+      "minFlightLevel": "GND-UNL",
+      "logonTiming": "Obtain ADC at least 10 minutes before entering Bangladesh ADIZ / Dhaka FIR",
+      "logonWindowMin": [
+        10,
+        15
+      ],
+      "notes": "Routes P646, N895, M770, L524, W112 exempt from ADC unless deviating toward Bangladesh landmass."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": false,
+      "adsBNote": "SSR Mode A/C/S surveillance.",
+      "rnpRequired": "RNAV 5 / RNP 10",
+      "lateralSeparation": "Radar / Procedural"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": false,
+        "offsetRule": "Do not deviate toward landmass without ADC number",
+        "IncrementNm": 0,
+        "maxOffsetNm": 0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "2000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "If unable to contact ATS, contact nearest Air Defense Unit on 6826 kHz / 500 kHz prior to entering ADIZ."
+    },
+    "adizKey": "BANGLADESH"
+  },
+  "VCCF": {
+    "firCode": "VCCF",
+    "name": "Colombo FIR (Sri Lanka)",
+    "region": "Middle East / South Asia",
+    "cpdlc": {
+      "available": true,
+      "adsC": true,
+      "logonId": "VCCF",
+      "systemType": "FANS 1/A",
+      "minFlightLevel": "FL290+",
+      "logonTiming": "15 minutes prior to entry into Colombo FIR (departures: 5 mins prior to leaving TMA)",
+      "logonWindowMin": [
+        15,
+        20
+      ],
+      "notes": "From Jeppesen Middle East p.67: Logon to VCCF 15 mins prior to entry; obtain ADC number from ACC 15 mins prior to ADIZ entry."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "From Jeppesen Middle East p.65: ADS-B mandated within 330 NM of 070003N/0804618E from FL290 to FL460 for aircraft >5700kg or >250kt TAS.",
+      "rnpRequired": "RNP 10 / RNP 4",
+      "lateralSeparation": "50 NM / ADS-B"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": true,
+        "offsetRule": "0.1 NM increments up to 2.0 NM right in oceanic airspace outside ADIZ",
+        "IncrementNm": 0.1,
+        "maxOffsetNm": 2.0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "2000",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "Standard ICAO SSR procedures; strict ADIZ compliance required."
+    },
+    "adizKey": "SRI_LANKA"
+  },
+  "OEJD": {
+    "firCode": "OEJD",
+    "name": "Jeddah FIR (Saudi Arabia)",
+    "region": "Middle East",
+    "cpdlc": {
+      "available": true,
+      "adsC": false,
+      "logonId": "OEJN (Jeddah ACC) / OERK (Riyadh ACC)",
+      "systemType": "FANS 1/A & FANS 1/A+",
+      "minFlightLevel": "FL290+",
+      "logonTiming": "10 to 15 minutes prior to entering Jeddah/Riyadh CTA at FL290+",
+      "logonWindowMin": [
+        10,
+        15
+      ],
+      "notes": "From Jeppesen Middle East p.20 & p.67: CPDLC available FL290+ (OEJN for Jeddah ACC, OERK for Riyadh ACC)."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "From Jeppesen Middle East p.64: All aircraft operating in Jeddah FIR classes A, B, C, D, or E must be equipped with ADS-B Out.",
+      "rnpRequired": "RNAV 5 / RNAV 1",
+      "lateralSeparation": "Radar / ADS-B"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": false,
+        "offsetRule": "Continental radar airspace",
+        "IncrementNm": 0,
+        "maxOffsetNm": 0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "7000 (Uncontrolled Entry) / 1100 (Pre-departure unassigned)",
+      "entryUnassignedSquawk": "7000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "From Jeppesen Middle East p.59: Squawk 7000 prior to entering Jeddah FIR as an uncontrolled flight; squawk 1100 prior to departure when code not yet allocated."
+    },
+    "adizKey": null
+  },
+  "KZDV": {
+    "firCode": "KZDV",
+    "name": "Denver ARTCC (USA Domestic)",
+    "region": "North America",
+    "cpdlc": {
+      "available": true,
+      "adsC": false,
+      "logonId": "KUSA",
+      "systemType": "FANS 1/A+ (US Domestic Enroute CPDLC)",
+      "minFlightLevel": "FL180+",
+      "logonTiming": "Prior to pushback (DCL) or 15 mins prior to KUSA boundary",
+      "logonWindowMin": [
+        10,
+        30
+      ],
+      "notes": "US Domestic Data Comm: single logon 'KUSA' handles all domestic ARTCC transfers (KZDV -> KZLA)."
+    },
+    "pbnAdsB": {
+      "adsBMandatory": true,
+      "adsBNote": "1090ES ADS-B Out mandatory in Class A, B, C and above 10,000 ft MSL (14 CFR 91.225).",
+      "rnpRequired": "RNAV 2 (Q/T Routes) / RNAV 1 (SIDs/STARs)",
+      "lateralSeparation": "3 NM / 5 NM Radar & ADS-B"
+    },
+    "specialProcedures": {
+      "ifbp1269": false,
+      "slop": {
+        "authorized": false,
+        "offsetRule": "Domestic US radar airspace — no SLOP",
+        "IncrementNm": 0,
+        "maxOffsetNm": 0
+      },
+      "brazilContingencyPlan": false,
+      "nicosiaRelay": false
+    },
+    "ssr": {
+      "uncontrolledVfrSquawk": "1200",
+      "entryUnassignedSquawk": "2000",
+      "emergencySquawks": [
+        "7500",
+        "7600",
+        "7700"
+      ],
+      "transponderFailureRule": "14 CFR 91.215: ATC authorization required to continue in Class A airspace if transponder fails."
+    },
+    "adizKey": null
+  }
+}

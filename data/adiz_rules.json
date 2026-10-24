@@ -1,0 +1,267 @@
+{
+  "_metadata": {
+    "source": "Jeppesen Airway Manual - Middle East (p.52-56), North America, and South America",
+    "cycle": "2610 / 2611 (Eff 15 OCT 2026)",
+    "generatedAt": "2026-10-24T21:12:02.046708+00:00"
+  },
+  "INDIA": {
+    "regionKey": "INDIA",
+    "name": "India ADIZ (Mumbai VABF / Delhi VIDF / Chennai VOMF / Kolkata VECF)",
+    "associatedFirs": [
+      "VABF",
+      "VIDF",
+      "VOMF",
+      "VECF"
+    ],
+    "icaoPrefixes": [
+      "VA",
+      "VE",
+      "VI",
+      "VO"
+    ],
+    "adcRequired": true,
+    "validityWindow": {
+      "minusMinutesFromEobt": 15,
+      "plusMinutesFromEobt": 45,
+      "domesticNonSchedPlusMinutes": 180,
+      "returnFlightDelayLimitMin": 30,
+      "reapplyTriggerMinutes": 45,
+      "ruleText": "ADC is valid from EOBT -15 mins to EOBT +45 mins (EOBT -15m to +3 hrs for domestic non-scheduled). Departure outside this window requires a fresh ADC."
+    },
+    "inFlightCheckIn": {
+      "leadTimeMinutes": 10,
+      "leadDistanceNm": null,
+      "station": "Respective Indian FIC (Mumbai / Delhi / Chennai / Kolkata)",
+      "frequencies": [
+        "Assigned Sector VHF / HF"
+      ],
+      "tolerance": "Must obtain/confirm ADC from respective FIC at least 10 minutes prior to entering Indian airspace."
+    },
+    "exemptions": "Local flights within 5 NM radius and <=1000 ft AGL of ARP.",
+    "interceptionWarning": "No flight is permitted without a valid ADC. Deviation from flight plan or operating without ADC subjects the aircraft to IAF identification and interception."
+  },
+  "PAKISTAN": {
+    "regionKey": "PAKISTAN",
+    "name": "Pakistan ADIZ (Karachi OPKR / Lahore OPLR)",
+    "associatedFirs": [
+      "OPKR",
+      "OPLR"
+    ],
+    "icaoPrefixes": [
+      "OP"
+    ],
+    "adcRequired": true,
+    "validityWindow": {
+      "minusMinutesFromEobt": 15,
+      "plusMinutesFromEobt": 60,
+      "returnFlightDelayLimitMin": 30,
+      "reapplyTriggerMinutes": 60,
+      "ruleText": "ADC must be obtained before departure. If departure is delayed by more than 60 minutes (>1 hr) at origin or intermediate stop, a NEW ADC must be obtained."
+    },
+    "inFlightCheckIn": {
+      "leadTimeMinutes": 15,
+      "leadDistanceNm": null,
+      "station": "Karachi FIC / Lahore FIC",
+      "frequencies": [
+        "Assigned FIC VHF / HF"
+      ],
+      "tolerance": "Obtain ADC from respective FIC at least 15 minutes prior to entering Pakistan ADIZ. Must cross established ADIZ entry point within ±5 minutes of estimate."
+    },
+    "exemptions": "Local flights within an Aerodrome Traffic Zone (ATZ).",
+    "interceptionWarning": "Aircraft flying without a valid ADC or deviating >5 mins from entry estimate without notification are liable to PAF interception."
+  },
+  "IRAN": {
+    "regionKey": "IRAN",
+    "name": "Iran ADIZ (Tehran FIR OIIX)",
+    "associatedFirs": [
+      "OIIX"
+    ],
+    "icaoPrefixes": [
+      "OI"
+    ],
+    "adcRequired": true,
+    "validityWindow": {
+      "minusMinutesFromEobt": 5,
+      "plusMinutesFromEobt": 5,
+      "reapplyTriggerMinutes": 30,
+      "ruleText": "FIR entry estimates must be made good within ±5 minutes. All aircraft entering Iran ADIZ must be at FL150 or above via published ATS routes."
+    },
+    "inFlightCheckIn": {
+      "leadTimeMinutes": 10,
+      "leadDistanceNm": 40,
+      "station": "Iran Air Defense Radar (Tabriz / Babolsar / Mashhad / Birjand / Zabol / Makran / Persian Gulf / Bushehr / Hamadan)",
+      "frequencies": [
+        "127.8 MHz",
+        "135.1 MHz"
+      ],
+      "tolerance": "Mandatory radio check-in on 127.8 MHz or 135.1 MHz at least 40 NM prior to entering Tehran FIR (OIIX). Overflight aircraft are forbidden to cross Bushehr VORDME 'BUZ' at FL280 or below."
+    },
+    "exemptions": "Prior permission required if unable to enter at FL150 or above.",
+    "interceptionWarning": "Strict adherence to published ATS routes, FL150+ entry, and 40 NM prior check-in on 127.8 / 135.1 MHz required to prevent interception."
+  },
+  "BANGLADESH": {
+    "regionKey": "BANGLADESH",
+    "name": "Bangladesh ADIZ (Dhaka FIR VGFR)",
+    "associatedFirs": [
+      "VGFR"
+    ],
+    "icaoPrefixes": [
+      "VG"
+    ],
+    "adcRequired": true,
+    "validityWindow": {
+      "minusMinutesFromEobt": 15,
+      "plusMinutesFromEobt": 120,
+      "reapplyTriggerMinutes": 120,
+      "ruleText": "ADC valid for entire route. When departure is delayed by more than 2 hours (>120 mins) at departure or intermediate halt, a fresh ADC number MUST be obtained (AFTN: VGHSZQZX / Tel: +880 2 8901081)."
+    },
+    "inFlightCheckIn": {
+      "leadTimeMinutes": 10,
+      "leadDistanceNm": null,
+      "station": "Dhaka ATS / Bangladesh Air Force ADU",
+      "frequencies": [
+        "Assigned VHF",
+        "6826 kHz / 500 kHz (Guard)"
+      ],
+      "tolerance": "Obtain ADC at least 10 minutes before entering Bangladesh ADIZ. Off-airway flights must pass ADIZ boundary estimate >=10 mins prior."
+    },
+    "exemptions": "Flights on ATS Routes P646, N895, M770, L524, and W112 are exempt unless deviating toward the landmass of Bangladesh.",
+    "interceptionWarning": "Flying without a valid ADC or deviating toward landmass without clearance subjects aircraft to Bangladesh Air Force interception."
+  },
+  "SRI_LANKA": {
+    "regionKey": "SRI_LANKA",
+    "name": "Sri Lanka ADIZ (Colombo FIR VCCF)",
+    "associatedFirs": [
+      "VCCF"
+    ],
+    "icaoPrefixes": [
+      "VC"
+    ],
+    "adcRequired": true,
+    "validityWindow": {
+      "minusMinutesFromEobt": 30,
+      "plusMinutesFromEobt": 60,
+      "reapplyTriggerMinutes": 60,
+      "ruleText": "File flight plan >=1 hr prior. Once ADC number is issued, aircraft may depart up to 30 mins prior to EOBT. If delayed >1 hour (>60 mins) from EOBT, a new ADC number must be obtained. Advise Tower >=5 mins prior to startup."
+    },
+    "inFlightCheckIn": {
+      "leadTimeMinutes": 15,
+      "leadDistanceNm": null,
+      "station": "Colombo ACC",
+      "frequencies": [
+        "Colombo ACC VHF / HF"
+      ],
+      "tolerance": "Obtain ADC number and report position/estimate to Colombo ACC at least 15 minutes before penetrating Sri Lanka ADIZ."
+    },
+    "exemptions": "Local flights within 5 NM radius and <=1000 ft AGL of departure aerodrome.",
+    "interceptionWarning": "No pilot may deviate from ATC clearance inside Sri Lanka ADIZ; unapproved penetration is subject to Sri Lanka Air Force interception."
+  },
+  "CANADA": {
+    "regionKey": "CANADA",
+    "name": "Canada ADIZ (CADIZ — Gander CZQX / Montreal CZUL / Edmonton CZEG / Vancouver CZVR)",
+    "associatedFirs": [
+      "CZQX",
+      "CZUL",
+      "CZWG",
+      "CZEG",
+      "CZVR"
+    ],
+    "icaoPrefixes": [
+      "CY",
+      "CZ"
+    ],
+    "adcRequired": false,
+    "validityWindow": {
+      "minusMinutesFromEobt": 5,
+      "plusMinutesFromEobt": 5,
+      "reapplyTriggerMinutes": 5,
+      "ruleText": "IFR/DVFR flight plan mandatory. Must revise estimate immediately if penetration time differs by more than ±5 minutes or track differs by >20 NM."
+    },
+    "inFlightCheckIn": {
+      "leadTimeMinutes": 5,
+      "leadDistanceNm": 20,
+      "station": "Canadian ACC / Arctic Radio / FIC",
+      "frequencies": [
+        "Assigned ACC VHF / HF",
+        "121.5 MHz"
+      ],
+      "tolerance": "±5 minutes time tolerance and ±20 NM lateral tolerance from filed CADIZ penetration point."
+    },
+    "exemptions": "Aircraft operating at true airspeed <180 kt when authorized.",
+    "interceptionWarning": "NORAD / RCAF identification and interception procedures apply if penetrating CADIZ outside ±5 min / 20 NM tolerance without ATC notification."
+  },
+  "US_ALASKA": {
+    "regionKey": "US_ALASKA",
+    "name": "United States & Alaska Coastal ADIZ (KZWY / KZMA / KZHU / PAZA)",
+    "associatedFirs": [
+      "KZWY",
+      "KZMA",
+      "KZHU",
+      "KZAK",
+      "PAZA"
+    ],
+    "icaoPrefixes": [
+      "K",
+      "PA",
+      "PH",
+      "TJ"
+    ],
+    "adcRequired": false,
+    "validityWindow": {
+      "minusMinutesFromEobt": 5,
+      "plusMinutesFromEobt": 5,
+      "reapplyTriggerMinutes": 5,
+      "ruleText": "14 CFR Part 99: IFR or DVFR flight plan required. Discrete Mode 3/A + Mode C + 1090ES ADS-B Out and two-way radio required."
+    },
+    "inFlightCheckIn": {
+      "leadTimeMinutes": 5,
+      "leadDistanceNm": 10,
+      "station": "US ARTCC / FSS / ARINC",
+      "frequencies": [
+        "Assigned ARTCC VHF / HF",
+        "121.5 MHz"
+      ],
+      "tolerance": "±5 minutes of estimated ADIZ penetration time; ±10 NM (land) / ±20 NM (oceanic) of centerline."
+    },
+    "exemptions": "DoD tactical exemptions.",
+    "interceptionWarning": "NORAD / US Air Force & USCG interception on 121.5 MHz if penetrating without discrete squawk or outside ±5 min / 10-20 NM tolerance."
+  },
+  "BRAZIL_BORDER": {
+    "regionKey": "BRAZIL_BORDER",
+    "name": "Brazil / Paraguay Western Border Air Defense Zone (SBCW / SBAZ / SGFA)",
+    "associatedFirs": [
+      "SBCW",
+      "SBAZ",
+      "SGFA"
+    ],
+    "icaoPrefixes": [
+      "SB",
+      "SD",
+      "SI",
+      "SJ",
+      "SN",
+      "SS",
+      "SW",
+      "SG"
+    ],
+    "adcRequired": false,
+    "validityWindow": {
+      "minusMinutesFromEobt": 15,
+      "plusMinutesFromEobt": 45,
+      "reapplyTriggerMinutes": 45,
+      "ruleText": "International flights crossing the Brazilian border (e.g., SBCW <-> SGFA via FOZ/GUAIRA) require an active IFR Flight Plan, discrete SSR code, and 2-way VHF contact with Curitiba ACC / Asuncion ACC prior to border crossing."
+    },
+    "inFlightCheckIn": {
+      "leadTimeMinutes": 10,
+      "leadDistanceNm": null,
+      "station": "Curitiba ACC (SBCW) / Asuncion ACC (SGFA) / Defesa Aerea (COMAE)",
+      "frequencies": [
+        "Sector VHF",
+        "121.5 MHz"
+      ],
+      "tolerance": "Contact Curitiba/Asuncion ACC >=10 minutes prior to international FIR boundary (FOZ/GUAIRA)."
+    },
+    "exemptions": "None for international cross-border executive jet operations.",
+    "interceptionWarning": "Brazilian Air Force (FAB COMAE) Air Defense Policing rules apply along the western border (Paraguay/Bolivia/Colombia/Venezuela); maintain continuous Mode S/C squawk and monitor 121.5 MHz."
+  }
+}
