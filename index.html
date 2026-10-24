@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AeroBrief G650ER | Executive NOTAM & Briefing Analyzer</title>
-  <meta name="description" content="Mission-critical ForeFlight & ICAO NOTAM analysis and decoding tailored for executive pilots flying the Gulfstream G650ER.">
+  <title>AeroBrief G650ER | Executive Flight Deck Briefing</title>
+  <meta name="description" content="Focused, modern ForeFlight & ICAO NOTAM analyzer tailored for Gulfstream G650ER executive operations.">
   
   <!-- Favicon & PWA -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✈️</text></svg>">
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0a0e17">
+  <meta name="theme-color" content="#090d16">
   
-  <!-- Tailwind CSS, Lucide Icons & PDF.js for Client-Side PDF Parsing -->
+  <!-- Tailwind CSS, Lucide Icons & PDF.js -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -22,419 +22,440 @@
   </script>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-black">
+<body class="min-h-screen bg-[#090d16] text-slate-100 flex flex-col selection:bg-amber-500 selection:text-slate-950">
 
-  <!-- Top Cockpit Header -->
-  <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-40 px-4 lg:px-8 py-3">
-    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+  <!-- Global Drag & Drop Overlay -->
+  <div id="global-drop-overlay" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex flex-col items-center justify-center p-6 pointer-events-none">
+    <div class="max-w-md w-full border-2 border-dashed border-cyan-400 rounded-2xl p-10 text-center bg-slate-900/80 shadow-2xl shadow-cyan-500/20 space-y-3">
+      <div class="w-16 h-16 mx-auto rounded-2xl bg-cyan-500/15 flex items-center justify-center text-cyan-400">
+        <i data-lucide="file-up" class="w-8 h-8"></i>
+      </div>
+      <h2 class="text-lg font-bold text-white">Drop ForeFlight PDF Briefing</h2>
+      <p class="text-xs text-slate-400">Instant client-side extraction for Gulfstream G650ER</p>
+    </div>
+  </div>
+
+  <!-- Sleek Top Avionics Bar -->
+  <header class="border-b border-slate-800/80 bg-[#0d1320]/95 backdrop-blur-md sticky top-0 z-40 px-4 lg:px-8 py-2.5 no-print">
+    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
       
-      <!-- Brand & Aircraft Profile -->
+      <!-- Brand & Active Mission Pill -->
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-lg shadow-amber-500/20 text-slate-950 font-black text-xl">
-          <i data-lucide="plane" class="w-6 h-6 stroke-[2.5]"></i>
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-md shadow-amber-500/20 text-slate-950 font-black">
+          <i data-lucide="plane" class="w-5 h-5 stroke-[2.5]"></i>
         </div>
-        <div>
-          <div class="flex items-center gap-2">
-            <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-              AEROBRIEF <span class="text-amber-400 font-mono text-sm px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30">G650ER</span>
-            </h1>
-            <span class="text-xs px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 font-medium hidden sm:inline-block">
-              Executive Flight Deck
-            </span>
+        <div class="flex items-center gap-2.5">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-extrabold tracking-tight text-white">AEROBRIEF</span>
+              <span class="text-[11px] font-mono font-bold text-amber-400 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30">G650ER</span>
+            </div>
+            <div class="text-[11px] text-slate-400 font-mono flex items-center gap-1.5 mt-0.5">
+              <span id="banner-tail" class="text-slate-200 font-semibold">N650MV</span>
+              <span>•</span>
+              <span id="banner-date">Oct 02, 2026</span>
+            </div>
           </div>
-          <p class="text-xs text-slate-400">Gulfstream G650ER Mission NOTAM Analyzer</p>
+
+          <div class="h-6 w-[1px] bg-slate-800 mx-1 hidden sm:block"></div>
+
+          <!-- Active Route & Time Pill -->
+          <div class="hidden sm:flex items-center gap-2.5 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl font-mono text-xs">
+            <span class="font-bold text-white tracking-wide" id="banner-route">SBJH ➔ SGAS</span>
+            <span class="text-slate-600">|</span>
+            <span class="text-slate-400">ETD <strong class="text-amber-400" id="banner-etd">14:00Z</strong></span>
+            <span class="text-slate-600">➔</span>
+            <span class="text-slate-400">ETA <strong class="text-emerald-400" id="banner-eta">15:27Z</strong></span>
+          </div>
         </div>
       </div>
 
-      <!-- Live Zulu Clock & Action Controls -->
-      <div class="flex items-center gap-2 sm:gap-3">
-        
-        <!-- Live UTC Clock -->
-        <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/80 font-mono">
-          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-radar"></span>
-          <span class="text-xs text-slate-400">UTC:</span>
-          <span id="live-utc-clock" class="text-sm font-bold text-white tracking-wider">--:--:--Z</span>
-        </div>
+      <!-- Primary Actions -->
+      <div class="flex items-center gap-2">
+        <!-- Upload / Flight Setup Drawer Toggle -->
+        <button id="btn-toggle-setup" class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 font-semibold transition">
+          <i data-lucide="upload-cloud" class="w-3.5 h-3.5"></i>
+          <span id="setup-btn-label">Upload PDF / Flight Setup</span>
+        </button>
 
-        <!-- Cockpit Day/Night Lighting Mode Toggle -->
-        <button id="btn-theme-toggle" title="Toggle Cockpit Night / Direct Glare Mode"
-                class="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+        <!-- Share Dispatch Summary -->
+        <button id="btn-copy-briefing" title="Copy formatted briefing for WhatsApp / Crew Dispatch"
+                class="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700/80 font-medium transition">
+          <i data-lucide="share-2" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span class="hidden md:inline">Share</span>
+        </button>
+
+        <!-- Print -->
+        <button id="btn-print-briefing" title="Print Kneeboard Briefing"
+                class="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700/80 font-medium transition">
+          <i data-lucide="printer" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span class="hidden lg:inline">Print</span>
+        </button>
+
+        <!-- Glare / Night Mode -->
+        <button id="btn-theme-toggle" title="Toggle Day Glare / Night Mode"
+                class="p-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700/80 transition">
           <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
-          <span class="hidden md:inline" id="theme-label">Glare Mode</span>
         </button>
 
-        <!-- Copy Dispatch & Crew Briefing -->
-        <button id="btn-copy-briefing" title="Copy clean formatted summary for WhatsApp/iMessage/Dispatch"
-                class="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 font-semibold transition">
-          <i data-lucide="share-2" class="w-4 h-4"></i>
-          <span class="hidden md:inline">Share Summary</span>
+        <!-- G650ER Specs -->
+        <button id="btn-aircraft-specs" title="Gulfstream G650ER Operational Limits"
+                class="p-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700/80 transition">
+          <i data-lucide="Sliders" class="w-4 h-4 text-cyan-400"></i>
         </button>
 
-        <!-- G650ER Quick Specs Modal Trigger -->
-        <button id="btn-aircraft-specs" class="hidden lg:flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition text-slate-300">
-          <i data-lucide="shield-alert" class="w-4 h-4 text-amber-400"></i>
-          <span>GLF6 Limits</span>
-        </button>
-
-        <!-- Briefing Export / Print -->
-        <button id="btn-print-briefing" class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition shadow-sm">
-          <i data-lucide="printer" class="w-4 h-4"></i>
-          <span class="hidden sm:inline">Print Briefing</span>
-        </button>
+        <!-- Live UTC Clock -->
+        <div class="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 font-mono text-xs">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-radar"></span>
+          <span id="live-utc-clock" class="font-bold text-slate-200">--:--Z</span>
+        </div>
       </div>
 
     </div>
   </header>
 
-  <!-- Flight Status Sub-Bar (Active Route & Tail Number) -->
-  <div id="flight-info-banner" class="bg-slate-900 border-b border-slate-800/80 px-4 lg:px-8 py-2 text-xs font-mono flex flex-wrap items-center justify-between gap-3 text-slate-300">
-    <div class="flex items-center gap-3">
-      <span class="flex items-center gap-1.5 font-bold text-amber-400">
-        <i data-lucide="navigation-2" class="w-3.5 h-3.5"></i>
-        <span id="banner-route">SBJH ➔ SGAS</span>
-      </span>
-      <span class="text-slate-600">•</span>
-      <span class="text-slate-400">TAIL: <strong class="text-white" id="banner-tail">N650MV</strong> (<span id="banner-type" class="text-cyan-400">GLF6</span>)</span>
-      <span class="text-slate-600">•</span>
-      <span class="text-slate-400">DATE: <span class="text-slate-200" id="banner-date">Oct 02, 2026</span></span>
-    </div>
-    <div class="flex items-center gap-3">
-      <span class="text-slate-400">ETD: <strong class="text-amber-400 font-bold" id="banner-etd">14:00Z</strong></span>
-      <span>➔</span>
-      <span class="text-slate-400">ETA: <strong class="text-emerald-400 font-bold" id="banner-eta">15:27Z</strong></span>
-      <span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 border border-slate-700 text-slate-300 hidden sm:inline" id="banner-source-tag">ForeFlight Briefing Ingested</span>
-    </div>
-  </div>
-
-  <!-- Main Flight Planning Container -->
-  <main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-8 space-y-6">
-
-    <!-- Section 1: Flight Mission Parameters & Ingestion -->
-    <div class="avionics-card rounded-xl p-5 border border-slate-800 space-y-5">
+  <!-- Collapsible Flight Setup & ForeFlight PDF Drawer (Hidden by default for a clean focused view) -->
+  <section id="setup-drawer" class="hidden border-b border-slate-800 bg-[#0d1424] px-4 lg:px-8 py-5 no-print transition-all">
+    <div class="max-w-6xl mx-auto space-y-4">
       
-      <!-- Preset Flight Selector -->
-      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
-        <div class="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-          <i data-lucide="compass" class="w-4 h-4 text-cyan-400"></i>
-          Executive Mission Profiles:
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+            <i data-lucide="folder-up" class="w-4 h-4"></i> Briefing Source & Flight Parameters
+          </span>
+          <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400" id="banner-source-tag">ForeFlight Briefing Loaded</span>
         </div>
-        <div class="flex flex-wrap gap-2" id="preset-buttons-container">
-          <!-- Populated by JS -->
+        <div class="flex items-center gap-2">
+          <span class="text-[11px] text-slate-400 font-medium">Sample Missions:</span>
+          <div class="flex flex-wrap gap-1.5" id="preset-buttons-container"></div>
+          <button id="btn-close-setup" class="ml-2 text-xs text-slate-400 hover:text-white p-1">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
         </div>
       </div>
 
-      <!-- Departure, Arrival & Times Form -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+        <!-- Left 5 Cols: PDF Dropzone / Paste Toggle -->
+        <div class="lg:col-span-5 flex flex-col justify-between space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex gap-1.5">
+              <button id="btn-tab-upload" class="text-[11px] px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-semibold flex items-center gap-1">
+                <i data-lucide="file-up" class="w-3.5 h-3.5"></i> ForeFlight PDF
+              </button>
+              <button id="btn-tab-paste" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 border border-slate-700 hover:text-slate-200 flex items-center gap-1">
+                <i data-lucide="clipboard-paste" class="w-3.5 h-3.5"></i> Raw Text
+              </button>
+              <button id="btn-tab-fetch" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 border border-slate-700 hover:text-slate-200 flex items-center gap-1">
+                <i data-lucide="cloud-download" class="w-3.5 h-3.5"></i> Live Query
+              </button>
+            </div>
+          </div>
+
+          <!-- Upload Box -->
+          <div id="upload-box-section" class="flex-1">
+            <div id="drop-zone" class="dropzone h-full flex flex-col items-center justify-center p-4 rounded-xl text-center bg-slate-900/70 hover:bg-slate-900 cursor-pointer border border-dashed border-slate-700 transition">
+              <input type="file" id="file-input" accept=".pdf,.txt,.log" class="hidden">
+              <i data-lucide="upload-cloud" class="w-7 h-7 text-cyan-400 mb-1.5"></i>
+              <p class="text-xs font-bold text-white">Drop ForeFlight Briefing PDF or click to browse</p>
+              <p class="text-[11px] text-slate-400 mt-0.5">Extracts Route, Times, METAR/TAF, SIGMETs & NOTAMs locally</p>
+            </div>
+          </div>
+
+          <!-- Paste Box -->
+          <div id="paste-box-section" class="hidden flex-1">
+            <div class="relative h-full">
+              <textarea id="raw-notams-textarea" rows="4"
+                        placeholder="Paste raw ForeFlight or ICAO briefing text..."
+                        class="w-full h-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs font-mono text-slate-300 focus:outline-none focus:border-amber-500"></textarea>
+              <div class="absolute right-2 bottom-2 flex gap-1.5">
+                <button id="btn-clear-text" class="text-[10px] px-2 py-0.5 bg-slate-800 text-slate-300 rounded border border-slate-700">Clear</button>
+                <button id="btn-sample-briefing" class="text-[10px] px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded border border-amber-500/40">Reset</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right 7 Cols: Compact Flight Parameters -->
+        <div class="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-900/50 p-3.5 rounded-xl border border-slate-800/90">
+          <!-- Departure -->
+          <div class="space-y-1.5">
+            <label class="text-[11px] font-bold text-amber-400 flex items-center gap-1">
+              <i data-lucide="plane-takeoff" class="w-3.5 h-3.5"></i> DEPARTURE (UTC)
+            </label>
+            <div class="flex gap-1.5">
+              <input type="text" id="input-dep-icao" maxlength="4" value="SBJH"
+                     class="w-16 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-mono font-bold uppercase text-white">
+              <input type="datetime-local" id="input-dep-time"
+                     class="flex-1 min-w-0 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-[11px] font-mono text-slate-200">
+            </div>
+            <div class="flex justify-between text-[10px] font-mono text-slate-400 truncate">
+              <span id="dep-station-label" class="truncate">Sao Paulo Catarina</span>
+              <span id="dep-utc-display" class="text-amber-400 shrink-0">--:--Z</span>
+            </div>
+          </div>
+
+          <!-- Destination -->
+          <div class="space-y-1.5">
+            <label class="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
+              <i data-lucide="plane-landing" class="w-3.5 h-3.5"></i> DESTINATION (UTC)
+            </label>
+            <div class="flex gap-1.5">
+              <input type="text" id="input-arr-icao" maxlength="4" value="SGAS"
+                     class="w-16 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-mono font-bold uppercase text-white">
+              <input type="datetime-local" id="input-arr-time"
+                     class="flex-1 min-w-0 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-[11px] font-mono text-slate-200">
+            </div>
+            <div class="flex justify-between text-[10px] font-mono text-slate-400 truncate">
+              <span id="arr-station-label" class="truncate">Silvio Pettirossi Intl</span>
+              <span id="arr-utc-display" class="text-emerald-400 shrink-0">--:--Z</span>
+            </div>
+          </div>
+
+          <!-- Alternate & Window -->
+          <div class="space-y-1.5 flex flex-col justify-between">
+            <div class="grid grid-cols-2 gap-1.5">
+              <div>
+                <label class="text-[10px] font-bold text-cyan-400 block mb-1">ALTN ICAO</label>
+                <input type="text" id="input-alt-icao" maxlength="4" value="SBFI"
+                       class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono font-bold uppercase text-white">
+              </div>
+              <div>
+                <label class="text-[10px] font-bold text-slate-300 block mb-1">WINDOW</label>
+                <select id="select-time-buffer"
+                        class="w-full bg-slate-950 border border-slate-700 rounded-lg px-1.5 py-1 text-xs font-mono text-slate-200">
+                  <option value="1">±1h</option>
+                  <option value="2" selected>±2h</option>
+                  <option value="3">±3h</option>
+                  <option value="24">All</option>
+                </select>
+              </div>
+            </div>
+            <span id="alt-station-label" class="hidden">Foz do Iguaçu</span>
+            <button id="btn-run-analysis" class="w-full py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow">
+              <i data-lucide="zap" class="w-3.5 h-3.5"></i> Update Briefing
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Main Focused Workspace -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 lg:px-8 py-5 space-y-5">
+
+    <!-- Focused View Navigation Bar + Compact Status Strip -->
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/90 pb-3 no-print">
+      
+      <!-- Segmented Perspective Tabs -->
+      <div class="flex flex-wrap items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800" id="perspective-tabs">
+        <button data-view="brief" class="view-tab active text-xs px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5">
+          <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
+          <span>Flight Brief</span>
+        </button>
+        <button data-view="DEP" class="view-tab text-xs px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
+          <i data-lucide="plane-takeoff" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span>Departure</span>
+          <span id="tab-dep-icao" class="font-mono text-[11px] opacity-80">(SBJH)</span>
+          <span id="tab-badge-dep" class="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-slate-800 text-slate-300">0</span>
+        </button>
+        <button data-view="ARR" class="view-tab text-xs px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
+          <i data-lucide="plane-landing" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span>Destination</span>
+          <span id="tab-arr-icao" class="font-mono text-[11px] opacity-80">(SGAS)</span>
+          <span id="tab-badge-arr" class="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-slate-800 text-slate-300">0</span>
+        </button>
+        <button data-view="ENROUTE" class="view-tab text-xs px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
+          <i data-lucide="compass" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span>En-Route & FIRs</span>
+          <span id="tab-badge-enroute" class="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-slate-800 text-slate-300">0</span>
+        </button>
+        <button data-view="ALL" class="view-tab text-xs px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
+          <i data-lucide="list-filter" class="w-3.5 h-3.5 text-slate-400"></i>
+          <span>All NOTAMs</span>
+          <span id="tab-badge-all" class="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-slate-800 text-slate-300">0</span>
+        </button>
+      </div>
+
+      <!-- Compact Status Pill Counters (Click to jump to filtered view) -->
+      <div class="flex items-center gap-2 font-mono text-xs">
+        <button data-quick-filter="critical" class="quick-kpi-pill flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition" title="Active Critical Hazards">
+          <span class="w-2 h-2 rounded-full bg-red-500"></span>
+          <strong id="count-critical">0</strong>
+          <span class="text-[11px] text-red-300/80 hidden sm:inline">Critical</span>
+        </button>
+        <button data-quick-filter="caution" class="quick-kpi-pill flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 transition" title="Active Caution Advisories">
+          <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+          <strong id="count-caution">0</strong>
+          <span class="text-[11px] text-amber-300/80 hidden sm:inline">Caution</span>
+        </button>
+        <button data-quick-filter="advisory" class="quick-kpi-pill flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 transition" title="Active Routine Advisories">
+          <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+          <strong id="count-advisory">0</strong>
+          <span class="text-[11px] text-cyan-300/80 hidden sm:inline">Advisory</span>
+        </button>
+        <button data-quick-filter="inactive" class="quick-kpi-pill flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/80 text-slate-400 hover:text-slate-200 transition" title="Filtered Outside ETD/ETA Window">
+          <i data-lucide="eye-off" class="w-3 h-3"></i>
+          <strong id="count-inactive">0</strong>
+          <span class="text-[11px] hidden md:inline">Inactive</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 1: FOCUSED EXECUTIVE FLIGHT BRIEF (Default Single-Screen View)   -->
+    <!-- ===================================================================== -->
+    <div id="view-flight-brief" class="space-y-4">
+
+      <!-- Active En-Route SIGMET Alert Banner (Auto-hides if none) -->
+      <div id="sigmet-banner-container" class="hidden"></div>
+
+      <!-- Primary Side-by-Side Departure & Destination Readiness Cards -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         
-        <!-- Departure Airport & ETD (UTC) -->
-        <div class="space-y-1.5 bg-slate-900/60 p-3.5 rounded-lg border border-slate-800">
-          <div class="flex justify-between items-center text-xs">
-            <span class="font-bold text-amber-400 flex items-center gap-1.5">
-              <i data-lucide="plane-takeoff" class="w-4 h-4"></i> DEPARTURE
-            </span>
-            <span class="text-slate-400 font-mono text-[11px]">ICAO</span>
-          </div>
-          <div class="flex gap-2">
-            <input type="text" id="input-dep-icao" maxlength="4" placeholder="SBJH" value="SBJH"
-                   class="w-24 bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-sm font-mono font-bold uppercase text-white focus:outline-none focus:border-amber-500">
-            <input type="datetime-local" id="input-dep-time"
-                   class="flex-1 bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-amber-500">
-          </div>
-          <div class="flex justify-between text-[11px] text-slate-400 font-mono pt-1">
-            <span id="dep-station-label">Sao Paulo Catarina Executivo</span>
-            <span class="text-amber-400/90" id="dep-utc-display">--:--Z</span>
+        <!-- Departure Readiness Card -->
+        <div class="avionics-card rounded-2xl p-5 border border-slate-800/90 flex flex-col justify-between space-y-4">
+          <div class="space-y-3">
+            <!-- Card Header -->
+            <div class="flex items-start justify-between gap-2 border-b border-slate-800/80 pb-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-[11px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                    Departure
+                  </span>
+                  <h2 class="text-lg font-extrabold text-white font-mono" id="summary-dep-icao">SBJH</h2>
+                  <span class="text-xs font-mono text-slate-400" id="brief-dep-etd">14:00Z</span>
+                </div>
+                <p class="text-xs text-slate-400 mt-0.5" id="brief-dep-name">Sao Paulo Catarina Aeroporto Executivo</p>
+              </div>
+              <span id="summary-dep-alert-badge" class="px-2.5 py-1 rounded-lg text-xs font-mono font-bold">CLEAR</span>
+            </div>
+
+            <!-- Weather Strip for Departure -->
+            <div id="brief-dep-wx" class="bg-slate-900/70 rounded-xl p-3 border border-slate-800/90"></div>
+
+            <!-- Runway Status Strip for Departure -->
+            <div id="brief-dep-rwy" class="space-y-1.5"></div>
+
+            <!-- Actionable Departure Watchlist -->
+            <div class="space-y-1.5 pt-1">
+              <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                <span>Operational Impacts at ETD</span>
+                <button data-jump-view="DEP" class="text-[11px] text-cyan-400 hover:underline font-mono flex items-center gap-0.5 no-print">
+                  View All <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                </button>
+              </div>
+              <ul id="summary-dep-bullets" class="space-y-2 text-xs"></ul>
+            </div>
           </div>
         </div>
 
-        <!-- Arrival Airport & ETA (UTC) -->
-        <div class="space-y-1.5 bg-slate-900/60 p-3.5 rounded-lg border border-slate-800">
-          <div class="flex justify-between items-center text-xs">
-            <span class="font-bold text-emerald-400 flex items-center gap-1.5">
-              <i data-lucide="plane-landing" class="w-4 h-4"></i> ARRIVAL
-            </span>
-            <span class="text-slate-400 font-mono text-[11px]">ICAO</span>
-          </div>
-          <div class="flex gap-2">
-            <input type="text" id="input-arr-icao" maxlength="4" placeholder="SGAS" value="SGAS"
-                   class="w-24 bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-sm font-mono font-bold uppercase text-white focus:outline-none focus:border-emerald-500">
-            <input type="datetime-local" id="input-arr-time"
-                   class="flex-1 bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500">
-          </div>
-          <div class="flex justify-between text-[11px] text-slate-400 font-mono pt-1">
-            <span id="arr-station-label">Silvio Pettirossi Intl (Asuncion)</span>
-            <span class="text-emerald-400/90" id="arr-utc-display">--:--Z</span>
-          </div>
-        </div>
+        <!-- Destination Readiness Card -->
+        <div class="avionics-card rounded-2xl p-5 border border-slate-800/90 flex flex-col justify-between space-y-4">
+          <div class="space-y-3">
+            <!-- Card Header -->
+            <div class="flex items-start justify-between gap-2 border-b border-slate-800/80 pb-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-[11px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                    Destination
+                  </span>
+                  <h2 class="text-lg font-extrabold text-white font-mono" id="summary-arr-icao">SGAS</h2>
+                  <span class="text-xs font-mono text-slate-400" id="brief-arr-eta">15:27Z</span>
+                </div>
+                <p class="text-xs text-slate-400 mt-0.5" id="brief-arr-name">Silvio Pettirossi International</p>
+              </div>
+              <span id="summary-arr-alert-badge" class="px-2.5 py-1 rounded-lg text-xs font-mono font-bold">CLEAR</span>
+            </div>
 
-        <!-- Alternate / Enroute Airport -->
-        <div class="space-y-1.5 bg-slate-900/60 p-3.5 rounded-lg border border-slate-800">
-          <div class="flex justify-between items-center text-xs">
-            <span class="font-bold text-cyan-400 flex items-center gap-1.5">
-              <i data-lucide="navigation" class="w-4 h-4"></i> ALTERNATE / ENROUTE
-            </span>
-            <span class="text-slate-400 font-mono text-[11px]">OPTIONAL</span>
-          </div>
-          <div class="flex gap-2">
-            <input type="text" id="input-alt-icao" maxlength="4" placeholder="SBFI" value="SBFI"
-                   class="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-sm font-mono font-bold uppercase text-white focus:outline-none focus:border-cyan-500">
-          </div>
-          <div class="text-[11px] text-slate-400 font-mono pt-1">
-            <span id="alt-station-label">Foz do Iguaçu Cataratas</span>
-          </div>
-        </div>
+            <!-- Weather Strip for Destination -->
+            <div id="brief-arr-wx" class="bg-slate-900/70 rounded-xl p-3 border border-slate-800/90"></div>
 
-        <!-- Operational Time Buffer -->
-        <div class="space-y-1.5 bg-slate-900/60 p-3.5 rounded-lg border border-slate-800 flex flex-col justify-between">
-          <div class="flex justify-between items-center text-xs">
-            <span class="font-bold text-slate-200 flex items-center gap-1.5">
-              <i data-lucide="clock" class="w-4 h-4 text-amber-400"></i> FLIGHT BUFFER
-            </span>
-            <span class="text-[11px] text-slate-400">WINDOW</span>
-          </div>
-          <select id="select-time-buffer"
-                  class="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-amber-500">
-            <option value="1">± 1 Hour Window</option>
-            <option value="2" selected>± 2 Hours Window (Recommended)</option>
-            <option value="3">± 3 Hours Window</option>
-            <option value="4">± 4 Hours Window</option>
-            <option value="24">Show All Active NOTAMs</option>
-          </select>
-          <div class="text-[10px] text-slate-400">
-            Evaluates NOTAM validity windows against ETD/ETA.
+            <!-- Runway Status Strip for Destination -->
+            <div id="brief-arr-rwy" class="space-y-1.5"></div>
+
+            <!-- Actionable Destination & Terminal Watchlist -->
+            <div class="space-y-1.5 pt-1">
+              <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                <span>Operational Impacts at ETA & Terminal Area</span>
+                <button data-jump-view="ARR" class="text-[11px] text-cyan-400 hover:underline font-mono flex items-center gap-0.5 no-print">
+                  View All <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                </button>
+              </div>
+              <ul id="summary-arr-bullets" class="space-y-2 text-xs"></ul>
+            </div>
           </div>
         </div>
 
       </div>
 
-      <!-- Ingestion Tabs (Upload PDF / Smart Text / Live Query) -->
-      <div class="pt-1 space-y-3">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div class="flex gap-2">
-            <button id="btn-tab-upload" class="text-xs px-3.5 py-2 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold flex items-center gap-1.5 transition">
-              <i data-lucide="file-up" class="w-4 h-4"></i> Upload ForeFlight PDF / Briefing
-            </button>
-            <button id="btn-tab-paste" class="text-xs px-3 py-2 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-750 font-semibold flex items-center gap-1.5 transition">
-              <i data-lucide="clipboard-paste" class="w-4 h-4"></i> Paste Text Briefing
-            </button>
-            <button id="btn-tab-fetch" class="text-xs px-3 py-2 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-750 flex items-center gap-1.5 transition">
-              <i data-lucide="cloud-download" class="w-4 h-4"></i> Live Query
-            </button>
+      <!-- Compact En-Route Alternates & FIR Overview Strip -->
+      <div class="avionics-card rounded-2xl p-4 border border-slate-800/90 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <i data-lucide="compass" class="w-4 h-4 text-cyan-400"></i>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-200">En-Route Alternates & FIR Airspace Summary</h3>
           </div>
-
-          <button id="btn-run-analysis" class="text-xs px-5 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black tracking-wide flex items-center gap-2 shadow-lg shadow-amber-500/25 transition">
-            <i data-lucide="zap" class="w-4 h-4 stroke-[3]"></i> ANALYZE NOTAMS FOR G650ER
+          <button data-jump-view="ENROUTE" class="text-xs text-cyan-400 hover:text-cyan-300 font-mono flex items-center gap-1 no-print">
+            <span>Inspect En-Route Details</span>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
           </button>
         </div>
 
-        <!-- Tab 1: Drag & Drop PDF / File Zone -->
-        <div id="upload-box-section">
-          <div id="drop-zone" class="dropzone p-6 rounded-xl text-center bg-slate-900/40 hover:bg-slate-900/70 cursor-pointer border border-dashed border-slate-700 transition space-y-2">
-            <input type="file" id="file-input" accept=".pdf,.txt,.log" class="hidden">
-            <div class="w-12 h-12 mx-auto rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400">
-              <i data-lucide="upload-cloud" class="w-6 h-6"></i>
-            </div>
-            <div>
-              <p class="text-sm font-bold text-white">Drag & drop your ForeFlight briefing PDF here</p>
-              <p class="text-xs text-slate-400 mt-0.5">Or click to select your PDF flight package (parsed 100% locally on your device with zero upload fees)</p>
-            </div>
-            <div class="flex items-center justify-center gap-2 pt-1 text-[11px] text-slate-500 font-mono">
-              <span class="flex items-center gap-1"><i data-lucide="check" class="w-3 h-3 text-emerald-400"></i> ForeFlight PDF</span>
-              <span>•</span>
-              <span class="flex items-center gap-1"><i data-lucide="check" class="w-3 h-3 text-emerald-400"></i> Jeppesen Export</span>
-              <span>•</span>
-              <span class="flex items-center gap-1"><i data-lucide="check" class="w-3 h-3 text-emerald-400"></i> Text Briefing</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tab 2: Smart Paste Text Box (Hidden by default, toggleable) -->
-        <div id="paste-box-section" class="hidden">
-          <div class="relative">
-            <textarea id="raw-notams-textarea" rows="5"
-                      placeholder="Paste raw flight briefing text here (ForeFlight export, ICAO standard, FAA domestic format, or Jeppesen)..."
-                      class="w-full bg-slate-950/90 border border-slate-700 rounded-lg p-3 text-xs font-mono text-slate-300 placeholder-slate-500 focus:outline-none focus:border-amber-500"></textarea>
-            <div class="absolute right-3 bottom-3 flex gap-2">
-              <button id="btn-clear-text" class="text-[11px] px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700">Clear</button>
-              <button id="btn-sample-briefing" class="text-[11px] px-2 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded border border-amber-500/40 font-medium">Re-Load Preset</button>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-    </div>
-
-    <!-- Section 2: Real-Time Weather & SIGMET Deck -->
-    <div id="weather-deck-section" class="avionics-card rounded-xl p-4 border border-slate-800 space-y-3">
-      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
-        <h2 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-          <i data-lucide="cloud-lightning" class="w-4 h-4 text-cyan-400"></i>
-          FLIGHT WEATHER & EN-ROUTE AIRSPACE HAZARDS (METAR / TAF / SIGMET)
-        </h2>
-        <span class="text-[11px] font-mono text-slate-400">AUTOMATIC FOREFLIGHT CORRELATION</span>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" id="weather-cards-container">
-        <!-- Rendered dynamically by JS -->
-      </div>
-    </div>
-
-    <!-- Section 3: Executive Impact Status Deck (HUD) -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="impact-kpi-deck">
-      
-      <!-- Critical Hazards -->
-      <div class="avionics-card avionics-card-glow-red rounded-xl p-4 bg-slate-900/90 flex items-center justify-between">
-        <div>
-          <span class="text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
-            <i data-lucide="alert-octagon" class="w-4 h-4 text-red-500"></i> Critical Hazards
-          </span>
-          <div id="count-critical" class="text-3xl font-black font-mono text-red-400 mt-1">0</div>
-          <span class="text-[11px] text-slate-400">Potential No-Go / Severe Lim</span>
-        </div>
-        <div class="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center text-red-400">
-          <i data-lucide="flame" class="w-5 h-5"></i>
-        </div>
-      </div>
-
-      <!-- Caution / Operational Impact -->
-      <div class="avionics-card avionics-card-glow-amber rounded-xl p-4 bg-slate-900/90 flex items-center justify-between">
-        <div>
-          <span class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-            <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500"></i> Caution & Limits
-          </span>
-          <div id="count-caution" class="text-3xl font-black font-mono text-amber-400 mt-1">0</div>
-          <span class="text-[11px] text-slate-400">Wingspan / ILS / Slots</span>
-        </div>
-        <div class="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-400">
-          <i data-lucide="triangle" class="w-5 h-5"></i>
-        </div>
-      </div>
-
-      <!-- Advisories / Minor -->
-      <div class="avionics-card avionics-card-glow-cyan rounded-xl p-4 bg-slate-900/90 flex items-center justify-between">
-        <div>
-          <span class="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
-            <i data-lucide="info" class="w-4 h-4 text-cyan-400"></i> Advisories
-          </span>
-          <div id="count-advisory" class="text-3xl font-black font-mono text-cyan-400 mt-1">0</div>
-          <span class="text-[11px] text-slate-400">Drones / PCR / Lighting</span>
-        </div>
-        <div class="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400">
-          <i data-lucide="bell" class="w-5 h-5"></i>
-        </div>
-      </div>
-
-      <!-- Filtered Outside Window -->
-      <div class="avionics-card rounded-xl p-4 bg-slate-900/90 flex items-center justify-between">
-        <div>
-          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <i data-lucide="clock-alert" class="w-4 h-4 text-slate-500"></i> Inactive in Window
-          </span>
-          <div id="count-inactive" class="text-3xl font-black font-mono text-slate-400 mt-1">0</div>
-          <span class="text-[11px] text-slate-500">Inactive at ETD / ETA</span>
-        </div>
-        <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
-          <i data-lucide="eye-off" class="w-5 h-5"></i>
+        <div id="enroute-overview-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+          <!-- Populated dynamically by station -->
         </div>
       </div>
 
     </div>
 
-    <!-- Section 4: Executive Pilot Summary Card & Runway Strip -->
-    <div id="executive-summary-box" class="avionics-card rounded-xl p-5 border border-slate-800 space-y-4">
-      <div class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 gap-2">
-        <h2 class="text-sm font-bold text-white flex items-center gap-2">
-          <i data-lucide="check-circle-2" class="w-4 h-4 text-amber-400"></i>
-          GULFSTREAM G650ER EXECUTIVE COCKPIT BRIEFING SUMMARY
-        </h2>
-        <span id="briefing-timestamp" class="text-xs font-mono text-slate-400">UTC BRIEFING READY</span>
-      </div>
+    <!-- ===================================================================== -->
+    <!-- VIEW 2: FOCUSED NOTAM ACCORDION FEED (Shown on Station / All Tabs)    -->
+    <!-- ===================================================================== -->
+    <div id="view-notams-section" class="hidden space-y-3">
 
-      <!-- Runway Status Visual Strip -->
-      <div id="runway-status-strip" class="bg-slate-900/60 p-3 rounded-lg border border-slate-800 space-y-2">
-        <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-          <i data-lucide="compass" class="w-3.5 h-3.5 text-amber-400"></i>
-          Primary Runway Status & Declared Distances:
-        </div>
-        <div id="runway-pills-container" class="flex flex-wrap gap-2">
-          <!-- Populated by JS -->
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="executive-summary-columns">
-        <!-- Departure Summary Column -->
-        <div class="space-y-2 bg-slate-900/40 p-3.5 rounded-lg border border-slate-800">
-          <div class="flex items-center justify-between text-xs font-bold text-amber-400 border-b border-slate-800/60 pb-1.5">
-            <span class="flex items-center gap-1.5"><i data-lucide="arrow-up-right" class="w-4 h-4"></i> DEPARTURE: <span id="summary-dep-icao">SBJH</span></span>
-            <span id="summary-dep-alert-badge" class="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300">ANALYZING</span>
-          </div>
-          <ul id="summary-dep-bullets" class="text-xs space-y-2 text-slate-300">
-            <!-- Bullets inserted dynamically -->
-          </ul>
-        </div>
-
-        <!-- Arrival Summary Column -->
-        <div class="space-y-2 bg-slate-900/40 p-3.5 rounded-lg border border-slate-800">
-          <div class="flex items-center justify-between text-xs font-bold text-emerald-400 border-b border-slate-800/60 pb-1.5">
-            <span class="flex items-center gap-1.5"><i data-lucide="arrow-down-right" class="w-4 h-4"></i> ARRIVAL / ENROUTE: <span id="summary-arr-icao">SGAS</span></span>
-            <span id="summary-arr-alert-badge" class="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300">ANALYZING</span>
-          </div>
-          <ul id="summary-arr-bullets" class="text-xs space-y-2 text-slate-300">
-            <!-- Bullets inserted dynamically -->
-          </ul>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Section 5: NOTAM Filter Bar & Interactive Feed -->
-    <div class="space-y-4">
-      
-      <!-- Station Segment Filter & Search Bar -->
-      <div class="space-y-2.5 bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
+      <!-- Focused Context Header & Filter Bar -->
+      <div class="avionics-card rounded-xl p-3.5 border border-slate-800/90 flex flex-wrap items-center justify-between gap-3 no-print">
         
-        <!-- Station Filter Bar -->
-        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
-          <div class="flex items-center gap-1.5 text-xs text-slate-400 font-semibold uppercase tracking-wider">
-            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-cyan-400"></i> Stations:
-          </div>
-          <div class="flex flex-wrap gap-1.5" id="station-filter-container">
-            <button data-station="all" class="station-filter-btn active text-xs px-2.5 py-1 rounded bg-cyan-500 text-slate-950 font-bold transition">All Stations</button>
-            <button data-station="DEP" class="station-filter-btn text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Departure</button>
-            <button data-station="ARR" class="station-filter-btn text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Destination</button>
-            <button data-station="ENROUTE" class="station-filter-btn text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">En-Route Airports</button>
-            <button data-station="FIR" class="station-filter-btn text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">FIRs & Airspace</button>
-          </div>
+        <div class="flex flex-wrap items-center gap-1.5" id="filter-pill-container">
+          <button data-filter="all" class="filter-pill active text-xs px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold transition">All Relevant</button>
+          <button data-filter="critical-caution" class="filter-pill text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 text-amber-300 hover:bg-slate-700 transition">Critical & Caution</button>
+          <button data-filter="runway" class="filter-pill text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Runways</button>
+          <button data-filter="navaid" class="filter-pill text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">ILS / Navaids / Comms</button>
+          <button data-filter="airspace" class="filter-pill text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Drones & Airspace</button>
         </div>
 
-        <!-- Filter Tabs & Search -->
-        <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
-          <div class="flex flex-wrap gap-1.5" id="filter-pill-container">
-            <button data-filter="all" class="filter-pill active text-xs px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold transition">All NOTAMs</button>
-            <button data-filter="active-only" class="filter-pill text-xs px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Active in Window Only</button>
-            <button data-filter="critical" class="filter-pill text-xs px-3 py-1.5 rounded-lg bg-slate-800 text-red-400 hover:bg-slate-700 transition">🔴 Critical</button>
-            <button data-filter="caution" class="filter-pill text-xs px-3 py-1.5 rounded-lg bg-slate-800 text-amber-400 hover:bg-slate-700 transition">🟡 Caution</button>
-            <button data-filter="runway" class="filter-pill text-xs px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Runways</button>
-            <button data-filter="taxiway" class="filter-pill text-xs px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Taxiways/Wingspan</button>
-            <button data-filter="navaid" class="filter-pill text-xs px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">ILS/Approach</button>
-            <button data-filter="airspace" class="filter-pill text-xs px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Drones/Airspace</button>
-          </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <!-- Clean Noise-Reduction Toggles -->
+          <label class="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer select-none">
+            <input type="checkbox" id="toggle-show-inactive" checked class="rounded border-slate-700 bg-slate-900 text-amber-500 focus:ring-0">
+            <span>Show Inactive at ETD/ETA</span>
+          </label>
 
-          <div class="relative w-full sm:w-64">
-            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
-            <input type="text" id="notam-search-input" placeholder="Search keywords..."
-                   class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500">
+          <!-- Search Input -->
+          <div class="relative w-48 sm:w-56">
+            <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-2 text-slate-400"></i>
+            <input type="text" id="notam-search-input" placeholder="Filter NOTAMs..."
+                   class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-8 pr-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500">
           </div>
         </div>
 
       </div>
 
-      <!-- Decoded NOTAM Cards Container -->
-      <div id="notams-cards-container" class="space-y-4">
-        <!-- Rendered by JS -->
-      </div>
+      <!-- Station Weather Card when viewing DEP or ARR tab -->
+      <div id="station-view-wx-container" class="hidden"></div>
+
+      <!-- Scannable Compact NOTAM Accordion List -->
+      <div id="notams-cards-container" class="space-y-2"></div>
 
     </div>
+
+    <!-- Hidden legacy compatibility containers -->
+    <div id="weather-deck-section" class="hidden"><div id="weather-cards-container"></div></div>
+    <div id="runway-pills-container" class="hidden"></div>
+    <div id="station-filter-container" class="hidden"></div>
+    <span id="briefing-timestamp" class="hidden"></span>
 
   </main>
 
@@ -444,7 +465,7 @@
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
         <div class="flex items-center gap-2">
           <i data-lucide="plane" class="w-5 h-5 text-amber-400"></i>
-          <h3 class="text-base font-bold text-white">Gulfstream G650ER Reference Limits</h3>
+          <h3 class="text-base font-bold text-white">Gulfstream G650ER Operational Thresholds</h3>
         </div>
         <button id="btn-close-specs-modal" class="text-slate-400 hover:text-white">
           <i data-lucide="x" class="w-5 h-5"></i>
@@ -452,40 +473,40 @@
       </div>
 
       <div class="grid grid-cols-2 gap-3 text-xs">
-        <div class="bg-slate-900 p-3 rounded-lg border border-slate-800">
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
           <span class="text-slate-400 block">Wingspan</span>
           <span class="font-bold text-white text-sm">99 ft 7 in (30.36 m)</span>
           <span class="text-[10px] text-amber-400 block mt-1">ICAO Code D / FAA Group IV</span>
         </div>
-        <div class="bg-slate-900 p-3 rounded-lg border border-slate-800">
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
           <span class="text-slate-400 block">Max Takeoff Weight (MTOW)</span>
           <span class="font-bold text-white text-sm">103,600 lbs (47,000 kg)</span>
           <span class="text-[10px] text-slate-400 block mt-1">MLW: 83,500 lbs</span>
         </div>
-        <div class="bg-slate-900 p-3 rounded-lg border border-slate-800">
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
           <span class="text-slate-400 block">Minimum Runway Length</span>
           <span class="font-bold text-white text-sm">6,000 ft (1,828 m)</span>
-          <span class="text-[10px] text-red-400 block mt-1">< 5,000 ft: Critical No-Go</span>
+          <span class="text-[10px] text-red-400 block mt-1">&lt; 5,000 ft: Critical No-Go</span>
         </div>
-        <div class="bg-slate-900 p-3 rounded-lg border border-slate-800">
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
           <span class="text-slate-400 block">Approach Category</span>
           <span class="font-bold text-white text-sm">Category C</span>
-          <span class="text-[10px] text-cyan-400 block mt-1">Vref typically 115-135 kt</span>
+          <span class="text-[10px] text-cyan-400 block mt-1">Vref typically 115–135 kt</span>
         </div>
-        <div class="bg-slate-900 p-3 rounded-lg border border-slate-800">
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
           <span class="text-slate-400 block">Required ARFF / RFFS</span>
           <span class="font-bold text-white text-sm">ICAO Cat 6 / FAA Index B</span>
           <span class="text-[10px] text-amber-400 block mt-1">Fuselage length: 99 ft 9 in</span>
         </div>
-        <div class="bg-slate-900 p-3 rounded-lg border border-slate-800">
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
           <span class="text-slate-400 block">Maximum Fuel Capacity</span>
           <span class="font-bold text-white text-sm">48,200 lbs (~7,194 USG)</span>
           <span class="text-[10px] text-emerald-400 block mt-1">Jet-A / Jet A-1 Only</span>
         </div>
       </div>
 
-      <div class="text-[11px] text-slate-400 bg-slate-900/60 p-3 rounded-lg border border-slate-800">
-        <span class="font-bold text-amber-400">Notice to Flight Crew:</span> This tool decodes NOTAMs to highlight operational impacts specific to the G650ER. The Captain remains solely responsible for official flight planning in accordance with the G650ER Airplane Flight Manual (AFM).
+      <div class="text-[11px] text-slate-400 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+        <span class="font-bold text-amber-400">Notice to Flight Crew:</span> Bilingual duplicate NOTAMs (English/Portuguese) and regional drone clusters are automatically merged to keep your cockpit view focused. Click any NOTAM row to inspect full raw ICAO text.
       </div>
     </div>
   </div>
@@ -504,7 +525,7 @@
       </div>
 
       <p class="text-xs text-slate-300">
-        Fetch live NOTAMs for departure (<span id="modal-dep-icao" class="font-mono font-bold text-amber-400">SBJH</span>) and arrival (<span id="modal-arr-icao" class="font-mono font-bold text-emerald-400">SGAS</span>).
+        Fetch live NOTAMs for departure (<span id="modal-dep-icao" class="font-mono font-bold text-amber-400">SBJH</span>) and destination (<span id="modal-arr-icao" class="font-mono font-bold text-emerald-400">SGAS</span>).
       </p>
 
       <div class="space-y-3">
@@ -513,7 +534,7 @@
           <select id="select-fetch-provider" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white">
             <option value="faa-open">FAA Public Direct Query</option>
             <option value="cors-proxy">Open Aviation Proxy</option>
-            <option value="custom-key">Custom API Key (CheckWX / SkyLink / RapidAPI)</option>
+            <option value="custom-key">Custom API Key (CheckWX / SkyLink)</option>
           </select>
         </div>
 
@@ -529,24 +550,24 @@
     </div>
   </div>
 
-  <!-- Footer / Zero-Cost Hosting Notice -->
-  <footer class="border-t border-slate-800/80 bg-slate-950 text-slate-500 text-xs py-4 px-4 text-center mt-auto space-y-1">
-    <div class="flex items-center justify-center gap-4 text-[11px]">
-      <span class="flex items-center gap-1 text-slate-400">
-        <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i> Zero Hosting Cost
+  <!-- Minimal Footer -->
+  <footer class="border-t border-slate-800/60 bg-[#090d16] text-slate-500 text-[11px] py-3 px-4 text-center mt-auto no-print">
+    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <span class="text-slate-400 flex items-center gap-1.5">
+        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+        Gulfstream G650ER Executive Flight Deck • 100% Local Client-Side PDF Processing
       </span>
-      <span>•</span>
-      <span>Hostable on GitHub Pages, Cloudflare, Netlify & Vercel ($0)</span>
-      <span>•</span>
-      <span class="text-slate-400">100% Client-Side Cockpit Security</span>
+      <span class="font-mono text-slate-500">Drop a ForeFlight PDF anywhere on screen to load</span>
     </div>
   </footer>
 
-  <!-- Scripts -->
+  <!-- Service Worker with automatic update reload -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(err => {
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+          reg.update();
+        }).catch(err => {
           console.log('SW registration note:', err);
         });
       });

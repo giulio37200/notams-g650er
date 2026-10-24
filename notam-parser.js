@@ -1,19 +1,26 @@
 /**
- * AeroBrief G650ER - ICAO & FAA NOTAM Parser
- * Parses raw NOTAM messages (ICAO Doc 8126 & FAA Order 7930.2)
- * Handles ForeFlight briefings, Jeppesen notices, and multi-lingual notices (Portuguese, Spanish, English).
- * Handles UTC time parsing, validity windows, schedule patterns (Field D).
+ * AeroBrief G650ER - ICAO, FAA & ForeFlight Briefing Parser
+ * Features:
+ * - Accurate ForeFlight multi-section & 2-column PDF text reconstruction
+ * - Smart bilingual & cluster deduplication (merges English/Portuguese pairs & repeated RPA/Balloon notices)
+ * - UTC flight window math & Field D schedule evaluation
+ * - METAR, TAF & SIGMET decoding
  */
 
 export class NotamParser {
   /**
    * Parse a complete flight briefing document (ForeFlight, Jeppesen, or standard text).
-   * Extracts flight route, times, METARs, TAFs, SIGMETs, and grouped NOTAMs.
    */
   static parseFullBriefing(rawText) {
     if (!rawText || typeof rawText !== 'string') return null;
 
-    const cleaned = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    // Normalize line endings and clean page footers/headers from PDF extraction
+    const cleaned = rawText
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/NOTAMs\s+\d+\s+of\s+\d+/gi, '')
+      .replace(/WX:\s+Page\s+\d+\s+of\s+\d+/gi, '');
+
     const briefing = {
       isForeflight: false,
       route: '',
@@ -32,11 +39,12 @@ export class NotamParser {
       tafs: [],
       sigmets: [],
       sections: [],
-      allNotams: []
+      allNotams: [],
+      rawNotamCount: 0
     };
 
-    // 1. Detect ForeFlight Header: e.g. "SBJH — SGAS (Oct 02, 2026) in N650MV (GLF6) IFR Created Oct 02 2026 1217Z"
-    const headerMatch = cleaned.match(/([A-Z0-9]{4})\s*[—–-]\s*([A-Z0-9]{4})\s*\(([A-Za-z0-9\s,]+)\)\s*in\s*([A-Za-z0-9]+)\s*\(([A-Za-z0-9]+)\)/i);
+    // 1. Detect ForeFlight Header: e.g. "SBJH — SGAS (Oct 02, 2026) in N650MV (GLF6)"
+    const headerMatch = cleaned.match(/([A-Z0-9]{4})\s*[—–-]\s*([A-Z0-9]{4})\s*\(([A-Za-z0-9\s,]+)\)\s*in\s*([A-Za-z0-9-]+)\s*\(([A-Za-z0-9]+)\)/i);
     if (headerMatch) {
       briefing.isForeflight = true;
       briefing.depIcao = headerMatch[1].toUpperCase();
@@ -48,21 +56,32 @@ export class NotamParser {
     }
 
     // 2. Extract Departure & Destination times & station names
-    const depMatch = cleaned.match(/Departure\s*(?:\(([0-9]{4})Z\))?:\s*([A-Z0-9]{4})\s*(?:-\s*([^\n\r]+))?/i);
+    const depMatch = cleaned.match(/Departure\s*\(([0-9]{4})Z\):\s*([A-Z0-9]{4})\s*(?:-\s*([^\n\r]+))?/i) ||
+                     cleaned.match(/Departure\s+([A-Z0-9]{4})\s*-\s*([^\n\r]+)/i);
     if (depMatch) {
-      if (depMatch[1]) briefing.depTimeUtcStr = depMatch[1] + 'Z';
-      if (!briefing.depIcao) briefing.depIcao = depMatch[2].toUpperCase();
-      briefing.depName = depMatch[3] ? depMatch[3].trim() : '';
+      if (depMatch[3] !== undefined) {
+        briefing.depTimeUtcStr = depMatch[1] + 'Z';
+        if (!briefing.depIcao) briefing.depIcao = depMatch[2].toUpperCase();
+        briefing.depName = depMatch[3].trim();
+      } else if (depMatch[2]) {
+        if (!briefing.depIcao) briefing.depIcao = depMatch[1].toUpperCase();
+        briefing.depName = depMatch[2].trim();
+      }
     }
 
-    const arrMatch = cleaned.match(/Destination\s*(?:\(([0-9]{4})Z\))?:\s*([A-Z0-9]{4})\s*(?:-\s*([^\n\r]+))?/i);
+    const arrMatch = cleaned.match(/Destination\s*\(([0-9]{4})Z\):\s*([A-Z0-9]{4})\s*(?:-\s*([^\n\r]+))?/i) ||
+                     cleaned.match(/Destination\s+([A-Z0-9]{4})\s*-\s*([^\n\r]+)/i);
     if (arrMatch) {
-      if (arrMatch[1]) briefing.arrTimeUtcStr = arrMatch[1] + 'Z';
-      if (!briefing.arrIcao) briefing.arrIcao = arrMatch[2].toUpperCase();
-      briefing.arrName = arrMatch[3] ? arrMatch[3].trim() : '';
+      if (arrMatch[3] !== undefined) {
+        briefing.arrTimeUtcStr = arrMatch[1] + 'Z';
+        if (!briefing.arrIcao) briefing.arrIcao = arrMatch[2].toUpperCase();
+        briefing.arrName = arrMatch[3].trim();
+      } else if (arrMatch[2]) {
+        if (!briefing.arrIcao) briefing.arrIcao = arrMatch[1].toUpperCase();
+        briefing.arrName = arrMatch[2].trim();
+      }
     }
 
-    // Parse estimated UTC Date objects if flight date and times are present
     if (briefing.flightDateStr && briefing.depTimeUtcStr) {
       briefing.depTimeUtc = this.parseDateWithTime(briefing.flightDateStr, briefing.depTimeUtcStr);
     }
@@ -70,13 +89,16 @@ export class NotamParser {
       briefing.arrTimeUtc = this.parseDateWithTime(briefing.flightDateStr, briefing.arrTimeUtcStr);
     }
 
-    // 3. Extract METARs
-    // Example: "METAR SBJH 021200Z 13009KT 090V160 9999 BKN010 BKN100 18/15 Q1019"
-    const metarMatches = cleaned.matchAll(/METAR\s*●?\s*(METAR\s+([A-Z0-9]{4})\s+([0-9]{6}Z)\s+[^\n\r]+)/gi);
+    // 3. Extract METARs (deduplicated by station)
+    const seenMetars = new Set();
+    const metarMatches = cleaned.matchAll(/(?:METAR\s*●?\s*)?(METAR\s+([A-Z0-9]{4})\s+([0-9]{6}Z)\s+[^\n\r]+)/gi);
     for (const m of metarMatches) {
       const fullMetar = m[1].trim();
       const station = m[2].toUpperCase();
-      briefing.metars.push(this.decodeMetar(fullMetar, station));
+      if (!seenMetars.has(station)) {
+        seenMetars.add(station);
+        briefing.metars.push(this.decodeMetar(fullMetar, station));
+      }
     }
 
     // 4. Extract TAFs
@@ -85,38 +107,41 @@ export class NotamParser {
       briefing.tafs.push(m[1].replace(/●/g, ' ').trim());
     }
 
-    // 5. Extract SIGMETs / AIRMETs
-    // Example: "SBCW SIGMET 13 VALID 021130/021530 SBCW - SBCW CURITIBA FIR SEV ICE FCST WI ... FL140/210"
-    const sigmetMatches = cleaned.matchAll(/([A-Z0-9]{4})\s+SIGMET\s+([0-9]+)\s+VALID\s+([0-9]{6}\/[0-9]{6})\s+([A-Z0-9]{4})\s*-\s*([^\n\r=]+(?:=\n|MOV[^\n\r=]+)?)/gi);
+    // 5. Extract SIGMETs / AIRMETs (deduplicated by FIR + phenomenon + FL)
+    const seenSigmets = new Set();
+    const sigmetMatches = cleaned.matchAll(/([A-Z0-9]{4})\s+SIGMET\s+([0-9]+)\s+VALID\s+([0-9]{6}\/[0-9]{6})\s+([A-Z0-9]{4})\s*-\s*([\s\S]*?)(?=(?:\n\s*SIGMET|\n\s*No\s+SIGMET|\n\s*NOTAMs|$))/gi);
     for (const m of sigmetMatches) {
       const fir = m[1].toUpperCase();
       const num = m[2];
       const valid = m[3];
-      const details = m[5].trim();
+      const details = m[5].replace(/\s+/g, ' ').trim();
 
-      // Extract phenomenon
       let phenomenon = 'SIGMET';
       if (/SEV\s+ICE/i.test(details)) phenomenon = 'SEVERE ICING';
       else if (/SEV\s+TURB/i.test(details)) phenomenon = 'SEVERE TURBULENCE';
       else if (/TS|THUNDERSTORM/i.test(details)) phenomenon = 'THUNDERSTORMS';
       else if (/VA|VOLCANIC\s+ASH/i.test(details)) phenomenon = 'VOLCANIC ASH';
 
-      // Extract flight level
-      const flMatch = details.match(/FL([0-9]{3})\/([0-9]{3})/i);
-      const flRange = flMatch ? `FL${flMatch[1]}-${flMatch[2]}` : '';
+      const flMatch = details.match(/FL\s*([0-9]{3})\/([0-9]{3})/i);
+      const flRange = flMatch ? `FL${flMatch[1]}–${flMatch[2]}` : '';
 
-      briefing.sigmets.push({
-        fir,
-        number: num,
-        validity: valid,
-        phenomenon,
-        flRange,
-        raw: `${fir} SIGMET ${num} VALID ${valid} - ${details}`
-      });
+      const sigKey = `${fir}_${phenomenon}_${flRange}`;
+      if (!seenSigmets.has(sigKey)) {
+        seenSigmets.add(sigKey);
+        briefing.sigmets.push({
+          fir,
+          number: num,
+          validity: valid,
+          phenomenon,
+          flRange,
+          raw: `${fir} SIGMET ${num} VALID ${valid} - ${details}`
+        });
+      }
     }
 
     // 6. Split and Group NOTAMs by ForeFlight Sections if present
-    const sectionPattern = /(?:\n|^)(Departure|Destination|Enroute airport|FIR)\s+([A-Z0-9]{4})\s*(?:-\s*([^\n\r]+))?/g;
+    // Exclude "Departure (1400Z):" from Weather page by requiring no "(1400Z):" colon
+    const sectionPattern = /(?:\n|^)\s*(Departure|Destination|Enroute airport|FIR)\s+([A-Z0-9]{4})(?:\s*-\s*([^\n\r]+))?(?=\s*\n)/g;
     const sectionMatches = [...cleaned.matchAll(sectionPattern)];
 
     if (sectionMatches.length > 0) {
@@ -124,9 +149,10 @@ export class NotamParser {
       for (let i = 0; i < sectionMatches.length; i++) {
         const cur = sectionMatches[i];
         const next = sectionMatches[i + 1];
-        const sectionType = cur[1].toUpperCase().includes('DEP') ? 'DEP'
-                          : cur[1].toUpperCase().includes('DEST') ? 'ARR'
-                          : cur[1].toUpperCase().includes('ENROUTE') ? 'ENROUTE' : 'FIR';
+        const label = cur[1].toUpperCase();
+        const sectionType = label.includes('DEP') ? 'DEP'
+                          : label.includes('DEST') ? 'ARR'
+                          : label.includes('ENROUTE') ? 'ENROUTE' : 'FIR';
         const icao = cur[2].toUpperCase();
         const name = cur[3] ? cur[3].trim() : '';
 
@@ -134,7 +160,7 @@ export class NotamParser {
         const endIdx = next ? next.index : cleaned.length;
         const sectionBody = cleaned.substring(startIdx, endIdx).trim();
 
-        if (sectionBody.includes('No relevant Notams found') || sectionBody.length < 10) {
+        if (/No\s+relevant\s+Notams\s+found/i.test(sectionBody) || sectionBody.length < 10) {
           briefing.sections.push({
             type: sectionType,
             icao,
@@ -145,60 +171,222 @@ export class NotamParser {
         }
 
         const rawNotamBlocks = this.splitNotams(sectionBody);
+        briefing.rawNotamCount += rawNotamBlocks.length;
+
         const parsedNotams = rawNotamBlocks.map(block => {
           const parsed = this.parseNotam(block, icao);
           parsed.sectionType = sectionType;
+          parsed.sectionIcao = icao;
           parsed.sectionName = name;
+          // For FIR sections, keep the section FIR as the primary station badge if A) is a local helipad
+          if (sectionType === 'FIR') {
+            parsed.subLocation = parsed.icao !== icao ? parsed.icao : '';
+            parsed.icao = icao;
+          }
           return parsed;
         });
+
+        const deduplicated = this.deduplicateNotams(parsedNotams);
 
         briefing.sections.push({
           type: sectionType,
           icao,
           name,
-          notams: parsedNotams
+          notams: deduplicated
         });
 
-        briefing.allNotams.push(...parsedNotams);
+        briefing.allNotams.push(...deduplicated);
       }
     } else {
-      // Standard split
       const rawNotamBlocks = this.splitNotams(cleaned);
-      briefing.allNotams = rawNotamBlocks.map(block => this.parseNotam(block, briefing.depIcao || ''));
+      briefing.rawNotamCount = rawNotamBlocks.length;
+      const parsedNotams = rawNotamBlocks.map(block => this.parseNotam(block, briefing.depIcao || ''));
+      briefing.allNotams = this.deduplicateNotams(parsedNotams);
     }
 
     return briefing;
   }
 
   /**
-   * Split a raw flight briefing text block into individual NOTAM items.
-   * Handles ICAO format, FAA domestic format, and Jeppesen/ForeFlight text.
+   * Split a raw flight briefing text block into individual NOTAM items while keeping
+   * preceding ForeFlight subject headers & [Inactive at ETD/ETA] tags attached to their NOTAM.
    */
   static splitNotams(rawText) {
     if (!rawText || typeof rawText !== 'string') return [];
 
-    const cleaned = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const cleaned = rawText
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/#####+/g, '\n');
 
-    // Split patterns:
-    // 1. Double newlines where next chunk has a NOTAM ID, tag, or header
-    // 2. ICAO NOTAM headers (e.g. "A1234/24", "K1197/26", "E6742/26", "Z2382/26 NOTAMN 1", "!TEB 10/012")
-    const splitPattern = /(?:\n\s*\n+)|(?=\n\s*(?:\[Inactive[^\]]+\]\n)?(?:\([A-Z0-9]{1,2}[0-9]{4}\/[0-9]{2}|[A-Z0-9]{1,2}[0-9]{4}\/[0-9]{2}(?:\s+NOTAM[NRC]?(?:\s+[0-9]+)?)?|![A-Z0-9]{3,4}\s+[0-9]{1,2}\/[0-9]+|![A-Z]{3,4}\s+[A-Z0-9]+\s+[0-9]{1,2}\/[0-9]+))/;
-    const rawChunks = cleaned.split(splitPattern);
-    const notamBlocks = [];
+    // Find all NOTAM start positions (ICAO ID like K1197/26 NOTAMN, Z2382/26 NOTAMN 1, or FAA !TEB 10/012)
+    const idRegex = /(?:^|\n)\s*(\(?[A-Z][0-9]{4}\/[0-9]{2}\s+NOTAM[NRC](?:\s+[A-Z][0-9]{4}\/[0-9]{2}|\s+[0-9]+)?|![A-Z0-9]{3,4}\s+[0-9]{1,2}\/[0-9]+|![A-Z]{3,4}\s+[A-Z0-9]+\s+[0-9]{1,2}\/[0-9]+)/gi;
+    const matches = [...cleaned.matchAll(idRegex)];
 
-    for (let chunk of rawChunks) {
-      if (!chunk) continue;
-      chunk = chunk.trim();
-      if (!chunk) continue;
-
-      // Filter out pure section headers
-      if (chunk.length < 15 && !chunk.includes('RWY') && !chunk.includes('CLSD')) {
-        continue;
-      }
-      notamBlocks.push(chunk);
+    if (matches.length === 0) {
+      return cleaned.trim().length >= 15 ? [cleaned.trim()] : [];
     }
 
-    return notamBlocks.length > 0 ? notamBlocks : [cleaned.trim()];
+    const blocks = [];
+    for (let i = 0; i < matches.length; i++) {
+      const curMatch = matches[i];
+      const nextMatch = matches[i + 1];
+
+      // Look backwards up to 160 chars before curMatch.index to capture [Inactive at ETD] and Headline
+      const prevEnd = i === 0 ? 0 : matches[i - 1].index + matches[i - 1][0].length;
+      const preText = cleaned.substring(prevEnd, curMatch.index);
+      const preLines = preText.split('\n').map(l => l.trim()).filter(Boolean);
+
+      // Check last 1-2 lines of preLines for "[Inactive...]" or ALL-CAPS subject header
+      const attachedHeaderLines = [];
+      for (let j = Math.max(0, preLines.length - 2); j < preLines.length; j++) {
+        const line = preLines[j];
+        if (
+          /^\[Inactive/i.test(line) ||
+          /\(NEW TODAY\)$/i.test(line) ||
+          (/^[A-Z\s\/,.-]{4,65}$/.test(line) && !line.startsWith('E)') && !line.startsWith('F)') && !line.startsWith('G)') && !line.startsWith('RMK:') && !line.startsWith('REF:'))
+        ) {
+          attachedHeaderLines.push(line);
+        }
+      }
+
+      // Determine where the current NOTAM ends (just before next NOTAM's attached headers)
+      let blockEnd = nextMatch ? nextMatch.index : cleaned.length;
+      if (nextMatch) {
+        const betweenText = cleaned.substring(curMatch.index, nextMatch.index);
+        const betweenLines = betweenText.split('\n');
+        // Trim trailing 1-2 lines if they are the next NOTAM's headline or [Inactive...] tag
+        while (betweenLines.length > 2) {
+          const lastLine = betweenLines[betweenLines.length - 1].trim();
+          if (!lastLine) {
+            betweenLines.pop();
+            continue;
+          }
+          if (
+            /^\[Inactive/i.test(lastLine) ||
+            /\(NEW TODAY\)$/i.test(lastLine) ||
+            (/^[A-Z\s\/,.-]{5,65}$/.test(lastLine) && !/^(?:E\)|F\)|G\)|RMK|REF|PERM|DAILY|ACT\b|WI\s+COORD)/.test(lastLine))
+          ) {
+            betweenLines.pop();
+          } else {
+            break;
+          }
+        }
+        const bodySlice = betweenLines.join('\n').trim();
+        const fullBlock = [...attachedHeaderLines, bodySlice].join('\n').trim();
+        if (fullBlock.length >= 15) blocks.push(fullBlock);
+      } else {
+        const bodySlice = cleaned.substring(curMatch.index, blockEnd).trim();
+        const fullBlock = [...attachedHeaderLines, bodySlice].join('\n').trim();
+        if (fullBlock.length >= 15) blocks.push(fullBlock);
+      }
+    }
+
+    return blocks;
+  }
+
+  /**
+   * Deduplicate and group redundant/bilingual NOTAMs (e.g. Brazil K/E series pairs,
+   * repeated Barueri RPA NOTAMs, repeated Sorocaba Balloon NOTAMs).
+   */
+  static deduplicateNotams(notams) {
+    if (!notams || notams.length <= 1) return notams;
+
+    const groups = new Map();
+
+    for (const n of notams) {
+      const signature = this.getNotamDedupeSignature(n);
+      if (!groups.has(signature)) {
+        n.groupedIds = [n.id].filter(Boolean);
+        n.groupedRaw = [n.raw];
+        n.groupedCount = 1;
+        groups.set(signature, n);
+      } else {
+        const existing = groups.get(signature);
+        if (n.id && !existing.groupedIds.includes(n.id)) {
+          existing.groupedIds.push(n.id);
+        }
+        existing.groupedRaw.push(n.raw);
+        existing.groupedCount = existing.groupedIds.length || (existing.groupedCount + 1);
+
+        // Prefer English version if existing is Portuguese ("DEVIDO", "OBRAS", "SEM FLASH", "AREA RESTRITA")
+        const existingIsPt = /DEVIDO|OBRAS|SEM\s+FLASH|PRORROGADA|MODIFICACOES|BALONISMO/i.test(existing.bodyText);
+        const newIsEn = /DUE\s+TO|WITHOUT\s+FLASH|EXTENDED\s+BY|MODIFICATIONS|BALLOONING/i.test(n.bodyText);
+        if (existingIsPt && newIsEn) {
+          existing.bodyText = n.bodyText;
+        }
+        if (!existing.foreflightTag && n.foreflightTag) {
+          existing.foreflightTag = n.foreflightTag;
+        }
+      }
+    }
+
+    return Array.from(groups.values());
+  }
+
+  /**
+   * Compute a normalized semantic signature for grouping identical/bilingual NOTAMs.
+   */
+  static getNotamDedupeSignature(notam) {
+    const icao = notam.sectionIcao || notam.icao || '';
+    const body = (notam.bodyText || '').toUpperCase();
+
+    // 1. Barueri RPA cluster
+    if (body.includes('BARUERI-SP') && (body.includes('FLT RPA') || body.includes('AREA RESTRITA'))) {
+      return `${icao}_CLUSTER_BARUERI_RPA_${notam.upperLimit || '2700FT'}`;
+    }
+
+    // 2. Sorocaba Free Balloon cluster
+    if (body.includes('SOROCABA') && (body.includes('BALLOON') || body.includes('BALAO') || body.includes('BALONISMO'))) {
+      return `${icao}_CLUSTER_SOROCABA_BALLOON`;
+    }
+
+    // 3. Luque / World Skate Games Drone cluster
+    if (body.includes('COMITE OLIMPICO PARAGUAYO') || body.includes('WORLD SKATE GAMES')) {
+      const isInact = notam.foreflightTag ? 'INACT' : 'ACT';
+      return `${icao}_CLUSTER_LUQUE_UA_${isInact}`;
+    }
+
+    // 4. SUP AIP cancellation pair (e.g. SUP AIP 110/25 CNL)
+    const supMatch = body.match(/SUP\s+AIP\s*\(E-AIP\)\s*([0-9]+\/[0-9]+)\s*CNL/i);
+    if (supMatch) {
+      return `${icao}_SUP_AIP_CNL_${supMatch[1]}`;
+    }
+
+    // 5. AIRAC Trigger NOTAM pair
+    if (body.includes('TRIGGER NOTAM') || body.includes('NOTAM INICIADOR')) {
+      const airacMatch = body.match(/([0-9]{2}\/[0-9]{2}|2610A1|02\/2026)/i);
+      return `${icao}_TRIGGER_${airacMatch ? airacMatch[1] : 'GEN'}`;
+    }
+
+    // 6. Bilingual Runway Closure (same station, same runway, same schedule)
+    const rwyClsdMatch = body.match(/(?:RWY|RUNWAY|PISTA)\s*([0-9]{2}[LRC]?(?:\/[0-9]{2}[LRC]?)?)\s*(?:CLSD|CLOSED)/i);
+    if (rwyClsdMatch) {
+      return `${icao}_RWY_CLSD_${rwyClsdMatch[1]}_${notam.scheduleRaw || notam.validFromRaw}`;
+    }
+
+    // 7. Bilingual ALS without flash (same station & runway)
+    if (body.includes('ALSF') && (body.includes('WITHOUT FLASH') || body.includes('SEM FLASH'))) {
+      return `${icao}_ALS_NO_FLASH`;
+    }
+
+    // 8. Bilingual VOR/DME FOZ U/S
+    if (body.includes('112.100MHZ') || (body.includes('VOR/DME') && body.includes('FOZ'))) {
+      return `${icao}_VORDME_FOZ_US`;
+    }
+
+    // 9. Bilingual Tower frequency installed
+    const twrFreqMatch = body.match(/TWR\s+[A-Z]+\s+FREQ\s+([0-9.]+MHZ)\s+INSTL/i);
+    if (twrFreqMatch) {
+      return `${icao}_TWR_FREQ_${twrFreqMatch[1]}`;
+    }
+
+    // 10. Bilingual FIS Curitiba frequency notice
+    if (body.includes('132.4') && body.includes('135.7') && body.includes('126.7')) {
+      return `${icao}_FIS_CURITIBA_SECT`;
+    }
+
+    return `${icao}_${notam.id || Math.random()}`;
   }
 
   /**
@@ -210,7 +398,7 @@ export class NotamParser {
       raw,
       id: '',
       icao: defaultIcao.toUpperCase(),
-      type: 'UNKNOWN', // NOTAMN, NOTAMR, NOTAMC, FAA
+      type: 'UNKNOWN',
       qCode: '',
       qCodeDecoded: null,
       fir: '',
@@ -226,9 +414,15 @@ export class NotamParser {
       upperLimit: '',
       category: 'GENERAL',
       foreflightTag: null,
+      isNewToday: false,
       pcrData: null,
       sectionType: 'OTHER',
+      sectionIcao: defaultIcao.toUpperCase(),
       sectionName: '',
+      subLocation: '',
+      groupedIds: [],
+      groupedRaw: [raw],
+      groupedCount: 1,
       rawFields: {}
     };
 
@@ -236,6 +430,9 @@ export class NotamParser {
     const tagMatch = raw.match(/\[(Inactive\s+at\s+ETD|Inactive\s+at\s+ETA|Inactive\s+during\s+flight)\]/i);
     if (tagMatch) {
       result.foreflightTag = tagMatch[1];
+    }
+    if (/\(NEW TODAY\)/i.test(raw)) {
+      result.isNewToday = true;
     }
 
     // 1. Check for ICAO NOTAM ID (e.g. A0123/24, K1197/26, E6742/26, Z2382/26 NOTAMN 1)
@@ -256,12 +453,12 @@ export class NotamParser {
     }
 
     // 3. Parse Q) line if available (ICAO format)
-    const qLineMatch = raw.match(/Q\)\s*([A-Z]{4})\/([A-Z]{5})\/([A-Z\/]+)?\/([A-Z]+)?\/([A-Z]+)?\/([0-9]{3})?\/([0-9]{3})?\/([^\n\r]+)?/i);
+    const qLineMatch = raw.match(/Q\)\s*([A-Z]{4})\/([A-Z]{5})\/([A-Z\/]*)\/([A-Z\s]*)\/([A-Z\s]*)\/([0-9]{3})?\/([0-9]{3})?\/([^\n\r]+)?/i);
     if (qLineMatch) {
       result.fir = qLineMatch[1].toUpperCase();
       result.qCode = qLineMatch[2].toUpperCase();
-      result.lowerLimit = qLineMatch[6] || '';
-      result.upperLimit = qLineMatch[7] || '';
+      result.lowerLimit = qLineMatch[6] ? `FL${qLineMatch[6]}` : '';
+      result.upperLimit = qLineMatch[7] ? `FL${qLineMatch[7]}` : '';
       result.qCodeDecoded = this.decodeQCode(result.qCode);
     }
 
@@ -296,11 +493,10 @@ export class NotamParser {
     }
 
     // 7. Parse Field D) Schedule
-    const fieldDMatch = raw.match(/D\)\s*([^\n\rE\)]+)/i);
-    if (fieldDMatch) {
+    const fieldDMatch = raw.match(/(?:^|\s)D\)\s*([^\n\rE\)]+)/i);
+    if (fieldDMatch && fieldDMatch[1].trim()) {
       result.scheduleRaw = fieldDMatch[1].trim();
     } else {
-      // Check for DAYS AND HOURS: or DAILY: inside Jeppesen or ForeFlight text
       const jeppDailyMatch = raw.match(/(?:DAYS\s+AND\s+HOURS|DAILY)\s*[:=]?\s*([0-9]{4}\s*-\s*[0-9]{4}Z?)/i);
       if (jeppDailyMatch) {
         result.scheduleRaw = `DAILY ${jeppDailyMatch[1].replace('Z', '')}`;
@@ -308,32 +504,32 @@ export class NotamParser {
     }
 
     // 8. Parse Field E) Body Text
-    const fieldEMatch = raw.match(/E\)\s*([\s\S]*?)(?=(?:\s*[FG]\)|$))/i);
+    const fieldEMatch = raw.match(/(?:^|\s)E\)\s*([\s\S]*?)(?=(?:\s+[FG]\)\s+|\s+Q\)\s*|$))/i);
     if (fieldEMatch) {
-      result.bodyText = fieldEMatch[1].trim();
+      result.bodyText = fieldEMatch[1].replace(/\s+/g, ' ').trim();
     } else {
       result.bodyText = raw;
     }
 
-    // 9. Parse Field F) and G) Lower/Upper Limits
-    const fieldFMatch = raw.match(/F\)\s*([^\n\r]+)/i);
+    // 9. Parse Field F) and G) Lower/Upper Limits (explicitly requiring whitespace/line start before F) and G))
+    const fieldFMatch = raw.match(/(?:^|\s)F\)\s*([\s\S]*?)(?=(?:\s+G\)\s+|\r|\n|$))/i);
     if (fieldFMatch) result.lowerLimit = fieldFMatch[1].trim();
-    const fieldGMatch = raw.match(/G\)\s*([^\n\r]+)/i);
+    const fieldGMatch = raw.match(/(?:^|\s)G\)\s*([^\n\r]+)/i);
     if (fieldGMatch) result.upperLimit = fieldGMatch[1].trim();
 
     // 10. Check for ICAO Pavement Classification Rating (PCR/PCN)
-    const pcrMatch = raw.match(/(?:PCR|PCN|RESISTENCIA\s+PISO)\s*[:=]?\s*([0-9]{2,4})\s*\/\s*([FR])\s*\/\s*([A-D])\s*\/\s*([WXYZ])\s*\/\s*([TU])/i);
+    const pcrMatch = raw.match(/(?:PCR|PCN|RESISTENCIA\s+PISO[^\n\r]*?PCR)\s*[:=]?\s*([0-9]{2,4})\s*\/\s*([FR])\s*\/\s*([A-D])\s*\/\s*([WXYZ])\s*\/\s*([TU])/i);
     if (pcrMatch) {
       result.pcrData = {
         rating: parseInt(pcrMatch[1], 10),
-        pavementType: pcrMatch[2].toUpperCase(), // F = Flexible, R = Rigid
-        subgrade: pcrMatch[3].toUpperCase(),     // A = High, B = Medium, C = Low, D = Ultra low
-        tirePressure: pcrMatch[4].toUpperCase(), // W = High (no limit), X = Up to 1.75 MPa, Y = Up to 1.25 MPa, Z = Up to 0.5 MPa
-        method: pcrMatch[5].toUpperCase()        // T = Technical, U = Using aircraft
+        pavementType: pcrMatch[2].toUpperCase(),
+        subgrade: pcrMatch[3].toUpperCase(),
+        tirePressure: pcrMatch[4].toUpperCase(),
+        method: pcrMatch[5].toUpperCase()
       };
     }
 
-    // Fallback date parsing for FAA or Jeppesen formats
+    // Fallback date parsing for FAA domestic format
     if (!result.validFrom && !result.validTo) {
       const faaDates = raw.match(/([0-9]{10})\s*-\s*([0-9]{10}|PERM)/i);
       if (faaDates) {
@@ -349,6 +545,7 @@ export class NotamParser {
     }
 
     result.category = this.determineCategory(result);
+    result.groupedIds = [result.id].filter(Boolean);
 
     return result;
   }
@@ -358,9 +555,8 @@ export class NotamParser {
    */
   static parseUtcTimestamp(str) {
     if (!str) return null;
-    let s = str.trim();
+    const s = str.trim();
     if (s.length === 12) {
-      // 12-digit format YYYYMMDDhhmm
       const y = parseInt(s.substring(0, 4), 10);
       const m = parseInt(s.substring(4, 6), 10) - 1;
       const d = parseInt(s.substring(6, 8), 10);
@@ -369,7 +565,6 @@ export class NotamParser {
       return new Date(Date.UTC(y, m, d, h, min, 0));
     }
     if (s.length >= 10) {
-      // 10-digit format YYMMDDhhmm
       const yearPrefix = parseInt(s.substring(0, 2), 10) >= 70 ? '19' : '20';
       const year = parseInt(yearPrefix + s.substring(0, 2), 10);
       const month = parseInt(s.substring(2, 4), 10) - 1;
@@ -398,9 +593,9 @@ export class NotamParser {
   }
 
   /**
-   * Format UTC Date for pilot presentation (e.g., "02 OCT 2026 14:00Z")
+   * Format UTC Date for pilot presentation (e.g., "02 OCT 14:00Z")
    */
-  static formatUtc(date) {
+  static formatUtc(date, includeYear = false) {
     if (!date) return 'PERM';
     const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
     const d = new Date(date);
@@ -409,15 +604,14 @@ export class NotamParser {
     const year = d.getUTCFullYear();
     const hours = String(d.getUTCHours()).padStart(2, '0');
     const mins = String(d.getUTCMinutes()).padStart(2, '0');
-    return `${day} ${month} ${year} ${hours}:${mins}Z`;
+    return includeYear ? `${day} ${month} ${year} ${hours}:${mins}Z` : `${day} ${month} ${hours}:${mins}Z`;
   }
 
   /**
    * Check if a NOTAM is active during a given flight UTC window.
    */
   static isFlightActive(notam, flightUtc, bufferHours = 2) {
-    // If ForeFlight already tagged this NOTAM as inactive at ETD/ETA, respect it
-    if (notam.foreflightTag && notam.foreflightTag.startsWith('Inactive')) {
+    if (notam.foreflightTag && /^Inactive/i.test(notam.foreflightTag)) {
       return false;
     }
 
@@ -482,31 +676,29 @@ export class NotamParser {
     const result = {
       icao: station || 'STN',
       raw: rawMetar.trim(),
-      category: 'VFR', // VFR, MVFR, IFR, LIFR
-      badgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
-      wind: '',
-      visibility: '',
-      ceiling: '',
+      category: 'VFR',
+      badgeClass: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+      wind: 'Calm',
+      visibility: '10+ km',
+      ceiling: 'Clear',
       temp: '',
       qnh: ''
     };
 
-    // Wind: e.g. 13009KT or 16005KT
     const windMatch = text.match(/([0-9]{3}|VRB)([0-9]{2,3})(?:G([0-9]{2,3}))?KT/);
     if (windMatch) {
-      result.wind = `${windMatch[1]}° at ${windMatch[2]} kt` + (windMatch[3] ? ` gusting ${windMatch[3]} kt` : '');
+      result.wind = `${windMatch[1]}° / ${parseInt(windMatch[2], 10)} kt` + (windMatch[3] ? ` G${windMatch[3]}` : '');
     }
 
-    // Visibility: CAVOK or 9999 or 10SM or 1/2SM
     if (text.includes('CAVOK')) {
-      result.visibility = 'CAVOK (>10km, no cloud below 5000ft)';
+      result.visibility = 'CAVOK';
+      result.ceiling = 'CAVOK';
     } else {
-      const smMatch = text.match(/([0-9\/\s]+)SM/);
-      if (smMatch) result.visibility = `${smMatch[1]} SM`;
-      else if (text.includes('9999')) result.visibility = '≥ 10 km (6+ SM)';
+      const smMatch = text.match(/\b([0-9\/\s]+)SM\b/);
+      if (smMatch) result.visibility = `${smMatch[1].trim()} SM`;
+      else if (text.includes('9999')) result.visibility = '10+ km';
     }
 
-    // Ceiling: BKN010, OVC005, VV002
     let lowestCeilingFt = 99999;
     const cloudMatches = text.matchAll(/(BKN|OVC|VV)([0-9]{3})/g);
     for (const cm of cloudMatches) {
@@ -515,31 +707,24 @@ export class NotamParser {
     }
 
     if (lowestCeilingFt < 99999) {
-      result.ceiling = `${lowestCeilingFt} FT AGL`;
-    } else {
-      result.ceiling = text.includes('CAVOK') ? 'Clear / CAVOK' : 'No ceiling below 5000ft';
+      result.ceiling = `${lowestCeilingFt.toLocaleString()} ft`;
     }
 
-    // Flight category calculation
-    if (lowestCeilingFt < 500 || text.includes('1/2SM') || text.includes('1/4SM')) {
+    if (lowestCeilingFt < 500 || text.includes(' 1/2SM') || text.includes(' 1/4SM')) {
       result.category = 'LIFR';
-      result.badgeClass = 'bg-red-500/20 text-red-300 border-red-500/40';
-    } else if (lowestCeilingFt < 1000 || text.includes('1SM') || text.includes('2SM')) {
+      result.badgeClass = 'bg-red-500/15 text-red-400 border-red-500/30';
+    } else if (lowestCeilingFt < 1000 || text.includes(' 1SM') || text.includes(' 2SM')) {
       result.category = 'IFR';
-      result.badgeClass = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
-    } else if (lowestCeilingFt <= 3000 || text.includes('3SM') || text.includes('4SM') || text.includes('5SM')) {
+      result.badgeClass = 'bg-amber-500/15 text-amber-400 border-amber-500/30';
+    } else if (lowestCeilingFt <= 3000 || text.includes(' 3SM') || text.includes(' 4SM') || text.includes(' 5SM')) {
       result.category = 'MVFR';
-      result.badgeClass = 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40';
-    } else {
-      result.category = 'VFR';
-      result.badgeClass = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+      result.badgeClass = 'bg-sky-500/15 text-sky-400 border-sky-500/30';
     }
 
-    // QNH / Altimeter: Q1019 or A2992
     const qnhMatch = text.match(/Q([0-9]{4})/);
     const altMatch = text.match(/A([0-9]{4})/);
-    if (qnhMatch) result.qnh = `QNH ${qnhMatch[1]} hPa`;
-    else if (altMatch) result.qnh = `A${altMatch[1].substring(0, 2)}.${altMatch[1].substring(2, 4)} inHg`;
+    if (qnhMatch) result.qnh = `Q${qnhMatch[1]}`;
+    else if (altMatch) result.qnh = `A${altMatch[1].substring(0, 2)}.${altMatch[1].substring(2, 4)}`;
 
     return result;
   }
@@ -556,55 +741,60 @@ export class NotamParser {
       'MR': 'Runway',
       'MX': 'Taxiway',
       'MP': 'Aircraft Stands / Apron',
-      'MB': 'Runway Bearing Strength / PCR',
+      'MB': 'Pavement Bearing Strength (PCR)',
       'FA': 'Aerodrome',
-      'IC': 'Instrument Landing System (ILS)',
-      'ID': 'DME (Distance Measuring Equipment)',
+      'IC': 'ILS',
+      'ID': 'DME',
       'IG': 'Glide Path (GP)',
       'IL': 'Localizer (LOC)',
       'NV': 'VOR',
       'NM': 'VOR/DME',
       'ND': 'NDB',
       'OB': 'Obstacle',
-      'LP': 'PAPI (Precision Approach Path Indicator)',
-      'LA': 'Approach Lighting System (ALS)',
+      'LP': 'PAPI',
+      'LA': 'Approach Lighting (ALS)',
       'LC': 'Runway Centre Line Lights',
       'LT': 'Threshold Lights',
-      'FF': 'Fire and Rescue Services (ARFF/RFFS)',
-      'FU': 'Fuel / Refueling Facilities',
-      'CP': 'Customs and Immigration',
-      'PI': 'Instrument Approach Procedure (IAP)',
-      'PD': 'Standard Instrument Departure (SID)',
-      'PA': 'Standard Terminal Arrival (STAR)',
-      'RT': 'Radar',
-      'SP': 'Slot Allocation / PPR',
-      'ST': 'Security',
+      'FF': 'Fire & Rescue (ARFF)',
+      'FU': 'Fuel Facilities',
+      'CP': 'Customs / Immigration',
+      'PI': 'Instrument Approach',
+      'PD': 'SID',
+      'PA': 'STAR',
+      'SP': 'Slot / PPR',
+      'ST': 'Control Tower / Security',
       'SE': 'Flight Information Service (FIS)',
-      'WL': 'Warning / Free Balloon Ascent',
-      'RT': 'Temporary Restricted Area (TRA / RPA)',
-      'OA': 'Aeronautical Information Publication (AIP)',
-      'AF': 'Air Traffic Control / Flight Check'
+      'WL': 'Free Balloon Ascent',
+      'WU': 'Unmanned Aircraft (Drone/RPA)',
+      'WP': 'Parachute Jumping (PJE)',
+      'WM': 'Model / Fireworks Display',
+      'RT': 'Temporary Restricted Area',
+      'RR': 'Restricted Area',
+      'OA': 'AIP / Trigger Notice',
+      'AF': 'Flight Check / Airspace'
     };
 
     const statusMap = {
       'LC': 'Closed',
-      'AS': 'Unserviceable / Out of Service',
+      'AS': 'Unserviceable',
       'AU': 'Not Available',
-      'AH': 'Hours of service changed',
-      'CF': 'Operating frequency changed',
-      'CS': 'Installed / In Service',
-      'HW': 'Work in progress (WIP)',
-      'CH': 'Changed / Modified',
-      'CA': 'Activated / Active',
-      'XX': 'Specific condition / operating impact'
+      'AH': 'Hours Changed',
+      'CF': 'Frequency Changed',
+      'CS': 'Installed',
+      'HW': 'Work in Progress',
+      'CH': 'Modified',
+      'CA': 'Activated',
+      'LW': 'Will Take Place',
+      'TT': 'Trigger Notice',
+      'XX': 'Operating Notice'
     };
 
     return {
       entityCode: entity,
-      entityDesc: entityMap[entity] || 'Aeronautical Facility',
+      entityDesc: entityMap[entity] || 'Facility',
       statusCode: status,
-      statusDesc: statusMap[status] || 'Modified Condition',
-      summary: `${entityMap[entity] || entity}: ${statusMap[status] || status}`
+      statusDesc: statusMap[status] || 'Notice',
+      summary: `${entityMap[entity] || entity} • ${statusMap[status] || status}`
     };
   }
 
@@ -612,24 +802,27 @@ export class NotamParser {
    * Determine general operational category (multilingual aware)
    */
   static determineCategory(notam) {
-    const text = (notam.bodyText + ' ' + notam.qCode + ' ' + notam.raw).toUpperCase();
+    const text = (notam.bodyText + ' ' + notam.qCode).toUpperCase();
 
+    if (text.includes('SUP AIP') || text.includes('TRIGGER NOTAM') || text.includes('NOTAM INICIADOR') || text.includes('QAFTT') || text.includes('QOAXX')) {
+      return 'ADMIN_AIP';
+    }
     if (text.includes('RWY') || text.includes('RUNWAY') || text.includes('PISTA') || text.includes('QMR') || text.includes('TORA') || text.includes('LDA') || text.includes('RESISTENCIA PISO')) {
       return 'RUNWAY';
     }
-    if (text.includes('TWY') || text.includes('TAXIWAY') || text.includes('TAXILANE') || text.includes('QMX') || text.includes('APRON') || text.includes('RAMP') || text.includes('PATIO')) {
+    if (text.includes('TWY') || text.includes('TAXIWAY') || text.includes('TAXILANE') || text.includes('QMX') || text.includes('APRON') || text.includes('RAMP') || text.includes('JETWAY')) {
       return 'TAXIWAY_APRON';
     }
     if (text.includes('ILS') || text.includes('LOC') || text.includes('GLIDEPATH') || text.includes('QIC') || text.includes('VOR') || text.includes('DME') || text.includes('RNAV') || text.includes('RNP') || text.includes('GPS') || text.includes('RAIM') || text.includes('JAMMING') || text.includes('SPOOFING')) {
       return 'NAVAID_APPROACH';
     }
-    if (text.includes('FUEL') || text.includes('JET A') || text.includes('QFU') || text.includes('REFUEL') || text.includes('COMBUSTIVEL')) {
+    if (text.includes('FUEL') || text.includes('JET A') || text.includes('JET-A') || text.includes('QFU') || text.includes('REFUEL') || text.includes('COMBUSTIVEL')) {
       return 'FUEL';
     }
-    if (text.includes('CUSTOMS') || text.includes('IMMIGRATION') || text.includes('AOE') || text.includes('ALFANDEGA') || text.includes('PORT OF ENTRY') || text.includes('POLICIA FEDERAL')) {
+    if (text.includes('CUSTOMS') || text.includes('IMMIGRATION') || text.includes('AOE') || text.includes('UKBF') || text.includes('BORDER') || text.includes('PORT OF ENTRY')) {
       return 'CUSTOMS_AOE';
     }
-    if (text.includes('CURFEW') || text.includes('HOURS OF OPS') || text.includes('HR SER') || text.includes('TWR CLSD') || text.includes('AD CLSD') || text.includes('PPR') || text.includes('SLOT') || text.includes('COHOR')) {
+    if (text.includes('CURFEW') || text.includes('HOURS OF OPS') || text.includes('HR SER') || text.includes('TWR CLSD') || text.includes('AD CLSD') || text.includes('PPR') || text.includes('SLOT') || text.includes('COHOR') || text.includes('APU')) {
       return 'AIRPORT_HOURS_PPR';
     }
     if (text.includes('RFFS') || text.includes('ARFF') || text.includes('FIRE') || text.includes('RESCUE') || text.includes('BOMBEIROS')) {
@@ -638,7 +831,7 @@ export class NotamParser {
     if (text.includes('LIGHT') || text.includes('PAPI') || text.includes('ALS') || text.includes('QLA') || text.includes('QLP') || text.includes('SEM FLASH')) {
       return 'LIGHTING';
     }
-    if (text.includes('DRONE') || text.includes('RPA') || text.includes('BALAO') || text.includes('BALLOON') || text.includes('AREA RESTRITA') || text.includes('OBST') || text.includes('CRANE')) {
+    if (text.includes('DRONE') || text.includes('RPA') || text.includes('UA WILL TAKE PLACE') || text.includes('BALAO') || text.includes('BALLOON') || text.includes('AREA RESTRITA') || text.includes('OBST') || text.includes('CRANE') || text.includes('PARACHUTE') || text.includes('PJE') || text.includes('SGR-')) {
       return 'AIRSPACE_OBSTACLE';
     }
 

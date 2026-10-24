@@ -1,13 +1,12 @@
-/* AeroBrief G650ER - Cockpit Avionics Stylesheet */
+/* AeroBrief G650ER - Modern Focused Avionics Stylesheet */
 
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --bg-primary: #0a0e17;
-  --bg-surface: #111827;
-  --bg-surface-elevated: #1f2937;
-  --border-subtle: #2d3748;
-  --border-highlight: #3b82f6;
+  --bg-primary: #090d16;
+  --bg-surface: #0f1624;
+  --bg-surface-elevated: #172033;
+  --border-subtle: rgba(51, 65, 85, 0.65);
   --color-amber: #f59e0b;
   --color-red: #ef4444;
   --color-cyan: #06b6d4;
@@ -17,7 +16,7 @@
 body {
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background-color: var(--bg-primary);
-  color: #f3f4f6;
+  color: #f1f5f9;
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
@@ -26,51 +25,89 @@ body {
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Glassmorphism Avionics Panels */
+/* Modern Glass Avionics Panels */
 .avionics-card {
-  background: rgba(17, 24, 39, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(55, 65, 81, 0.7);
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
-  transition: all 0.2s ease;
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.45);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
-.avionics-card-glow-red {
-  border: 1px solid rgba(239, 68, 68, 0.6);
-  box-shadow: 0 0 25px -5px rgba(239, 68, 68, 0.25);
+/* Segmented View Tabs */
+.view-tab.active {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #090d16 !important;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.25);
 }
 
-.avionics-card-glow-amber {
-  border: 1px solid rgba(245, 158, 11, 0.6);
-  box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.2);
+.view-tab.active i,
+.view-tab.active span {
+  color: #090d16 !important;
 }
 
-.avionics-card-glow-cyan {
-  border: 1px solid rgba(6, 182, 212, 0.5);
-  box-shadow: 0 0 20px -5px rgba(6, 182, 212, 0.15);
+/* Compact Scannable NOTAM Row */
+.notam-row {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  transition: all 0.15s ease;
+}
+
+.notam-row:hover {
+  background: rgba(23, 33, 53, 0.92);
+  border-color: rgba(100, 116, 139, 0.75);
+}
+
+.notam-row-critical {
+  border-left: 3px solid #ef4444;
+}
+
+.notam-row-caution {
+  border-left: 3px solid #f59e0b;
+}
+
+.notam-row-advisory {
+  border-left: 3px solid #06b6d4;
+}
+
+.notam-row-info {
+  border-left: 3px solid #475569;
+}
+
+/* Chevron rotation when expanded */
+.notam-row.expanded .row-chevron {
+  transform: rotate(180deg);
 }
 
 /* Day Mode / High-Altitude Direct Glare Theme */
 body.theme-glare {
-  background-color: #f1f5f9;
-  color: #0f172a;
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
 }
-body.theme-glare header {
-  background-color: #ffffff;
-  border-color: #cbd5e1;
+body.theme-glare header,
+body.theme-glare footer,
+body.theme-glare #setup-drawer {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
 }
-body.theme-glare .avionics-card {
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-  color: #0f172a;
+body.theme-glare .avionics-card,
+body.theme-glare .notam-row {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05) !important;
+  color: #0f172a !important;
+}
+body.theme-glare .notam-row:hover {
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
 }
 body.theme-glare .bg-slate-900,
 body.theme-glare .bg-slate-900\/90,
 body.theme-glare .bg-slate-900\/80,
+body.theme-glare .bg-slate-900\/70,
 body.theme-glare .bg-slate-900\/60,
-body.theme-glare .bg-slate-900\/40 {
+body.theme-glare .bg-slate-900\/50 {
   background-color: #f8fafc !important;
   border-color: #e2e8f0 !important;
 }
@@ -82,21 +119,25 @@ body.theme-glare .bg-slate-950\/70 {
   color: #0f172a !important;
 }
 body.theme-glare .bg-slate-800,
+body.theme-glare .bg-slate-800\/90,
 body.theme-glare .bg-slate-800\/80 {
   background-color: #e2e8f0 !important;
   border-color: #cbd5e1 !important;
   color: #1e293b !important;
 }
+body.theme-glare .text-white,
 body.theme-glare .text-slate-100,
 body.theme-glare .text-slate-200,
 body.theme-glare .text-slate-300 {
-  color: #1e293b !important;
+  color: #0f172a !important;
 }
 body.theme-glare .text-slate-400,
 body.theme-glare .text-slate-500 {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 body.theme-glare .border-slate-800,
+body.theme-glare .border-slate-800\/90,
+body.theme-glare .border-slate-800\/80,
 body.theme-glare .border-slate-700 {
   border-color: #cbd5e1 !important;
 }
@@ -111,7 +152,7 @@ body.theme-glare textarea {
 /* Pulsing radar dot */
 @keyframes radar-pulse {
   0% { transform: scale(0.95); opacity: 0.8; }
-  50% { transform: scale(1.15); opacity: 1; }
+  50% { transform: scale(1.18); opacity: 1; }
   100% { transform: scale(0.95); opacity: 0.8; }
 }
 
@@ -121,71 +162,71 @@ body.theme-glare textarea {
 
 /* Drag and Drop Zone */
 .dropzone {
-  border: 2px dashed rgba(100, 116, 139, 0.6);
+  border: 1.5px dashed rgba(100, 116, 139, 0.6);
   transition: all 0.2s ease-in-out;
 }
 
 .dropzone-active {
   border-color: #06b6d4 !important;
   background-color: rgba(6, 182, 212, 0.1) !important;
-  box-shadow: 0 0 25px rgba(6, 182, 212, 0.25) !important;
+  box-shadow: 0 0 25px rgba(6, 182, 212, 0.2) !important;
 }
 
-/* Severity Tag Badges */
+/* Severity Badges */
 .badge-critical {
-  background-color: rgba(239, 68, 68, 0.2);
+  background-color: rgba(239, 68, 68, 0.18);
   color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.5);
+  border: 1px solid rgba(239, 68, 68, 0.45);
 }
 body.theme-glare .badge-critical {
   background-color: #fee2e2;
-  color: #b91c1c;
+  color: #b91c1c !important;
   border-color: #ef4444;
 }
 
 .badge-caution {
-  background-color: rgba(245, 158, 11, 0.2);
-  color: #fde68a;
-  border: 1px solid rgba(245, 158, 11, 0.5);
+  background-color: rgba(245, 158, 11, 0.18);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.45);
 }
 body.theme-glare .badge-caution {
   background-color: #fef3c7;
-  color: #b45309;
+  color: #b45309 !important;
   border-color: #f59e0b;
 }
 
 .badge-advisory {
-  background-color: rgba(59, 130, 246, 0.2);
-  color: #93c5fd;
-  border: 1px solid rgba(59, 130, 246, 0.4);
+  background-color: rgba(6, 182, 212, 0.15);
+  color: #67e8f9;
+  border: 1px solid rgba(6, 182, 212, 0.35);
 }
 body.theme-glare .badge-advisory {
-  background-color: #dbeafe;
-  color: #1d4ed8;
-  border-color: #3b82f6;
+  background-color: #cffafe;
+  color: #0e7490 !important;
+  border-color: #06b6d4;
 }
 
 .badge-info {
-  background-color: rgba(107, 114, 128, 0.2);
-  color: #d1d5db;
-  border: 1px solid rgba(107, 114, 128, 0.4);
+  background-color: rgba(100, 116, 139, 0.18);
+  color: #cbd5e1;
+  border: 1px solid rgba(100, 116, 139, 0.35);
 }
 
 .badge-active-window {
-  background-color: rgba(16, 185, 129, 0.2);
+  background-color: rgba(16, 185, 129, 0.15);
   color: #6ee7b7;
-  border: 1px solid rgba(16, 185, 129, 0.5);
+  border: 1px solid rgba(16, 185, 129, 0.4);
 }
 body.theme-glare .badge-active-window {
   background-color: #d1fae5;
-  color: #047857;
+  color: #047857 !important;
   border-color: #10b981;
 }
 
 .badge-inactive-window {
-  background-color: rgba(75, 85, 99, 0.2);
-  color: #9ca3af;
-  border: 1px solid rgba(75, 85, 99, 0.4);
+  background-color: rgba(71, 85, 105, 0.2);
+  color: #94a3b8;
+  border: 1px solid rgba(71, 85, 105, 0.35);
 }
 
 /* Custom Scrollbar */
@@ -194,7 +235,7 @@ body.theme-glare .badge-active-window {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: #090d16;
 }
 ::-webkit-scrollbar-thumb {
   background: #334155;
@@ -207,18 +248,18 @@ body.theme-glare .badge-active-window {
 /* Toast notification */
 .toast-notice {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  bottom: 20px;
+  right: 20px;
   z-index: 100;
-  animation: toast-in 0.3s ease forwards;
+  animation: toast-in 0.25s ease forwards;
 }
 
 @keyframes toast-in {
-  from { transform: translateY(20px); opacity: 0; }
+  from { transform: translateY(16px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
 
-/* High Contrast Print Stylesheet for iPad/Cockpit Kneeboard */
+/* Print Stylesheet */
 @media print {
   body {
     background-color: #ffffff !important;
@@ -227,14 +268,16 @@ body.theme-glare .badge-active-window {
   .no-print {
     display: none !important;
   }
-  .avionics-card {
+  #view-flight-brief,
+  #view-notams-section {
+    display: block !important;
+  }
+  .avionics-card,
+  .notam-row {
     background: #ffffff !important;
     border: 1px solid #999999 !important;
     box-shadow: none !important;
     color: #000000 !important;
     page-break-inside: avoid;
-  }
-  .print-page-break {
-    page-break-before: always;
   }
 }

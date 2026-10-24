@@ -1,7 +1,6 @@
 /**
  * AeroBrief G650ER - Gulfstream G650ER Operational Rules & Impact Engine
  * Tailored specifically for executive aviation operations of the GLF6.
- * Incorporates international, FAA, and multilingual (Portuguese/Spanish) operational rules.
  */
 
 export const G650ER_SPECS = {
@@ -17,28 +16,22 @@ export const G650ER_SPECS = {
   lengthM: 30.40,
   tailHeightFt: 25.67,
   outerGearSpanM: 5.26,
-  icaoCode: 'Code D', // Wingspan 24m to <36m
+  icaoCode: 'Code D',
   faaGroup: 'Group IV / Group III',
   approachCategory: 'Cat C',
   typicalVref: '115 - 135 kts',
   requiredArffIcao: 'Category 6',
   requiredArffFaa: 'Index B',
-  minRunwayWidthFt: 100, // 30m
-  preferredRunwayWidthFt: 150, // 45m
-  criticalRunwayLengthFt: 5000, // Below 5,000 ft is emergency / extreme no-go
-  marginalRunwayLengthFt: 6000, // 5,000 - 6,000 ft requires strict AFM performance check
-  standardRunwayLengthFt: 6500  // ≥ 6,500 ft standard comfort
+  minRunwayWidthFt: 100,
+  preferredRunwayWidthFt: 150,
+  criticalRunwayLengthFt: 5000,
+  marginalRunwayLengthFt: 6000,
+  standardRunwayLengthFt: 6500
 };
 
 export class G650ERRulesEngine {
   /**
    * Evaluate a NOTAM against G650ER specifications and the flight context.
-   * flightContext: {
-   *   stage: 'DEP' | 'ARR' | 'ENROUTE' | 'FIR' | 'ALT',
-   *   targetUtc: Date,
-   *   airportIcao: string,
-   *   bufferHours: number
-   * }
    */
   static evaluate(notam, flightContext = {}) {
     const text = (notam.bodyText || notam.raw || '').toUpperCase();
@@ -46,8 +39,9 @@ export class G650ERRulesEngine {
 
     const evaluation = {
       severity: 'INFO', // 'CRITICAL', 'CAUTION', 'ADVISORY', 'INFO'
-      severityScore: 10, // 10 to 100
-      impactTitle: 'Standard Aeronautical Information',
+      severityScore: 10,
+      impactTitle: 'Aeronautical Advisory',
+      shortImpact: 'Routine notice',
       pilotAction: '',
       executiveSummary: '',
       tags: [],
@@ -55,19 +49,21 @@ export class G650ERRulesEngine {
       g650erHighlights: []
     };
 
-    // 1. RUNWAY CLOSURES & MAJOR RUNWAY RESTRICTIONS (Multilingual)
+    // 1. RUNWAY CLOSURES (Multilingual)
     if (this.isRunwayClosed(text, qCode)) {
-      const rwyMatch = text.match(/(?:RWY|RUNWAY|PISTA)\s*([0-9]{2}[LRC]?(\/[0-9]{2}[LRC]?)?)/i);
+      const rwyMatch = text.match(/(?:RWY|RUNWAY|PISTA)\s*([0-9]{2}[LRC]?(?:\/[0-9]{2}[LRC]?)?)/i);
       const rwyName = rwyMatch ? rwyMatch[1] : 'Runway';
+      const schedInfo = notam.scheduleRaw ? ` (${notam.scheduleRaw})` : '';
 
       evaluation.severity = 'CRITICAL';
       evaluation.severityScore = 95;
-      evaluation.impactTitle = `Runway Closure: RWY ${rwyName} Closed`;
-      evaluation.tags.push('RWY CLSD', 'CRITICAL');
-      evaluation.executiveSummary = `Runway ${rwyName} is confirmed CLOSED during the active period. If this is the primary or sole suitable runway for G650ER operations, flight diversion or rescheduling is mandatory.`;
-      evaluation.pilotAction = `Verify remaining active runway length (min 6,000 ft required for standard G650ER ops) and crosswind component. Check if alternate airport is required.`;
+      evaluation.impactTitle = `Runway ${rwyName} Closed${schedInfo}`;
+      evaluation.shortImpact = `RWY ${rwyName} Closed`;
+      evaluation.tags.push('RWY CLSD');
+      evaluation.executiveSummary = `Runway ${rwyName} is closed during the published window${schedInfo}. If active during your ETD/ETA, verify alternate runway availability or reschedule.`;
+      evaluation.pilotAction = `Verify remaining active runway length (≥ 6,000 ft standard for G650ER) or confirm flight operates outside closure window.`;
       evaluation.isSpecificToG650ER = true;
-      evaluation.g650erHighlights.push(`G650ER MTOW 103,600 lbs requires runway verification.`);
+      evaluation.g650erHighlights.push(`G650ER MTOW (103,600 lbs) requires min 6,000 ft standard runway.`);
       return evaluation;
     }
 
@@ -77,7 +73,8 @@ export class G650ERRulesEngine {
       evaluation.severity = rwyLengthImpact.severity;
       evaluation.severityScore = rwyLengthImpact.score;
       evaluation.impactTitle = rwyLengthImpact.title;
-      evaluation.tags.push('RWY LENGTH', rwyLengthImpact.severity);
+      evaluation.shortImpact = rwyLengthImpact.shortImpact;
+      evaluation.tags.push('RWY LENGTH');
       evaluation.executiveSummary = rwyLengthImpact.summary;
       evaluation.pilotAction = rwyLengthImpact.action;
       evaluation.isSpecificToG650ER = true;
@@ -85,27 +82,29 @@ export class G650ERRulesEngine {
       return evaluation;
     }
 
-    // 3. AIRPORT-WIDE WINGSPAN LIMIT (e.g. KASE 95 FT MAX WINGSPAN LIMIT)
-    const adSpanImpact = this.checkAirportWingspanLimit(text, qCode);
-    if (adSpanImpact) {
-      evaluation.severity = adSpanImpact.severity;
-      evaluation.severityScore = adSpanImpact.score;
-      evaluation.impactTitle = adSpanImpact.title;
-      evaluation.tags.push('AIRPORT WINGSPAN LIMIT', 'NO-GO');
-      evaluation.executiveSummary = adSpanImpact.summary;
-      evaluation.pilotAction = adSpanImpact.action;
+    // 3. AIRPORT-WIDE WINGSPAN / WEIGHT LIMIT (e.g. KASE 95 FT MAX WINGSPAN or 100K LBS)
+    const adLimitImpact = this.checkAirportWideLimits(text, qCode);
+    if (adLimitImpact) {
+      evaluation.severity = adLimitImpact.severity;
+      evaluation.severityScore = adLimitImpact.score;
+      evaluation.impactTitle = adLimitImpact.title;
+      evaluation.shortImpact = adLimitImpact.shortImpact;
+      evaluation.tags.push('AIRPORT LIMIT');
+      evaluation.executiveSummary = adLimitImpact.summary;
+      evaluation.pilotAction = adLimitImpact.action;
       evaluation.isSpecificToG650ER = true;
-      evaluation.g650erHighlights.push(adSpanImpact.highlight);
+      evaluation.g650erHighlights.push(adLimitImpact.highlight);
       return evaluation;
     }
 
-    // 4. PAVEMENT BEARING CAPACITY / PCR / PCN (ICAO Doc 9157 ACR/PCR System)
+    // 4. PAVEMENT BEARING CAPACITY / PCR / PCN
     const pcrImpact = this.checkPavementStrength(notam, text);
     if (pcrImpact) {
       evaluation.severity = pcrImpact.severity;
       evaluation.severityScore = pcrImpact.score;
       evaluation.impactTitle = pcrImpact.title;
-      evaluation.tags.push('PCR / PCN', pcrImpact.severity);
+      evaluation.shortImpact = pcrImpact.shortImpact;
+      evaluation.tags.push('PCR / PCN');
       evaluation.executiveSummary = pcrImpact.summary;
       evaluation.pilotAction = pcrImpact.action;
       evaluation.isSpecificToG650ER = true;
@@ -119,7 +118,8 @@ export class G650ERRulesEngine {
       evaluation.severity = gpsImpact.severity;
       evaluation.severityScore = gpsImpact.score;
       evaluation.impactTitle = gpsImpact.title;
-      evaluation.tags.push('GPS SPOOFING / JAMMING', 'AVIONICS ALERT');
+      evaluation.shortImpact = 'GPS Spoofing / Jamming';
+      evaluation.tags.push('GPS ALERT');
       evaluation.executiveSummary = gpsImpact.summary;
       evaluation.pilotAction = gpsImpact.action;
       evaluation.isSpecificToG650ER = true;
@@ -127,16 +127,18 @@ export class G650ERRulesEngine {
       return evaluation;
     }
 
-    // 6. AIRPORT CLOSURES / CURFEW CONFLICTS
-    if (this.isAirportClosedOrCurfew(text, qCode)) {
-      evaluation.severity = 'CRITICAL';
-      evaluation.severityScore = 90;
-      evaluation.impactTitle = 'Aerodrome Closed / Strict Curfew Active';
-      evaluation.tags.push('AD CLSD / CURFEW', 'CRITICAL');
-      evaluation.executiveSummary = `Aerodrome is completely CLOSED or subject to strict operational curfew during the scheduled hours.`;
-      evaluation.pilotAction = `Ensure ETD/ETA strictly avoids closed window. Executive flights outside operating hours will be refused landing or subject to heavy noise violation fines.`;
+    // 6. AIRPORT CLOSURES / CURFEW / NOISE ABATEMENT / APU
+    const curfewImpact = this.checkCurfewOrNoise(text, qCode);
+    if (curfewImpact) {
+      evaluation.severity = curfewImpact.severity;
+      evaluation.severityScore = curfewImpact.score;
+      evaluation.impactTitle = curfewImpact.title;
+      evaluation.shortImpact = curfewImpact.shortImpact;
+      evaluation.tags.push(curfewImpact.tag);
+      evaluation.executiveSummary = curfewImpact.summary;
+      evaluation.pilotAction = curfewImpact.action;
       evaluation.isSpecificToG650ER = true;
-      evaluation.g650erHighlights.push(`G650ER APU and engine start must comply with local airport noise curfews.`);
+      evaluation.g650erHighlights.push(curfewImpact.highlight);
       return evaluation;
     }
 
@@ -144,22 +146,24 @@ export class G650ERRulesEngine {
     if (this.isFuelRestriction(text, qCode)) {
       evaluation.severity = 'CRITICAL';
       evaluation.severityScore = 85;
-      evaluation.impactTitle = 'Fuel Advisory: Jet-A/A1 Refueling Impact';
-      evaluation.tags.push('FUEL AVAILABILITY', 'HIGH RISK');
-      evaluation.executiveSummary = `Jet-A/Jet-A1 fuel availability is restricted, contaminated, or unavailable. G650ER fuel capacity is 48,200 lbs (7,194 gal).`;
-      evaluation.pilotAction = `Calculate tanker fuel requirements prior to departure, or plan an en-route technical fuel stop. Coordinate with FBO handling immediately.`;
+      evaluation.impactTitle = 'Jet-A / Jet-A1 Fuel Supply Restriction';
+      evaluation.shortImpact = 'Fuel Restriction';
+      evaluation.tags.push('FUEL');
+      evaluation.executiveSummary = `Jet-A/A1 fuel availability is restricted or requires prior notice. G650ER max fuel capacity is 48,200 lbs (7,194 USG).`;
+      evaluation.pilotAction = `Coordinate fuel uplift with FBO in advance or plan fuel tankering.`;
       evaluation.isSpecificToG650ER = true;
-      evaluation.g650erHighlights.push(`Gulfstream G650ER maximum fuel capacity is 48,200 lbs (approx 7,194 USG). Plan fuel tankering.`);
+      evaluation.g650erHighlights.push(`G650ER fuel capacity: 48,200 lbs (~7,194 USG).`);
       return evaluation;
     }
 
-    // 8. TAXIWAY RESTRICTIONS & WINGSPAN / WEIGHT LIMITS (CRITICAL FOR G650ER!)
+    // 8. TAXIWAY RESTRICTIONS & WINGSPAN / WEIGHT LIMITS
     const twyImpact = this.checkTaxiwayAndWingspan(text, qCode);
     if (twyImpact) {
       evaluation.severity = twyImpact.severity;
       evaluation.severityScore = twyImpact.score;
       evaluation.impactTitle = twyImpact.title;
-      evaluation.tags.push('TAXIWAY / WINGSPAN', twyImpact.severity);
+      evaluation.shortImpact = twyImpact.shortImpact;
+      evaluation.tags.push('TAXIWAY');
       evaluation.executiveSummary = twyImpact.summary;
       evaluation.pilotAction = twyImpact.action;
       evaluation.isSpecificToG650ER = true;
@@ -169,24 +173,26 @@ export class G650ERRulesEngine {
 
     // 9. CUSTOMS, IMMIGRATION & PORT OF ENTRY (AOE)
     if (this.isCustomsImpact(text, qCode)) {
-      evaluation.severity = 'CRITICAL';
-      evaluation.severityScore = 80;
-      evaluation.impactTitle = 'Customs & Border Protection (AOE) Disruption';
-      evaluation.tags.push('CUSTOMS / AOE', 'INTERNATIONAL OPS');
-      evaluation.executiveSummary = `Customs/Immigration/Port of Entry clearance modified or unavailable. Critical for international executive passengers.`;
-      evaluation.pilotAction = `Confirm Customs clearance arrangements via handling agent / FBO prior to departure. Flights landing without Customs will remain sealed on ramp.`;
+      evaluation.severity = 'CAUTION';
+      evaluation.severityScore = 78;
+      evaluation.impactTitle = 'Customs & Immigration (AOE) Operating Restriction';
+      evaluation.shortImpact = 'Customs / AOE Notice';
+      evaluation.tags.push('CUSTOMS');
+      evaluation.executiveSummary = `Customs/Border clearance hours modified or prior manifest notice required for executive arrivals.`;
+      evaluation.pilotAction = `Confirm customs clearance and GAR/APIS submission with FBO handler prior to departure.`;
       evaluation.isSpecificToG650ER = true;
-      evaluation.g650erHighlights.push(`Executive VIP passengers cannot clear passport control if AOE hours are reduced.`);
+      evaluation.g650erHighlights.push(`Verify VIP passenger clearance window at GA terminal.`);
       return evaluation;
     }
 
-    // 10. INSTRUMENT APPROACHES & ILS OUTAGES
+    // 10. INSTRUMENT APPROACHES & NAVAID OUTAGES
     const approachImpact = this.checkApproachAndNavaids(text, qCode);
     if (approachImpact) {
       evaluation.severity = approachImpact.severity;
       evaluation.severityScore = approachImpact.score;
       evaluation.impactTitle = approachImpact.title;
-      evaluation.tags.push('IAP / ILS', approachImpact.severity);
+      evaluation.shortImpact = approachImpact.shortImpact;
+      evaluation.tags.push('NAVAID / IAP');
       evaluation.executiveSummary = approachImpact.summary;
       evaluation.pilotAction = approachImpact.action;
       evaluation.isSpecificToG650ER = true;
@@ -200,7 +206,8 @@ export class G650ERRulesEngine {
       evaluation.severity = arffImpact.severity;
       evaluation.severityScore = arffImpact.score;
       evaluation.impactTitle = arffImpact.title;
-      evaluation.tags.push('ARFF / RFFS', arffImpact.severity);
+      evaluation.shortImpact = 'ARFF Downgrade';
+      evaluation.tags.push('ARFF / RFFS');
       evaluation.executiveSummary = arffImpact.summary;
       evaluation.pilotAction = arffImpact.action;
       evaluation.isSpecificToG650ER = true;
@@ -212,12 +219,13 @@ export class G650ERRulesEngine {
     if (this.isPprOrSlotRequired(text, qCode)) {
       evaluation.severity = 'CAUTION';
       evaluation.severityScore = 65;
-      evaluation.impactTitle = 'Prior Permission Required (PPR) / Ramp Parking Slot';
-      evaluation.tags.push('PPR / SLOTS', 'HANDLING');
-      evaluation.executiveSummary = `Airport or ramp parking restricted to prior permission / slot reservation. Executive ramp congestion in effect.`;
-      evaluation.pilotAction = `Verify PPR confirmation number with FBO handling. Drop-and-go may be required if overnight ramp parking is denied.`;
+      evaluation.impactTitle = 'Mandatory PPR / Executive Ramp Slot Restriction';
+      evaluation.shortImpact = 'PPR / Slot Required';
+      evaluation.tags.push('PPR / SLOTS');
+      evaluation.executiveSummary = `Executive aircraft parking requires prior permission (PPR) or slot confirmation.`;
+      evaluation.pilotAction = `Confirm PPR and Code D stand allocation (99'7" wingspan) with FBO handling.`;
       evaluation.isSpecificToG650ER = true;
-      evaluation.g650erHighlights.push(`G650ER requires large executive ramp footprint (99'8" span x 99'9" length).`);
+      evaluation.g650erHighlights.push(`G650ER requires ICAO Code D ramp footprint.`);
       return evaluation;
     }
 
@@ -227,23 +235,23 @@ export class G650ERRulesEngine {
       evaluation.severity = lightingImpact.severity;
       evaluation.severityScore = lightingImpact.score;
       evaluation.impactTitle = lightingImpact.title;
-      evaluation.tags.push('LIGHTING / VISUAL', lightingImpact.severity);
+      evaluation.shortImpact = lightingImpact.shortImpact;
+      evaluation.tags.push('LIGHTING');
       evaluation.executiveSummary = lightingImpact.summary;
       evaluation.pilotAction = lightingImpact.action;
       return evaluation;
     }
 
-    // 14. LOW ALTITUDE AIRSPACE HAZARDS (DRONES / RPA, BALLOONS, PARACHUTES)
+    // 14. LOW ALTITUDE AIRSPACE HAZARDS (DRONES / RPA, BALLOONS, PARACHUTES, RESTRICTED AREAS)
     const airspaceImpact = this.checkAirspaceHazard(text, notam);
     if (airspaceImpact) {
       evaluation.severity = airspaceImpact.severity;
       evaluation.severityScore = airspaceImpact.score;
       evaluation.impactTitle = airspaceImpact.title;
-      evaluation.tags.push('AIRSPACE', airspaceImpact.severity);
+      evaluation.shortImpact = airspaceImpact.shortImpact;
+      evaluation.tags.push('AIRSPACE');
       evaluation.executiveSummary = airspaceImpact.summary;
       evaluation.pilotAction = airspaceImpact.action;
-      evaluation.isSpecificToG650ER = true;
-      evaluation.g650erHighlights.push(airspaceImpact.highlight);
       return evaluation;
     }
 
@@ -253,7 +261,8 @@ export class G650ERRulesEngine {
       evaluation.severity = rwyccImpact.severity;
       evaluation.severityScore = rwyccImpact.score;
       evaluation.impactTitle = rwyccImpact.title;
-      evaluation.tags.push('RUNWAY FRICTION / RWYCC', rwyccImpact.severity);
+      evaluation.shortImpact = 'Runway Friction / Frost';
+      evaluation.tags.push('RWY CONDITION');
       evaluation.executiveSummary = rwyccImpact.summary;
       evaluation.pilotAction = rwyccImpact.action;
       evaluation.isSpecificToG650ER = true;
@@ -261,14 +270,16 @@ export class G650ERRulesEngine {
       return evaluation;
     }
 
-    // 16. JEPPESEN CHART & NAVDATA CHANGE NOTICES
-    if (text.includes('JEPPESEN TERMINAL CHART CHANGE') || text.includes('JEPPESEN NAVDATA CHANGE')) {
-      evaluation.severity = 'CAUTION';
-      evaluation.severityScore = 55;
-      evaluation.impactTitle = 'Jeppesen Terminal Chart / NavData Change Notice';
-      evaluation.tags.push('JEPPESEN NOTICE');
-      evaluation.executiveSummary = `Jeppesen chart revision or navdata update notice published for this station.`;
-      evaluation.pilotAction = `Verify PlaneView II FMS database cycle and check Jeppesen FliteDeck Pro terminal chart revisions.`;
+    // 16. ATC / TOWER / AFIS / FREQUENCY UPDATES
+    const atcImpact = this.checkAtcAndComm(text, qCode);
+    if (atcImpact) {
+      evaluation.severity = atcImpact.severity;
+      evaluation.severityScore = atcImpact.score;
+      evaluation.impactTitle = atcImpact.title;
+      evaluation.shortImpact = atcImpact.shortImpact;
+      evaluation.tags.push('ATC / COMM');
+      evaluation.executiveSummary = atcImpact.summary;
+      evaluation.pilotAction = atcImpact.action;
       return evaluation;
     }
 
@@ -276,22 +287,43 @@ export class G650ERRulesEngine {
     if (this.isObstacle(text, qCode)) {
       evaluation.severity = 'ADVISORY';
       evaluation.severityScore = 40;
-      evaluation.impactTitle = 'Obstacle Alert: Temporary Crane / Mast Erected';
-      evaluation.tags.push('OBSTACLE', 'ADVISORY');
-      evaluation.executiveSummary = `Temporary obstacle erected in vicinity of airport / runway approach or departure corridor.`;
-      evaluation.pilotAction = `Review departure net takeoff flight path (OEI - One Engine Inoperative climb gradient) to ensure adequate obstacle clearance.`;
-      evaluation.isSpecificToG650ER = true;
-      evaluation.g650erHighlights.push(`Verify G650ER FMS obstacle data and emergency turn procedures for departure.`);
+      evaluation.impactTitle = 'Temporary Obstacle / Crane in Vicinity';
+      evaluation.shortImpact = 'Obstacle / Crane';
+      evaluation.tags.push('OBSTACLE');
+      evaluation.executiveSummary = `Temporary obstacle erected near airport approach or departure path.`;
+      evaluation.pilotAction = `Verify departure OEI climb gradient clearance.`;
       return evaluation;
     }
 
-    // 18. DEFAULT ADVISORY / INFO
+    // 18. JETWAY / TERMINAL FACILITY
+    if (text.includes('JETWAY')) {
+      evaluation.severity = 'INFO';
+      evaluation.severityScore = 15;
+      evaluation.impactTitle = 'Terminal Jetway Unserviceable (No G650ER Impact)';
+      evaluation.shortImpact = 'Jetway U/S (No Impact)';
+      evaluation.tags.push('TERMINAL');
+      evaluation.executiveSummary = `Commercial passenger jetbridge out of service. No impact on G650ER executive ramp operations (built-in airstair).`;
+      return evaluation;
+    }
+
+    // 19. ADMINISTRATIVE / AIP SUP / TRIGGER NOTAMS
+    if (notam.category === 'ADMIN_AIP') {
+      evaluation.severity = 'INFO';
+      evaluation.severityScore = 10;
+      evaluation.impactTitle = 'AIP Supplement / AIRAC Administrative Notice';
+      evaluation.shortImpact = 'AIP / Admin Update';
+      evaluation.tags.push('ADMIN / AIP');
+      evaluation.executiveSummary = `Administrative AIP supplement cancellation or AIRAC chart cycle trigger notice.`;
+      return evaluation;
+    }
+
+    // 20. DEFAULT ADVISORY / INFO
     evaluation.severity = 'INFO';
     evaluation.severityScore = 20;
-    evaluation.impactTitle = 'General Aeronautical Advisory';
+    evaluation.impactTitle = 'General Aerodrome Advisory';
+    evaluation.shortImpact = 'General Notice';
     evaluation.tags.push('ROUTINE');
-    evaluation.executiveSummary = `Routine aeronautical information or secondary facility update.`;
-    evaluation.pilotAction = `Review for general flight situational awareness.`;
+    evaluation.executiveSummary = notam.bodyText || `Routine aeronautical information.`;
 
     return evaluation;
   }
@@ -300,42 +332,53 @@ export class G650ERRulesEngine {
 
   static isRunwayClosed(text, qCode) {
     if (qCode.startsWith('QMR') && (qCode.endsWith('LC') || qCode.endsWith('AU'))) return true;
-    return /(?:RWY|RUNWAY|PISTA)\s*([0-9]{2}[LRC]?(\/[0-9]{2}[LRC]?)?)\s*(?:CLSD|CLOSED|FECHADA|INTERDITADA|CLAUSURADA|UNAVAILABLE)/i.test(text) ||
+    return /(?:RWY|RUNWAY|PISTA)\s*([0-9]{2}[LRC]?(?:\/[0-9]{2}[LRC]?)?)\s*(?:CLSD|CLOSED|FECHADA|INTERDITADA|CLAUSURADA|UNAVAILABLE)/i.test(text) ||
            /(?:ALL\s+RUNWAYS|RWYS|PISTAS)\s*CLSD/i.test(text);
   }
 
   static checkRunwayDistanceReduction(text) {
-    const isDisplaced = /DISPLACED\s+THR|DTHR|DECLARED\s+DIST|TORA|TODA|ASDA|LDA|DISTANCIAS\s+DECLARADAS/i.test(text);
+    const isDisplaced = /DISPLACED\s+THR|\bDTHR\b|DECLARED\s+DIST|\bTORA\b|\bTODA\b|\bASDA\b|\bLDA\b|DISTANCIAS\s+DECLARADAS/i.test(text);
     if (!isDisplaced) return null;
 
-    let extractedFt = null;
-    const ftMatch = text.match(/(?:LDA|TORA|TODA|ASDA|DIST|REDUCED\s+TO)\s*[:=]?\s*([0-9]{4,5})\s*(?:FT|FEET)?/i);
-    const mMatch = text.match(/(?:LDA|TORA|TODA|ASDA|DIST|REDUCED\s+TO)\s*[:=]?\s*([0-9]{3,4})\s*M(?:ETRES|ETERS)?/i);
+    const rwyMatch = text.match(/(?:RWY|RUNWAY)\s*([0-9]{2}[LRC]?(?:\/[0-9]{2}[LRC]?)?)/i);
+    const rwyLabel = rwyMatch ? `RWY ${rwyMatch[1]}` : 'Runway';
 
-    if (ftMatch) {
-      extractedFt = parseInt(ftMatch[1], 10);
-    } else if (mMatch) {
-      extractedFt = Math.round(parseInt(mMatch[1], 10) * 3.28084);
-    }
+    let ldaFt = null;
+    const ldaMatch = text.match(/\bLDA\s*[:=]?\s*([0-9]{4,5})\s*(?:FT|FEET)?/i);
+    const toraMatch = text.match(/\bTORA\s*[:=]?\s*([0-9]{4,5})\s*(?:FT|FEET)?/i);
+    if (ldaMatch) ldaFt = parseInt(ldaMatch[1], 10);
+    else if (toraMatch) ldaFt = parseInt(toraMatch[1], 10);
 
-    if (extractedFt !== null) {
-      if (extractedFt < G650ER_SPECS.criticalRunwayLengthFt) {
+    if (ldaFt !== null) {
+      if (ldaFt < G650ER_SPECS.criticalRunwayLengthFt) {
         return {
           severity: 'CRITICAL',
           score: 92,
-          title: `Critical Runway Shortening: Available Length ${extractedFt} FT (< 5,000 FT)`,
-          summary: `Runway declared distance is reduced to ${extractedFt} ft. This is BELOW the safe practical operating limit for a Gulfstream G650ER at MTOW or typical landing weights!`,
-          action: `Mandatory G650ER Aircraft Flight Manual (AFM) calculation. Immediate diversion or alternative runway required.`,
-          highlight: `Available ${extractedFt} ft is below G650ER practical threshold (6,000 ft). Severe overrun hazard.`
+          title: `${rwyLabel} Shortened: Available Distance ${ldaFt.toLocaleString()} ft (< 5,000 ft)`,
+          shortImpact: `${rwyLabel} LDA ${ldaFt} ft`,
+          summary: `${rwyLabel} declared distance reduced to ${ldaFt.toLocaleString()} ft — below practical G650ER operating threshold.`,
+          action: `Mandatory AFM performance check. Plan alternative runway or diversion.`,
+          highlight: `Available ${ldaFt.toLocaleString()} ft is below G650ER 6,000 ft standard margin.`
         };
-      } else if (extractedFt < G650ER_SPECS.marginalRunwayLengthFt) {
+      } else if (ldaFt < G650ER_SPECS.marginalRunwayLengthFt) {
         return {
           severity: 'CAUTION',
-          score: 75,
-          title: `Runway Length Restriction: Available Length ${extractedFt} FT (5,000 - 6,000 FT)`,
-          summary: `Runway declared distance is reduced to ${extractedFt} ft. Marginal for G650ER operations.`,
-          action: `Compute precise AFM Part 25 field length. Verify dry runway, zero tailwind, and anti-skid operative.`,
-          highlight: `G650ER requires ~5,858 ft at MTOW (SL, ISA). Careful weight & fuel planning necessary.`
+          score: 76,
+          title: `${rwyLabel} Reduced Declared Distance: LDA ${ldaFt.toLocaleString()} ft`,
+          shortImpact: `${rwyLabel} LDA ${ldaFt} ft`,
+          summary: `${rwyLabel} available landing distance reduced to ${ldaFt.toLocaleString()} ft due to displaced threshold.`,
+          action: `Compute AFM field length for actual landing/takeoff weight and verify dry runway.`,
+          highlight: `G650ER MTOW balanced field length is ~5,858 ft (SL, ISA).`
+        };
+      } else {
+        return {
+          severity: 'ADVISORY',
+          score: 48,
+          title: `${rwyLabel} Displaced Threshold (LDA ${ldaFt.toLocaleString()} ft Available)`,
+          shortImpact: `${rwyLabel} LDA ${ldaFt} ft`,
+          summary: `${rwyLabel} threshold displaced; ${ldaFt.toLocaleString()} ft remains available (exceeds G650ER 6,000 ft requirement).`,
+          action: `Brief displaced threshold markings and verify FMS runway data.`,
+          highlight: `${ldaFt.toLocaleString()} ft available is well above G650ER landing requirements.`
         };
       }
     }
@@ -343,127 +386,153 @@ export class G650ERRulesEngine {
     return {
       severity: 'CAUTION',
       score: 65,
-      title: 'Displaced Threshold / Revised Declared Distances (TORA/LDA)',
-      summary: `Threshold displaced or declared distances modified. Landing/takeoff available distances are reduced.`,
-      action: `Cross-check actual available LDA/TORA against G650ER dispatch field length performance charts.`,
-      highlight: `Check displaced threshold distance in FMS runway database.`
+      title: `${rwyLabel} Displaced Threshold / Revised Declared Distances`,
+      shortImpact: 'Declared Distances Revised',
+      summary: `Threshold displaced or declared distances modified.`,
+      action: `Cross-check available TORA/LDA against G650ER AFM performance.`,
+      highlight: `Verify displaced threshold in FMS.`
     };
   }
 
-  static checkAirportWingspanLimit(text, qCode) {
-    if (!text.includes('WINGSPAN') && !text.includes('SPAN') && !text.includes('CODE C')) return null;
-
+  static checkAirportWideLimits(text, qCode) {
     const isAirportWide = /AD\s+RESTRICTION|AERODROME\s+RESTRICTION|AIRPORT\s+RESTRICTION|PROHIBITED\s+FROM\s+ALL\s+OPERATIONS/i.test(text);
     if (!isAirportWide) return null;
 
-    const spanMatchFt = text.match(/(?:MAX(?:IMUM)?\s*(?:ACFT\s*)?(?:WING)?SPAN|SPAN\s*RESTRICTED\s*TO|WINGSPAN\s*EXCEEDING|WINGSPAN\s*LIMITED\s*TO)\s*[:=]?\s*([0-9]{2,3})\s*(?:FT|FEET)?/i);
-    const spanMatchM = text.match(/(?:MAX(?:IMUM)?\s*(?:ACFT\s*)?(?:WING)?SPAN|SPAN\s*RESTRICTED\s*TO|WINGSPAN\s*EXCEEDING|WINGSPAN\s*LIMITED\s*TO)\s*[:=]?\s*([0-9]{2})\s*M(?:ETRES|ETERS)?/i);
-
-    let maxSpanFt = null;
+    const spanMatchFt = text.match(/(?:MAX(?:IMUM)?\s*(?:ACFT\s*|AIRCRAFT\s*)?(?:WING)?SPAN|WINGSPAN\s*EXCEEDING)\s*[:=]?\s*([0-9]{2,3})\s*(?:FT|FEET)?/i);
     if (spanMatchFt) {
-      maxSpanFt = parseInt(spanMatchFt[1], 10);
-    } else if (spanMatchM) {
-      maxSpanFt = Math.round(parseInt(spanMatchM[1], 10) * 3.28084);
+      const maxSpanFt = parseInt(spanMatchFt[1], 10);
+      if (maxSpanFt < 100) {
+        return {
+          severity: 'CRITICAL',
+          score: 99,
+          title: `Airport Wingspan Prohibition: Max ${maxSpanFt} ft (G650ER is 99'7")`,
+          shortImpact: `Max Span ${maxSpanFt} ft (NO-GO)`,
+          summary: `Airport prohibits aircraft with wingspan exceeding ${maxSpanFt} ft. The Gulfstream G650ER wingspan is 99 ft 7 in (30.36 m).`,
+          action: `NO-GO without explicit airport/FAA waiver.`,
+          highlight: `G650ER wingspan (99'7") exceeds airport limit (${maxSpanFt} ft).`
+        };
+      }
     }
 
-    if (maxSpanFt && maxSpanFt < 100) {
-      return {
-        severity: 'CRITICAL',
-        score: 99,
-        title: `CRITICAL AIRPORT WINGSPAN PROHIBITION: Max Wingspan ${maxSpanFt} FT (< 99'7")`,
-        summary: `Aerodrome strictly prohibits aircraft with wingspan exceeding ${maxSpanFt} ft (such as KASE Aspen). Gulfstream G650ER wingspan is 99 ft 7 in (30.36m). Operations strictly prohibited without formal airport/FAA waiver.`,
-        action: `NO-GO for standard G650ER operations. Divert to suitable alternate (e.g. KRIL Rifle, KEGE Eagle, or KGJT Grand Junction).`,
-        highlight: `G650ER wingspan (99'7") exceeds posted aerodrome maximum (${maxSpanFt} ft). High risk of grounding/fine.`
-      };
+    const wtMatch = text.match(/MAXIMUM\s+CERTIFICATED\s+TAKEOFF\s+WEIGHT\s+([0-9,]+)\s*LBS/i);
+    if (wtMatch) {
+      const maxWt = parseInt(wtMatch[1].replace(/,/g, ''), 10);
+      if (maxWt < G650ER_SPECS.mtowLbs) {
+        return {
+          severity: 'CRITICAL',
+          score: 94,
+          title: `Airport Max Takeoff Weight Limit: ${maxWt.toLocaleString()} lbs (G650ER MTOW 103,600 lbs)`,
+          shortImpact: `Max MTOW ${maxWt.toLocaleString()} lbs`,
+          summary: `Airport enforces a maximum certificated takeoff weight limit of ${maxWt.toLocaleString()} lbs.`,
+          action: `Verify if aircraft is certificated at a reduced weight tier or obtain prior airport permission.`,
+          highlight: `Standard G650ER MTOW is 103,600 lbs.`
+        };
+      }
     }
+
     return null;
   }
 
   static checkPavementStrength(notam, text) {
-    if (!text.includes('RESISTENCIA PISO') && !text.includes('PCR') && !text.includes('PCN') && !text.includes('BEARING STRENGTH')) return null;
+    if (!text.includes('RESISTENCIA PISO') && !/\bPCR\b|\bPCN\b/i.test(text) && !text.includes('BEARING STRENGTH')) return null;
 
     const pcr = notam.pcrData;
-    const rwyMatch = text.match(/(?:RWY|RUNWAY|PISTA)\s*([0-9]{2}[LRC]?(\/[0-9]{2}[LRC]?)?)/i);
+    const rwyMatch = text.match(/(?:RWY|RUNWAY|PISTA)\s*([0-9]{2}[LRC]?(?:\/[0-9]{2}[LRC]?)?)/i);
     const rwyStr = rwyMatch ? `RWY ${rwyMatch[1]}` : 'Runway';
 
     if (pcr) {
-      // G650ER MTOW 103,600 lbs, main gear tire pressure 214 psi.
-      // Under ICAO PCR system, rating >= 300 and Category X/W easily accommodates G650ER.
       const isPressureOk = pcr.tirePressure === 'X' || pcr.tirePressure === 'W';
       const isRatingOk = pcr.rating >= 300;
+      const codeStr = `PCR ${pcr.rating}/${pcr.pavementType}/${pcr.subgrade}/${pcr.tirePressure}/${pcr.method}`;
 
       if (isRatingOk && isPressureOk) {
         return {
           severity: 'INFO',
           score: 25,
-          title: `Pavement Bearing Strength (PCR ${pcr.rating}/${pcr.pavementType}/${pcr.subgrade}/${pcr.tirePressure}/${pcr.method}) - G650ER Compliant`,
-          summary: `${rwyStr} pavement rating modified to PCR ${pcr.rating}/${pcr.pavementType}/${pcr.subgrade}/${pcr.tirePressure}/${pcr.method}. Fully verified compliant for G650ER 103,600 lbs MTOW and Category X high tire pressure (>1.75 MPa / 254 psi).`,
-          action: `No payload/fuel restriction required. Pavement classification exceeds G650ER requirements.`,
-          highlight: `G650ER tire pressure (~214 psi) complies with PCR Category ${pcr.tirePressure}.`
+          title: `${rwyStr} Pavement Rating Updated (${codeStr}) — G650ER Compliant`,
+          shortImpact: `${codeStr} (OK)`,
+          summary: `${rwyStr} pavement strength is ${codeStr}. Fully compliant for G650ER MTOW (103,600 lbs) and Category X tire pressure (>254 psi).`,
+          action: `No weight restriction required.`,
+          highlight: `G650ER tire pressure (~214 psi) is within Category ${pcr.tirePressure}.`
         };
       } else {
         return {
           severity: 'CAUTION',
           score: 65,
-          title: `Pavement Strength Warning: PCR ${pcr.rating}/${pcr.pavementType}/${pcr.subgrade}/${pcr.tirePressure}/${pcr.method}`,
-          summary: `${rwyStr} pavement rating may require operational review for G650ER at MTOW.`,
-          action: `Verify Gulfstream ACN/PCR charts. Request pavement concession if departing at heavy gross weights.`,
-          highlight: `Check G650ER tire pressure against posted PCR Category ${pcr.tirePressure}.`
+          title: `${rwyStr} Pavement Strength Notice (${codeStr})`,
+          shortImpact: `${codeStr}`,
+          summary: `${rwyStr} pavement rating ${codeStr} may restrict high gross weight operations.`,
+          action: `Cross-check G650ER ACN/ACR tables for planned weight.`,
+          highlight: `Check tire pressure Category ${pcr.tirePressure} against G650ER 214 psi.`
         };
       }
     }
 
-    return {
-      severity: 'INFO',
-      score: 30,
-      title: `${rwyStr} Pavement Bearing Strength (PCR/PCN) Modified`,
-      summary: `Pavement bearing strength modification published for ${rwyStr}.`,
-      action: `Cross-check G650ER ACN against published aerodrome strength.`,
-      highlight: `G650ER MTOW is 103,600 lbs.`
-    };
+    return null;
   }
 
   static checkGpsSpoofing(text, qCode) {
-    if (!text.includes('GPS') && !text.includes('GNSS') && !text.includes('JAMMING') && !text.includes('SPOOFING') && !text.includes('INTERFERENCE')) {
-      return null;
-    }
-
     if (/GPS\s*(?:UNRELIABLE|ANOMALY|INTERFERENCE|JAMMING|SPOOFING)|GNSS\s*(?:UNRELIABLE|JAMMING|DEGRADED)/i.test(text)) {
       return {
         severity: 'CRITICAL',
         score: 93,
-        title: 'CRITICAL AVIONICS ALERT: GPS / GNSS Interference or Spoofing in Airspace',
-        summary: `GPS/GNSS signals are reported unreliable, jammed, or spoofed in this sector. Spoofing can inject false coordinates into aircraft avionics.`,
-        action: `1. Monitor Triple FMS IRS position drift. 2. Verify DME/DME updating is enabled. 3. Be prepared for Synthetic Vision (SVS) degradation and false EGPWS terrain pull-up warnings. Cross-check raw VOR/DME navigation.`,
-        highlight: `G650ER PlaneView II navigation solution will flag NAV FALSE POSITION if GPS spoofing occurs.`
+        title: 'GPS / GNSS Jamming or Spoofing Active in Sector',
+        summary: `GPS/GNSS navigation signals unreliable or spoofed in this airspace.`,
+        action: `Monitor FMS IRS drift, enable DME/DME updating, and anticipate potential SVS/EGPWS false terrain alerts.`,
+        highlight: `PlaneView II may display NAV FALSE POSITION under spoofing.`
       };
     }
     return null;
   }
 
-  static isAirportClosedOrCurfew(text, qCode) {
-    if (qCode.startsWith('QFA') && (qCode.endsWith('LC') || qCode.endsWith('AU'))) return true;
-    return /AD\s+CLSD|AERODROME\s+CLSD|AIRPORT\s+CLOSED|OPERATING\s+HOURS|NIGHT\s+CURFEW|VOLUNTARY\s+CURFEW|TWR\s+CLSD.*CLASS\s+G|HORARIO\s+DE\s+FUNCIONAMENTO/i.test(text);
+  static checkCurfewOrNoise(text, qCode) {
+    if (/STRICT\s+NIGHT\s+CURFEW|NO\s+TAKEOFF\s+OR\s+LANDING|AD\s+CLSD|AERODROME\s+CLSD|AIRPORT\s+CLOSED/i.test(text)) {
+      return {
+        severity: 'CRITICAL',
+        score: 90,
+        title: 'Mandatory Airport Curfew / Closure Window',
+        shortImpact: 'Mandatory Curfew',
+        tag: 'CURFEW',
+        summary: `Takeoffs and landings are prohibited during published curfew hours.`,
+        action: `Ensure ETD/ETA is outside curfew hours.`,
+        highlight: `Strict curfew enforcement at this executive station.`
+      };
+    }
+
+    if (/VOLUNTARY\s+CURFEW|NOISE\s+ABATEMENT|APU\s+RESTRICTIONS|APU\s+PROHIBITED|REVERSE\s+THRUST\s+ABOVE\s+IDLE/i.test(text)) {
+      return {
+        severity: 'ADVISORY',
+        score: 45,
+        title: 'Noise Abatement / APU & Reverse Thrust Restriction',
+        shortImpact: 'Noise / APU Limit',
+        tag: 'NOISE / APU',
+        summary: `Local noise abatement procedure limits APU runtime on ramp or reverse thrust above idle at night.`,
+        action: `Request GPU from FBO upon block-in and limit APU operation to permitted window.`,
+        highlight: `Coordinate GPU availability with handling agent.`
+      };
+    }
+
+    return null;
   }
 
   static isFuelRestriction(text, qCode) {
     if (qCode.startsWith('QFU')) return true;
-    return /JET\s*A(?:-?1)?\s*(?:NOT\s*AVBL|UNAVAILABLE|U\/S|SHORTAGE|CONTAMINATED)|NO\s*JET\s*FUEL|AVGAS\s*ONLY|COMBUSTIVEL\s*INDISPONIVEL/i.test(text);
+    return /JET[\s-]*A(?:-?1)?\s*(?:NOT\s*AVBL|UNAVAILABLE|U\/S|SHORTAGE|CONTAMINATED)|FUEL\s+SHORTAGE|NO\s*JET\s*FUEL|AVGAS\s*ONLY|COMBUSTIVEL\s*INDISPONIVEL/i.test(text);
   }
 
   static checkTaxiwayAndWingspan(text, qCode) {
-    const isTwy = qCode.startsWith('QMX') || /TWY|TAXIWAY|TAXILANE/i.test(text);
+    const isTwy = qCode.startsWith('QMX') || /\bTWY\b|TAXIWAY|TAXILANE/i.test(text);
     if (!isTwy) return null;
+
+    const twyNameMatch = text.match(/\b(?:TWY|TAXIWAY|TAXILANE)\s+([A-Z0-9]{1,7})/i);
+    const twyLabel = twyNameMatch ? `TWY ${twyNameMatch[1]}` : 'Taxiway';
 
     const spanMatchFt = text.match(/(?:MAX(?:IMUM)?\s*(?:WING)?SPAN|SPAN\s*RESTRICTED\s*TO|WINGSPAN\s*LIMITED\s*TO)\s*[:=]?\s*([0-9]{2,3})\s*(?:FT|FEET)?/i);
     const spanMatchM = text.match(/(?:MAX(?:IMUM)?\s*(?:WING)?SPAN|SPAN\s*RESTRICTED\s*TO|WINGSPAN\s*LIMITED\s*TO)\s*[:=]?\s*([0-9]{2})\s*M(?:ETRES|ETERS)?/i);
 
     let maxSpanFt = null;
-    if (spanMatchFt) {
-      maxSpanFt = parseInt(spanMatchFt[1], 10);
-    } else if (spanMatchM) {
-      maxSpanFt = Math.round(parseInt(spanMatchM[1], 10) * 3.28084);
-    }
+    if (spanMatchFt) maxSpanFt = parseInt(spanMatchFt[1], 10);
+    else if (spanMatchM) maxSpanFt = Math.round(parseInt(spanMatchM[1], 10) * 3.28084);
 
     const isRestrictedCodeC = /CODE\s*C\s*(?:OR\s*BELOW|ONLY|MAX)|ACFT\s*DESIGN\s*GROUP\s*(?:I{1,3})\s*ONLY/i.test(text);
 
@@ -471,35 +540,23 @@ export class G650ERRulesEngine {
       return {
         severity: 'CRITICAL',
         score: 88,
-        title: `CRITICAL WINGSPAN WARNING: Taxiway Restricted (${maxSpanFt ? maxSpanFt + ' FT' : 'Code C Only'})`,
-        summary: `Taxiway is restricted to aircraft with wingspan less than 100 ft or ICAO Code C! The Gulfstream G650ER has a wingspan of 99 ft 7 in (30.36m, ICAO Code D).`,
-        action: `DO NOT TAXI on this taxiway. Request progressive taxi instructions or alternate routing from Ground Control.`,
-        highlight: `G650ER wingspan is 99.6 ft (Code D). Taxiway wingtip clearance is NOT guaranteed.`
-      };
-    }
-
-    const weightMatch = text.match(/(?:MAX(?:IMUM)?\s*(?:ACFT\s*)?(?:WT|WEIGHT)|WEIGHT\s*RESTRICTION)\s*[:=]?\s*([0-9]{2,6})\s*(?:LBS|KG|TONS?)/i);
-    if (weightMatch) {
-      return {
-        severity: 'CAUTION',
-        score: 72,
-        title: 'Taxiway Aircraft Weight Restriction In Effect',
-        summary: `Taxiway has maximum allowable gross weight restriction. G650ER ramp weight reaches up to 104,000 lbs.`,
-        action: `Verify current gross weight does not exceed posted taxiway pavement bearing capacity (PCN/ACN).`,
-        highlight: `G650ER MTOW is 103,600 lbs. Pavement structural damage risk.`
+        title: `${twyLabel} Wingspan Limit: Max ${maxSpanFt ? maxSpanFt + ' ft' : 'Code C'} (G650ER is 99'7")`,
+        shortImpact: `${twyLabel} Span < ${maxSpanFt || 100} ft`,
+        summary: `${twyLabel} is restricted to wingspans under ${maxSpanFt ? maxSpanFt + ' ft' : 'Code C'}. The G650ER wingspan is 99 ft 7 in (30.36 m, Code D).`,
+        action: `Avoid ${twyLabel}. Request alternate taxi route from Ground Control.`,
+        highlight: `G650ER wingspan (99'7") exceeds ${twyLabel} clearance limit.`
       };
     }
 
     if (/CLSD|CLOSED|U\/S|UNSERVICEABLE|INTERDITADA/i.test(text)) {
-      const twyNameMatch = text.match(/TWY\s*([A-Z0-9]+)/i);
-      const twyName = twyNameMatch ? twyNameMatch[1] : 'Taxiway';
       return {
         severity: 'CAUTION',
-        score: 60,
-        title: `Taxiway ${twyName} Closed`,
-        summary: `Taxiway ${twyName} is closed. Routing to FBO or active runway may require back-track or detour.`,
-        action: `Brief taxi routing on airport diagram. Plan extra taxi fuel and monitor FMS taxi camera / synthetic vision.`,
-        highlight: `Verify route to executive FBO ramp avoids closed taxiway.`
+        score: 58,
+        title: `${twyLabel} Closed for Maintenance`,
+        shortImpact: `${twyLabel} Closed`,
+        summary: `${twyLabel} is closed; expect alternate ground routing to/from FBO ramp.`,
+        action: `Review airport taxi chart prior to pushback or landing rollout.`,
+        highlight: `Brief alternate taxi route.`
       };
     }
 
@@ -508,24 +565,35 @@ export class G650ERRulesEngine {
 
   static isCustomsImpact(text, qCode) {
     if (qCode.startsWith('QCP')) return true;
-    return /CUSTOMS|IMMIGRATION|PORT\s+OF\s+ENTRY|AOE\s+HOURS|BORDER\s+CONTROL|PASSPORT\s+CONTROL|ALFANDEGA|POLICIA\s+FEDERAL/i.test(text) &&
-           /CLSD|CLOSED|NOT\s+AVBL|HOURS|REDUCED|SUSPENDED|RESTRICTED|FECHADA/i.test(text);
+    return /\bCUSTOMS\b|\bIMMIGRATION\b|PORT\s+OF\s+ENTRY|\bAOE\b|\bUKBF\b|BORDER\s+FORCE|BORDER\s+PROTECTION/i.test(text);
   }
 
   static checkApproachAndNavaids(text, qCode) {
     const isApproach = qCode.startsWith('QIC') || qCode.startsWith('QIL') || qCode.startsWith('QIG') || qCode.startsWith('QNM') ||
-                       /ILS|LOCALIZER|GLIDEPATH|GLIDESLOPE|LOC|GP|DME|VOR\/DME|RNAV|RNP|LPV|IAP/i.test(text);
+                       /\bILS\b|LOCALIZER|GLIDEPATH|GLIDESLOPE|\bVOR\/DME\b|\bDVOR\b|\bRNAV\b|\bRNP\b/i.test(text);
     if (!isApproach) return null;
 
-    if (/U\/S|OTS|UNSERVICEABLE|OUT\s+OF\s+SERVICE|WITHDRAWN|OFF\s+AIR|INOPERANTE/i.test(text)) {
-      const isIls = /ILS|LOC|GLIDEPATH|GLIDESLOPE|GP|QIC/i.test(text);
+    if (/\bU\/S\b|\bOTS\b|UNSERVICEABLE|OUT\s+OF\s+SERVICE|INOPERANTE/i.test(text)) {
+      const isIls = /\bILS\b|LOCALIZER|GLIDEPATH|GLIDESLOPE|QIC|QIG|QIL/i.test(text);
+      const rwyMatch = text.match(/RWY\s*([0-9]{2}[LRC]?)/i);
+      const rwyStr = rwyMatch ? ` RWY ${rwyMatch[1]}` : '';
+      const vorMatch = text.match(/VOR\/DME\s*(?:\(DVOR\))?\s*([A-Z]{3})/i);
+      const vorStr = vorMatch ? ` (${vorMatch[1]})` : '';
+
       return {
         severity: 'CAUTION',
-        score: 70,
-        title: isIls ? 'ILS / Glidepath Unserviceable (Cat I/II/III Unavailable)' : 'Navaid / VOR-DME Unserviceable',
-        summary: `Instrument approach aid is out of service. Precision CAT II/III approaches unavailable; non-precision or RNP RNAV minimums apply.`,
-        action: `Check destination weather against higher non-precision or RNP approach minimums. Verify alternate weather requirements.`,
-        highlight: `G650ER HUD/EVS CAT II/III landing capability restricted if ground NAVAID is OTS.`
+        score: isIls ? 72 : 55,
+        title: isIls ? `ILS${rwyStr} Component Out of Service` : `VOR/DME${vorStr} Out of Service`,
+        shortImpact: isIls ? `ILS${rwyStr} Degraded` : `VOR/DME${vorStr} OTS`,
+        summary: isIls
+          ? `Precision ILS${rwyStr} capability degraded or unserviceable. Check applicable Cat I / LOC / RNP minimums.`
+          : `Ground VOR/DME${vorStr} station unserviceable. Use FMS RNP / GNSS navigation.`,
+        action: isIls
+          ? `Brief backup RNP (RNAV) or Localizer minima and verify destination weather.`
+          : `Deselect affected VOR/DME from FMS navaid tuning if required.`,
+        highlight: isIls
+          ? `Check G650ER HUD/EFVS approach minimums.`
+          : `G650ER triple FMS / GNSS navigation unaffected.`
       };
     }
 
@@ -533,16 +601,29 @@ export class G650ERRulesEngine {
   }
 
   static checkArffRffs(text, qCode) {
-    if (qCode.startsWith('QFF') || /RFFS|ARFF|FIRE\s*FIGHTING|RESCUE\s*SERVICES|BOMBEIROS/i.test(text)) {
-      const isDowngraded = /DOWNGRADED|REDUCED|CAT\s*[1-5]|INDEX\s*A/i.test(text);
-      if (isDowngraded) {
+    if (qCode.startsWith('QFF') || /\bRFFS\b|\bARFF\b|FIRE\s+AND\s+RESCUE|RESCUE\s+AND\s+FIRE/i.test(text)) {
+      const catMatch = text.match(/CATEGORY\s*([0-9])/i);
+      const catNum = catMatch ? parseInt(catMatch[1], 10) : null;
+
+      if (catNum !== null && catNum >= 6) {
+        return {
+          severity: 'ADVISORY',
+          score: 42,
+          title: `Rescue & Fire Fighting (RFFS) Adjusted to Category ${catNum} (Meets G650ER Cat 6)`,
+          summary: `Airport RFFS adjusted to ICAO Category ${catNum}, which meets the G650ER requirement (ICAO Category 6).`,
+          action: `Standard G650ER operations permitted.`,
+          highlight: `G650ER requires ICAO Category 6 / FAA Index B.`
+        };
+      }
+
+      if (/DOWNGRADED|REDUCED|CAT\s*[1-5]|INDEX\s*A/i.test(text)) {
         return {
           severity: 'CAUTION',
-          score: 65,
-          title: 'ARFF / RFFS Downgraded Below G650ER Standard (ICAO Cat 6 / FAA Index B)',
-          summary: `Aerodrome Rescue and Fire Fighting capability reduced below ICAO Category 6.`,
-          action: `Verify company Operations Specifications (OpsSpecs) and insurance coverage for low ARFF category operations.`,
-          highlight: `Gulfstream G650ER requires ICAO Cat 6 / FAA Index B for standard operations.`
+          score: 68,
+          title: 'ARFF / RFFS Downgraded Below ICAO Category 6',
+          summary: `Aerodrome Rescue and Fire Fighting reduced below ICAO Category 6.`,
+          action: `Verify company OpsSpecs and insurance requirements for downgraded ARFF.`,
+          highlight: `G650ER fuselage length (99'9") is ICAO Category 6.`
         };
       }
     }
@@ -551,43 +632,46 @@ export class G650ERRulesEngine {
 
   static isPprOrSlotRequired(text, qCode) {
     if (qCode.startsWith('QSP')) return true;
-    return /PPR|PRIOR\s+PERMISSION\s+REQUIRED|AIRPORT\s+SLOT|RAMP\s+SLOT|PARKING\s+RESERVATION|COHOR/i.test(text);
+    return /\bPPR\b|PRIOR\s+PERMISSION\s+REQUIRED|AIRPORT\s+SLOT|RAMP\s+SLOT|PARKING\s+CONGESTION|\bCOHOR\b/i.test(text);
   }
 
   static checkLighting(text, qCode) {
-    if (text.includes('SEM FLASH') || text.includes('WITHOUT FLASH') || text.includes('OPR WITHOUT FLASH')) {
+    const rwyMatch = text.match(/RWY\s*([0-9]{2}[LRC]?)/i);
+    const rwyStr = rwyMatch ? ` RWY ${rwyMatch[1]}` : '';
+
+    if (text.includes('SEM FLASH') || text.includes('WITHOUT FLASH')) {
       return {
-        severity: 'CAUTION',
-        score: 50,
-        title: 'Approach Lighting System (ALS) Operating Without Sequenced Flashers',
-        summary: `ALS operates with steady lights only; sequenced flashing lead-in strobes are inoperative.`,
-        action: `Exercise higher visual vigilance during night or marginal weather approach breakout.`,
-        highlight: `Visual contact with runway environment may be slightly delayed without lead-in flashers.`
+        severity: 'ADVISORY',
+        score: 44,
+        title: `Approach Lighting (ALS${rwyStr}) Operating Without Strobe Flashers`,
+        shortImpact: `ALS${rwyStr} No Flash`,
+        summary: `Approach lighting system steady lights are normal; sequenced flashing strobes are off.`,
+        action: `Standard approach minimums apply unless sequenced flashers are required by chart.`
       };
     }
 
-    if (qCode.startsWith('QLP') || /PAPI|VASI/i.test(text)) {
-      if (/U\/S|OTS|UNSERVICEABLE|OUT\s+OF\s+SERVICE|INOPERANTE/i.test(text)) {
+    if (qCode.startsWith('QLP') || /\bPAPI\b|\bVASI\b/i.test(text)) {
+      if (/\bU\/S\b|\bOTS\b|UNSERVICEABLE|OUT\s+OF\s+SERVICE|INOPERANTE/i.test(text)) {
         return {
           severity: 'CAUTION',
           score: 55,
-          title: 'Visual Glide Slope Indicator (PAPI/VASI) Out of Service',
-          summary: `PAPI/VASI visual approach slope indicator unserviceable.`,
-          action: `Use G650ER Synthetic Vision flight path vector and ILS/RNAV glidepath for visual approach angle guidance.`,
-          highlight: `Night visual approaches require higher vigilance without PAPI.`
+          title: `Visual Glide Slope (PAPI${rwyStr}) Out of Service`,
+          shortImpact: `PAPI${rwyStr} OTS`,
+          summary: `PAPI visual glidepath indicator unserviceable.`,
+          action: `Use ILS or RNAV vertical guidance on approach.`
         };
       }
     }
 
-    if (qCode.startsWith('QLA') || /ALS|ALSF|MALSR|APPROACH\s+LIGHTS/i.test(text)) {
-      if (/U\/S|OTS|UNSERVICEABLE|INOPERANTE/i.test(text)) {
+    if (qCode.startsWith('QLA') || /\bALS\b|\bALSF\b|\bMALSR\b|APPROACH\s+LIGHT/i.test(text)) {
+      if (/\bU\/S\b|\bOTS\b|UNSERVICEABLE|INOPERANTE/i.test(text)) {
         return {
           severity: 'CAUTION',
           score: 60,
-          title: 'Approach Lighting System (ALS) Out of Service',
-          summary: `Approach lighting system unserviceable. Visibility minimums will increase.`,
-          action: `Apply inoperative lighting penalty to approach minimums (typically +1/4 SM or +400m RVR).`,
-          highlight: `Landing minimums raised for night and low-visibility arrivals.`
+          title: `Approach Lighting System (ALS${rwyStr}) Out of Service`,
+          shortImpact: `ALS${rwyStr} OTS`,
+          summary: `Approach lighting system out of service; higher visibility minimums apply.`,
+          action: `Apply inoperative ALS visibility penalty to approach chart minimums.`
         };
       }
     }
@@ -595,70 +679,174 @@ export class G650ERRulesEngine {
   }
 
   static checkAirspaceHazard(text, notam) {
-    const isDrone = /FLT\s+RPA|REMOTELY\s+PILOTED|UNMANNED\s+AIRCRAFT|DRONE|\bUA\b\s+WILL\s+TAKE\s+PLACE/i.test(text);
-    const isBalloon = /BALAO\s+LIVRE|BALONISMO|FREE\s+BALLOON|HOT\s+AIR\s+BALLOON/i.test(text);
-    const isMilitary = /TIRO\s+REAL|EXERCICIO\s+MILITAR|MIL\s+EXER|PARACHUTE|PJE|MIL\s+PJE/i.test(text);
+    const isDrone = /FLT\s+RPA|REMOTELY\s+PILOTED|UNMANNED\s+AIRCRAFT|\bDRONE\b|\bUA\b\s+WILL\s+TAKE\s+PLACE|QWULW/i.test(text + ' ' + notam.qCode);
+    const isBalloon = /BALAO\s+LIVRE|BALONISMO|FREE\s+BALLOON|HOT\s+AIR\s+BALLOON|QWLLW/i.test(text + ' ' + notam.qCode);
+    const isFireworks = /FIREWORKS|QWMLW/i.test(text + ' ' + notam.qCode);
+    const isParachute = /PARACHUTE|\bPJE\b|MIL\s+PJE|QWPLW/i.test(text + ' ' + notam.qCode);
+    const isRestrictedArea = /QRRCA|QRTCA|SGR-\d+|RESTRICTED\s+AREA\s+ACTIVATED/i.test(text + ' ' + notam.qCode);
 
-    if (isDrone || isBalloon || isMilitary) {
-      const typeStr = isDrone ? 'Drone (RPA) Activity In Effect'
-                    : isBalloon ? 'Free Hot Air Balloon Ascent (Balonismo)'
-                    : 'Military / Parachute Activity';
-      const altStr = (notam.lowerLimit && notam.upperLimit) ? `(${notam.lowerLimit} to ${notam.upperLimit})` : '';
+    const upper = notam.upperLimit || 'Low Altitude';
+    const locNote = text.includes('BARUERI') ? ' (Barueri-SP)'
+                  : text.includes('SOROCABA') ? ' (Sorocaba)'
+                  : text.includes('LUQUE') ? ' (Luque / SGAS Vicinity)'
+                  : text.includes('SGR-7') ? ' (SGR-7 Hayes)' : '';
 
+    if (isDrone) {
+      return {
+        severity: 'ADVISORY',
+        score: 38,
+        title: `Drone / Unmanned Aircraft Area${locNote} — Up to ${upper}`,
+        shortImpact: `Drone Area (≤ ${upper})`,
+        summary: `Unmanned aircraft (RPA) activity${locNote} from surface up to ${upper}.${notam.groupedCount > 1 ? ` (${notam.groupedCount} duplicate sector NOTAMs merged)` : ''}`,
+        action: `Maintain visual scan below ${upper} during departure/arrival.`
+      };
+    }
+
+    if (isBalloon) {
+      return {
+        severity: 'ADVISORY',
+        score: 40,
+        title: `Hot Air Balloon Activity${locNote} — Up to ${upper}`,
+        shortImpact: `Balloons (≤ ${upper})`,
+        summary: `Free hot air ballooning${locNote} from surface up to ${upper}.${notam.groupedCount > 1 ? ` (${notam.groupedCount} duplicate notices merged)` : ''}`,
+        action: `Maintain visual lookout during initial climb/descent below ${upper}.`
+      };
+    }
+
+    if (isParachute) {
       return {
         severity: 'ADVISORY',
         score: 45,
-        title: `Low-Altitude Airspace Activity: ${typeStr} ${altStr}`,
-        summary: `Special airspace activity active in terminal area or departure/arrival corridor ${altStr}.`,
-        action: `Maintain visual scan on climb-out / initial approach. Ensure TCAS II operational. G650ER climb profile passes quickly above low-level traffic.`,
-        highlight: `Ensure positive climb gradient through affected altitudes.`
+        title: `Parachute Jumping Exercise${locNote} — Up to ${upper}`,
+        shortImpact: `Parachute Ops (≤ ${upper})`,
+        summary: `Military/civil parachute jumping active within 0.5 NM radius up to ${upper}, coordinated with ATC.`,
+        action: `Monitor Tower/Approach frequency for active jump windows.`
       };
     }
+
+    if (isFireworks) {
+      return {
+        severity: 'INFO',
+        score: 25,
+        title: `Low-Level Fireworks Display${locNote} — Up to ${upper}`,
+        shortImpact: `Fireworks (≤ ${upper})`,
+        summary: `Localized fireworks display up to ${upper} (${notam.scheduleRaw || 'scheduled window'}).`,
+        action: `No operational impact on IFR flight path.`
+      };
+    }
+
+    if (isRestrictedArea) {
+      return {
+        severity: 'ADVISORY',
+        score: 42,
+        title: `Restricted Airspace Activated${locNote} (${notam.lowerLimit || 'SFC'} to ${upper})`,
+        shortImpact: `Restricted Area (${upper})`,
+        summary: `Restricted airspace active from ${notam.lowerLimit || 'SFC'} to ${upper}.`,
+        action: `Verify flight plan routing clears active sector or stays above ${upper}.`
+      };
+    }
+
+    return null;
+  }
+
+  static checkAtcAndComm(text, qCode) {
+    if (/TWR[\s\S]*?FREQ\s*([0-9]{3}\.[0-9]{1,3})\s*MHZ[\s\S]*?(?:\bU\/S\b|UNSERVICEABLE|OUT\s+OF\s+SERVICE)/i.test(text)) {
+      const uMatch = text.match(/FREQ\s*([0-9]{3}\.[0-9]{1,3})\s*MHZ/i);
+      const altMatch = text.match(/(?:ALTERNATE|ALTN|USE|OPR)\s*(?:FREQ)?\s*([0-9]{3}\.[0-9]{1,3})\s*MHZ/i);
+      const uFreq = uMatch ? `${uMatch[1]} MHz` : 'Primary Freq';
+      const altFreq = altMatch ? ` — Use ${altMatch[1]} MHz` : '';
+      return {
+        severity: 'CAUTION',
+        score: 68,
+        title: `Control Tower ${uFreq} Out of Service${altFreq}`,
+        shortImpact: `TWR ${uFreq} U/S${altFreq}`,
+        summary: `Control Tower primary frequency (${uFreq}) is unserviceable.${altMatch ? ` Alternate frequency ${altMatch[1]} MHz is active.` : ''}`,
+        action: `Pre-set alternate Tower frequency${altMatch ? ` ${altMatch[1]} MHz` : ''} in G650ER PlaneView II COM prior to approach.`
+      };
+    }
+
+    if (/TWR\s+HR\s+SER/i.test(text)) {
+      const hrMatch = text.match(/HR\s+SER\s+([0-9]{4}-[0-9]{4})/i);
+      const hrs = hrMatch ? hrMatch[1] : 'Published Hours';
+      return {
+        severity: 'INFO',
+        score: 30,
+        title: `Control Tower Hours of Service: ${hrs} UTC`,
+        shortImpact: `TWR Hours ${hrs}Z`,
+        summary: `Control Tower operating hours are ${hrs} UTC.`,
+        action: `Verify AFIS/Approach frequency if operating outside Tower hours.`
+      };
+    }
+
+    if (/AFIS(?:\s+[A-Z]+)?\s+HR\s+SER/i.test(text)) {
+      return {
+        severity: 'INFO',
+        score: 28,
+        title: `AFIS Service Hours & Frequency Notice`,
+        shortImpact: `AFIS Hours Notice`,
+        summary: `Aerodrome Flight Information Service (AFIS) operating hours published.`,
+        action: `Monitor published AFIS frequency if diverting.`
+      };
+    }
+
+    if (/TWR\s+[A-Z]+\s+FREQ\s+[0-9.]+MHZ\s+INSTL/i.test(text)) {
+      const freqMatch = text.match(/([0-9]{3}\.[0-9]{1,3}MHZ)/i);
+      const freq = freqMatch ? freqMatch[1] : '';
+      return {
+        severity: 'INFO',
+        score: 25,
+        title: `Control Tower Frequency ${freq} Installed`,
+        shortImpact: `TWR Freq ${freq}`,
+        summary: `Tower primary frequency ${freq} in service.`,
+        action: `Use ${freq} for Tower communications.`
+      };
+    }
+
+    if (/FIS\s+CURITIBA|ACC\s+PRI\s+FREQ/i.test(text)) {
+      return {
+        severity: 'INFO',
+        score: 22,
+        title: `FIR / ACC Sector Frequency Assignment`,
+        shortImpact: `FIR Sector Freqs`,
+        summary: `Regional Flight Information Service / ACC sector frequencies published.`,
+        action: `Standard VHF frequency handoffs via ATC.`
+      };
+    }
+
     return null;
   }
 
   static isObstacle(text, qCode) {
     if (qCode.startsWith('QOB')) return true;
-    return /OBST|CRANE|MAST|TOWER\s+ERECTED|TEMPORARY\s+OBSTACLE/i.test(text);
+    return /\bOBST\b|\bCRANE\b|\bMAST\b|TOWER\s+ERECTED|TEMPORARY\s+OBSTACLE/i.test(text);
   }
 
   static checkBrakingActionOrContamination(text) {
-    if (!text.includes('BRAKING') && !text.includes('BA ') && !text.includes('RWYCC') && !text.includes('SNOWTAM') && !text.includes('FICON') && !text.includes('FROST')) {
+    if (!/BRAKING\s+ACTION|\bBA\s+(?:POOR|NIL|MEDIUM)|\bRWYCC\b|SNOWTAM|FICON|\bFROST\b/i.test(text)) {
       return null;
     }
 
     const rwyccMatch = text.match(/RWYCC\s*([0-6])\/([0-6])\/([0-6])/i);
     if (rwyccMatch) {
-      const [all, c1, c2, c3] = rwyccMatch;
+      const [, c1, c2, c3] = rwyccMatch;
       const minCode = Math.min(parseInt(c1, 10), parseInt(c2, 10), parseInt(c3, 10));
-      let sev = 'CAUTION';
-      let factorStr = '1.6x - 1.8x dry distance';
-      if (minCode <= 1) {
-        sev = 'CRITICAL';
-        factorStr = 'Prohibited / Extreme overrun hazard (RWYCC 1 or 0)';
-      }
-
       return {
-        severity: sev,
+        severity: minCode <= 1 ? 'CRITICAL' : 'CAUTION',
         score: minCode <= 1 ? 95 : 75,
-        title: `Global Reporting Format: RWYCC ${c1}/${c2}/${c3} Contaminated Runway`,
-        summary: `Runway condition code reported as ${c1}/${c2}/${c3}. Landing distance factored requirement: ${factorStr}.`,
-        action: `Consult Gulfstream QRH Contaminated Runway Landing Distance tables. Apply maximum anti-skid and reverse thrust.`,
-        highlight: `G650ER crosswind limit is reduced on contaminated surfaces.`
+        title: `Contaminated Runway: RWYCC ${c1}/${c2}/${c3}`,
+        summary: `Runway condition code reported as ${c1}/${c2}/${c3}.`,
+        action: `Apply Gulfstream QRH contaminated runway landing distance factors.`,
+        highlight: `Crosswind limits reduced on contaminated runways.`
       };
     }
 
-    if (/BRAKING\s+ACTION|BA\s+(?:POOR|NIL|MEDIUM)|FICON|SLIPPERY|FROST/i.test(text)) {
-      return {
-        severity: 'CAUTION',
-        score: 70,
-        title: 'Runway Surface Condition / Braking Action Advisory',
-        summary: `Runway surface contamination or reduced friction reported (frost, ice, or water).`,
-        action: `Consult Gulfstream QRH contaminated runway landing distances. Factor in crosswind limits.`,
-        highlight: `G650ER contaminated runway landing field length requires AFM factored distances.`
-      };
-    }
-
-    return null;
+    return {
+      severity: 'CAUTION',
+      score: 70,
+      title: 'Runway Surface Condition / Braking Action Advisory',
+      summary: `Runway surface frost or reduced braking action reported during published window.`,
+      action: `Verify runway surface condition and apply AFM contaminated runway factors if active.`,
+      highlight: `Check G650ER contaminated runway performance.`
+    };
   }
 }
