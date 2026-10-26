@@ -34,6 +34,95 @@ export class G650ERRulesEngine {
    * Evaluate a NOTAM against G650ER specifications and the flight context.
    */
   static evaluate(notam, flightContext = {}) {
+    const rawEval = this.evaluateInternal(notam, flightContext);
+    return this.applyClutterTag(rawEval, notam);
+  }
+
+  static applyClutterTag(evaluation, notam) {
+    evaluation.isClutter = false;
+    evaluation.clutterReason = '';
+
+    if (!notam) return evaluation;
+    const text = `${notam.bodyText || ''} ${notam.raw || ''}`.toUpperCase();
+    const p = notam.parsed || notam;
+
+    // Critical and Caution are operational priorities and NEVER clutter
+    if (evaluation.severity === 'CRITICAL' || evaluation.severity === 'CAUTION') {
+      return evaluation;
+    }
+
+    // Never clutter primary runway, approach lighting, navaid, fuel, or customs notices
+    if (['RUNWAY', 'APPROACH_LIGHTING', 'NAVAID_APPROACH', 'FUEL', 'CUSTOMS'].includes(p.category)) {
+      return evaluation;
+    }
+
+    // Grass cutting / mowing
+    if (/\b(?:GRASS\s+CUTTING|MOWING|WEED|VEGETATION)\b/i.test(text)) {
+      evaluation.isClutter = true;
+      evaluation.clutterReason = 'Grass mowing / vegetation maintenance';
+      return evaluation;
+    }
+
+    // Bird activity / wildlife hazard without runway closure
+    if (/\b(?:BIRD\s+(?:ACTIVITY|HAZARD|STRIKE|WATCH|CONCENTRATION)|WILDLIFE\s+HAZARD|AVIAN\s+HAZARD|FLOCKS?\s+OF\s+BIRDS?)\b/i.test(text)) {
+      evaluation.isClutter = true;
+      evaluation.clutterReason = 'Routine wildlife / bird concentration notice';
+      return evaluation;
+    }
+
+    // Administrative, contact, telephone, AIP SUP, Trigger notices
+    if (/\b(?:TEL\s+(?:NO|NUM|CHANGED)|PHONE\s+(?:NO|NUM)|OFFICE\s+HOURS|OFFICE\s+HRS|ADMINISTRATIVE|CONTACT\s+DETAILS|AIP\s+SUP|TRIGGER\s+NOTAM)\b/i.test(text) || p.category === 'ADMIN_AIP') {
+      evaluation.isClutter = true;
+      evaluation.clutterReason = 'Administrative / AIP publication notice';
+      return evaluation;
+    }
+
+    // Commercial passenger jetway outages (G650ER has built-in airstairs)
+    if (/\b(?:JETWAY|PASSENGER\s+BOARDING\s+BRIDGE|PBB\s+U\/S)\b/i.test(text) || evaluation.tags.includes('TERMINAL')) {
+      evaluation.isClutter = true;
+      evaluation.clutterReason = 'Commercial jetbridge out of service (Zero G650ER impact)';
+      return evaluation;
+    }
+
+    // Apron line painting / marking maintenance without closure
+    if (/\b(?:LINE\s+MARKING|PAINTING|MARKING\s+MAINT)\b/i.test(text) && !/\b(?:CLSD|CLOSED)\b/i.test(text)) {
+      evaluation.isClutter = true;
+      evaluation.clutterReason = 'Routine apron painting / line markings';
+      return evaluation;
+    }
+
+    // Distant / low obstacle outside approach path
+    if (evaluation.tags.includes('OBSTACLE')) {
+      if (typeof p.distanceFromNearestNm === 'number' && p.distanceFromNearestNm > 2.5) {
+        evaluation.isClutter = true;
+        evaluation.clutterReason = 'Low obstacle > 2.5 NM from runway threshold';
+        return evaluation;
+      }
+      if (/\b(?:150FT\s*AGL|100FT\s*AGL|80FT\s*AGL|60FT\s*AGL|40FT\s*AGL)\b/i.test(text)) {
+        evaluation.isClutter = true;
+        evaluation.clutterReason = 'Low-height obstacle (< 150 ft AGL)';
+        return evaluation;
+      }
+    }
+
+    // Routine beacon / windsock / anemometer light bulb maintenance
+    if (/\b(?:WDI\s+LIGHT|ANEMOMETER\s+LIGHT|ABN\s+U\/S|WIND\s+CONE\s+LIGHT)\b/i.test(text)) {
+      evaluation.isClutter = true;
+      evaluation.clutterReason = 'Routine windsock / beacon light bulb maintenance';
+      return evaluation;
+    }
+
+    // Routine general notices with no pilot action required
+    if (evaluation.severity === 'INFO' && !evaluation.pilotAction) {
+      evaluation.isClutter = true;
+      evaluation.clutterReason = 'Routine low-impact notice (No crew action required)';
+      return evaluation;
+    }
+
+    return evaluation;
+  }
+
+  static evaluateInternal(notam, flightContext = {}) {
     const text = (notam.bodyText || notam.raw || '').toUpperCase();
     const qCode = (notam.qCode || '').toUpperCase();
 

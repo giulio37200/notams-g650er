@@ -21,9 +21,10 @@ class AeroBriefApp {
     this.currentPresetIndex = 0;
     this.currentBriefing = null;
     this.evaluatedNotams = [];
-    this.currentView = 'brief'; // 'brief' | 'MAP' | 'DEP' | 'ARR' | 'ENROUTE' | 'JEPPESEN' | 'CHARTS' | 'ALL'
+    this.currentView = 'brief'; // 'brief' | 'MAP' | 'DEP' | 'ARR' | 'ALT' | 'ENROUTE' | 'JEPPESEN' | 'CHARTS' | 'ALL'
     this.activeFilter = 'all';
     this.showInactive = true;
+    this.filterClutter = true; // Concentrates on operational NOTAMs, suppressing low-impact clutter
     this.searchQuery = '';
     this.isGlareMode = false;
     this.selectedEnrouteStation = null;
@@ -68,6 +69,74 @@ class AeroBriefApp {
       .replace(/'/g, '&#039;');
   }
 
+  isClutterNotam(item) {
+    if (!item) return false;
+    const ev = item.evaluation || {};
+    if (ev.isClutter) return true;
+
+    // Critical and Caution are operational priorities and NEVER clutter
+    if (ev.severity === 'CRITICAL' || ev.severity === 'CAUTION') return false;
+
+    const p = item.parsed || {};
+    if (['RUNWAY', 'APPROACH_LIGHTING', 'NAVAID_APPROACH', 'FUEL', 'CUSTOMS'].includes(p.category)) {
+      return false;
+    }
+
+    const text = `${p.bodyText || ''} ${p.raw || ''}`.toUpperCase();
+
+    // Grass cutting / mowing
+    if (/\b(?:GRASS\s+CUTTING|MOWING|WEED|VEGETATION)\b/i.test(text)) return true;
+
+    // Bird activity / wildlife hazard without runway closure
+    if (/\b(?:BIRD\s+(?:ACTIVITY|HAZARD|STRIKE|WATCH|CONCENTRATION)|WILDLIFE\s+HAZARD|AVIAN\s+HAZARD|FLOCKS?\s+OF\s+BIRDS?)\b/i.test(text)) {
+      return true;
+    }
+
+    // Administrative, contact, telephone, AIP SUP, Trigger notices
+    if (/\b(?:TEL\s+(?:NO|NUM|CHANGED)|PHONE\s+(?:NO|NUM)|OFFICE\s+HOURS|OFFICE\s+HRS|ADMINISTRATIVE|CONTACT\s+DETAILS|AIP\s+SUP|TRIGGER\s+NOTAM)\b/i.test(text) || p.category === 'ADMIN_AIP') {
+      return true;
+    }
+
+    // Commercial passenger jetway outages (G650ER has built-in airstairs)
+    if (/\b(?:JETWAY|PASSENGER\s+BOARDING\s+BRIDGE|PBB\s+U\/S)\b/i.test(text) || (ev.tags && ev.tags.includes('TERMINAL'))) {
+      return true;
+    }
+
+    // Apron line painting / marking maintenance without closure
+    if (/\b(?:LINE\s+MARKING|PAINTING|MARKING\s+MAINT)\b/i.test(text) && !/\b(?:CLSD|CLOSED)\b/i.test(text)) {
+      return true;
+    }
+
+    // Distant / low obstacle outside approach path
+    if (ev.tags && ev.tags.includes('OBSTACLE')) {
+      if (typeof p.distanceFromNearestNm === 'number' && p.distanceFromNearestNm > 2.5) return true;
+      if (/\b(?:150FT\s*AGL|100FT\s*AGL|80FT\s*AGL|60FT\s*AGL|40FT\s*AGL)\b/i.test(text)) return true;
+    }
+
+    // Routine beacon / windsock / anemometer light bulb maintenance
+    if (/\b(?:WDI\s+LIGHT|ANEMOMETER\s+LIGHT|ABN\s+U\/S|WIND\s+CONE\s+LIGHT)\b/i.test(text)) return true;
+
+    // Routine general notices with no pilot action required
+    if (ev.severity === 'INFO' && !ev.pilotAction) return true;
+
+    return false;
+  }
+
+  updateClutterFilterUI() {
+    if (!this.elements.btnToggleClutter || !this.elements.clutterFilterLabel) return;
+    const clutterCount = (this.evaluatedNotams || []).filter(n => this.isClutterNotam(n)).length;
+
+    if (this.filterClutter) {
+      this.elements.btnToggleClutter.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30';
+      this.elements.clutterFilterLabel.textContent = `🛡️ Clutter Filter: ACTIVE (${clutterCount} Suppressed)`;
+      this.elements.btnToggleClutter.title = `Click to show all ${clutterCount} routine/clutter notices (birds, grass, admin)`;
+    } else {
+      this.elements.btnToggleClutter.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700';
+      this.elements.clutterFilterLabel.textContent = `👁️ All Notices Shown (${clutterCount} Clutter)`;
+      this.elements.btnToggleClutter.title = 'Click to activate clutter filter and hide low-impact notices';
+    }
+  }
+
   initElements() {
     this.elements = {
       liveUtcClock: document.getElementById('live-utc-clock'),
@@ -105,6 +174,8 @@ class AeroBriefApp {
       tabArrIcao: document.getElementById('tab-arr-icao'),
       tabBadgeDep: document.getElementById('tab-badge-dep'),
       tabBadgeArr: document.getElementById('tab-badge-arr'),
+      tabAltIcao: document.getElementById('tab-alt-icao'),
+      tabBadgeAlt: document.getElementById('tab-badge-alt'),
       tabBadgeEnroute: document.getElementById('tab-badge-enroute'),
       tabBadgeAll: document.getElementById('tab-badge-all'),
 
@@ -149,6 +220,17 @@ class AeroBriefApp {
       briefArrWx: document.getElementById('brief-arr-wx'),
       briefArrRwy: document.getElementById('brief-arr-rwy'),
       summaryArrBullets: document.getElementById('summary-arr-bullets'),
+
+      summaryAltIcao: document.getElementById('summary-alt-icao'),
+      briefAltTime: document.getElementById('brief-alt-time'),
+      briefAltName: document.getElementById('brief-alt-name'),
+      summaryAltAlertBadge: document.getElementById('summary-alt-alert-badge'),
+      briefAltWx: document.getElementById('brief-alt-wx'),
+      briefAltRwy: document.getElementById('brief-alt-rwy'),
+      summaryAltBullets: document.getElementById('summary-alt-bullets'),
+
+      btnToggleClutter: document.getElementById('btn-toggle-clutter'),
+      clutterFilterLabel: document.getElementById('clutter-filter-label'),
 
       enrouteOverviewGrid: document.getElementById('enroute-overview-grid'),
       stationViewWxContainer: document.getElementById('station-view-wx-container'),
@@ -1334,6 +1416,19 @@ class AeroBriefApp {
       });
     }
 
+    if (this.elements.btnToggleClutter) {
+      this.elements.btnToggleClutter.addEventListener('click', () => {
+        this.filterClutter = !this.filterClutter;
+        this.updateClutterFilterUI();
+        this.updateAllViews();
+        if (this.filterClutter) {
+          this.showToast('Clutter Filter ACTIVE: Low-impact notices (birds, grass, admin) suppressed');
+        } else {
+          this.showToast('Showing ALL notices including routine clutter');
+        }
+      });
+    }
+
     this.elements.notamSearchInput.addEventListener('input', (e) => {
       this.searchQuery = e.target.value.toLowerCase().trim();
       this.renderNotamsFeed();
@@ -1572,8 +1667,8 @@ class AeroBriefApp {
         } else if (notamIcao === arrIcao || bodyUpper.includes(arrIcao) || parsed.raw.includes(`!${arrIcao.replace(/^K/, '')}`)) {
           stage = 'ARR';
           targetUtc = arrUtc;
-        } else if (altIcao && (notamIcao === altIcao || bodyUpper.includes(altIcao))) {
-          stage = 'ENROUTE';
+        } else if (altIcao && (notamIcao === altIcao || bodyUpper.includes(altIcao) || (parsed.raw && parsed.raw.includes(`!${altIcao.replace(/^K/, '')}`)))) {
+          stage = 'ALT';
           targetUtc = arrUtc;
         } else if (parsed.fir || notamIcao.endsWith('XX') || notamIcao.startsWith('SBBS') || notamIcao.startsWith('SBCW') || notamIcao.startsWith('SGFA')) {
           stage = 'FIR';
@@ -1583,7 +1678,10 @@ class AeroBriefApp {
           targetUtc = depUtc;
         }
       } else {
-        targetUtc = (stage === 'ARR' || notamIcao === arrIcao || nearArr || (arrIcao.startsWith('SG') && notamIcao === 'SGFA')) ? arrUtc : depUtc;
+        if (stage === 'DEP') targetUtc = depUtc;
+        else if (stage === 'ARR' || notamIcao === arrIcao || nearArr) targetUtc = arrUtc;
+        else if (stage === 'ALT' || notamIcao === altIcao) targetUtc = arrUtc;
+        else targetUtc = depUtc;
       }
 
       const isActiveInWindow = NotamParser.isFlightActive(parsed, targetUtc, bufferHours);
@@ -1654,17 +1752,29 @@ class AeroBriefApp {
     let advisoryCount = 0;
     let inactiveCount = 0;
 
+    const depIcao = (this.elements.inputDepIcao ? this.elements.inputDepIcao.value : 'SBJH').toUpperCase().trim();
+    const arrIcao = (this.elements.inputArrIcao ? this.elements.inputArrIcao.value : 'SGAS').toUpperCase().trim();
+    const altIcao = (this.elements.inputAltIcao ? this.elements.inputAltIcao.value : 'SBFI').toUpperCase().trim();
+
     let depTotal = 0;
     let arrTotal = 0;
+    let altTotal = 0;
     let enrouteTotal = 0;
-
-    const arrIcao = (this.elements.inputArrIcao ? this.elements.inputArrIcao.value : '').toUpperCase().trim();
 
     this.evaluatedNotams.forEach(item => {
       const isDestTerminalFir = this.isDestinationTerminalFirNotam(item, arrIcao);
-      if (item.stage === 'DEP') depTotal++;
-      else if (item.stage === 'ARR' || isDestTerminalFir) arrTotal++;
-      else enrouteTotal++;
+      const isClutter = this.isClutterNotam(item);
+      const passesClutter = !this.filterClutter || !isClutter;
+
+      if (item.stage === 'DEP' || item.parsed.icao === depIcao) {
+        if (passesClutter) depTotal++;
+      } else if (item.stage === 'ARR' || item.parsed.icao === arrIcao || isDestTerminalFir) {
+        if (passesClutter) arrTotal++;
+      } else if (item.stage === 'ALT' || item.parsed.icao === altIcao) {
+        if (passesClutter) altTotal++;
+      } else {
+        if (passesClutter) enrouteTotal++;
+      }
 
       if (!item.isActiveInWindow) {
         inactiveCount++;
@@ -1682,16 +1792,38 @@ class AeroBriefApp {
 
     if (this.elements.tabBadgeDep) this.elements.tabBadgeDep.textContent = depTotal;
     if (this.elements.tabBadgeArr) this.elements.tabBadgeArr.textContent = arrTotal;
+    if (this.elements.tabBadgeAlt) this.elements.tabBadgeAlt.textContent = altTotal;
     if (this.elements.tabBadgeEnroute) this.elements.tabBadgeEnroute.textContent = enrouteTotal;
     if (this.elements.tabBadgeAll) this.elements.tabBadgeAll.textContent = this.evaluatedNotams.length;
+
+    if (this.elements.tabDepIcao) this.elements.tabDepIcao.textContent = `(${depIcao})`;
+    if (this.elements.tabArrIcao) this.elements.tabArrIcao.textContent = `(${arrIcao})`;
+    if (this.elements.tabAltIcao) this.elements.tabAltIcao.textContent = `(${altIcao})`;
+
+    this.updateClutterFilterUI();
   }
 
   renderFlightBriefView() {
     const depIcao = this.elements.inputDepIcao.value.toUpperCase().trim();
     const arrIcao = this.elements.inputArrIcao.value.toUpperCase().trim();
+    const altIcao = (this.elements.inputAltIcao ? this.elements.inputAltIcao.value : 'SBFI').toUpperCase().trim();
 
     this.elements.summaryDepIcao.textContent = depIcao;
     this.elements.summaryArrIcao.textContent = arrIcao;
+    if (this.elements.summaryAltIcao) this.elements.summaryAltIcao.textContent = altIcao;
+
+    const depMeta = AIRPORT_COORDS_DB[depIcao];
+    const arrMeta = AIRPORT_COORDS_DB[arrIcao];
+    const altMeta = AIRPORT_COORDS_DB[altIcao];
+
+    if (this.elements.briefDepName) this.elements.briefDepName.textContent = depMeta ? depMeta.name : (this.currentBriefing?.depName || depIcao);
+    if (this.elements.briefArrName) this.elements.briefArrName.textContent = arrMeta ? arrMeta.name : (this.currentBriefing?.arrName || arrIcao);
+    if (this.elements.briefAltName) this.elements.briefAltName.textContent = altMeta ? altMeta.name : (this.currentBriefing?.altName || altIcao);
+
+    if (this.elements.briefAltTime) {
+      const arrEtaText = (this.elements.briefArrEta ? this.elements.briefArrEta.textContent.replace('ETA ', '') : '');
+      this.elements.briefAltTime.textContent = arrEtaText ? `${arrEtaText} (DIV)` : '--:--Z';
+    }
 
     // 1. SIGMET Banner
     const sigmets = (this.currentBriefing && this.currentBriefing.sigmets) || [];
@@ -1721,21 +1853,27 @@ class AeroBriefApp {
       this.elements.sigmetBannerContainer.innerHTML = '';
     }
 
-    // 2. Departure & Destination Weather Strips
+    // 2. Weather Strips for DEP, ARR and ALT
     const metars = (this.currentBriefing && this.currentBriefing.metars) || [];
     const tafs = (this.currentBriefing && this.currentBriefing.tafs) || [];
 
     const depMetar = metars.find(m => m.icao === depIcao) || metars.find(m => !m.icao) || null;
     const arrMetar = metars.find(m => m.icao === arrIcao) || null;
+    const altMetar = metars.find(m => m.icao === altIcao) || null;
+
     const depTaf = tafs.find(t => t.icao === depIcao) || tafs.find(t => !t.icao) || null;
     const arrTaf = tafs.find(t => t.icao === arrIcao) || null;
+    const altTaf = tafs.find(t => t.icao === altIcao) || null;
 
     this.renderCompactWxBox(this.elements.briefDepWx, depIcao, depMetar, depTaf);
     this.renderCompactWxBox(this.elements.briefArrWx, arrIcao, arrMetar, arrTaf);
+    if (this.elements.briefAltWx) {
+      this.renderCompactWxBox(this.elements.briefAltWx, altIcao, altMetar, altTaf);
+    }
 
-    // 3. Departure & Destination Runway Status Strips + Watchlist
+    // 3. Departure, Destination & Alternate Runway Status Strips + Decoded Operational Watchlists
     const depNotams = [
-      ...this.evaluatedNotams.filter(n => n.stage === 'DEP'),
+      ...this.evaluatedNotams.filter(n => n.stage === 'DEP' || n.parsed.icao === depIcao),
       ...this.evaluatedNotams.filter(n => n.stage === 'FIR' && n.parsed.nearestAirport === depIcao && n.parsed.distanceFromNearestNm <= 30)
     ];
 
@@ -1743,28 +1881,44 @@ class AeroBriefApp {
       this.isDestinationTerminalFirNotam(n, arrIcao)
     );
     const arrCombinedNotams = [
-      ...this.evaluatedNotams.filter(n => n.stage === 'ARR'),
+      ...this.evaluatedNotams.filter(n => n.stage === 'ARR' || n.parsed.icao === arrIcao),
       ...arrTerminalFirNotams
     ];
 
+    const altNotams = this.evaluatedNotams.filter(n =>
+      n.stage === 'ALT' || n.parsed.icao === altIcao
+    );
+
     this.renderCompactRunwayStrip(this.elements.briefDepRwy, depIcao, depNotams, 'ETD');
     this.renderCompactRunwayStrip(this.elements.briefArrRwy, arrIcao, arrCombinedNotams, 'ETA');
+    if (this.elements.briefAltRwy) {
+      this.renderCompactRunwayStrip(this.elements.briefAltRwy, altIcao, altNotams, 'DIV');
+    }
 
     this.renderStationSummaryBullets(
       this.elements.summaryDepBullets,
       this.elements.summaryDepAlertBadge,
       depNotams,
-      `No active NOTAM restrictions at ${depIcao} during scheduled ETD.`
+      `No active operational NOTAM restrictions at ${depIcao} during scheduled ETD.`
     );
 
     this.renderStationSummaryBullets(
       this.elements.summaryArrBullets,
       this.elements.summaryArrAlertBadge,
       arrCombinedNotams,
-      `No active airport NOTAMs reported for ${arrIcao}.`
+      `No active operational NOTAMs reported for ${arrIcao}.`
     );
 
-    // 5. En-Route & FIR Overview Grid
+    if (this.elements.summaryAltBullets && this.elements.summaryAltAlertBadge) {
+      this.renderStationSummaryBullets(
+        this.elements.summaryAltBullets,
+        this.elements.summaryAltAlertBadge,
+        altNotams,
+        `No active operational NOTAM restrictions at Alternate (${altIcao}).`
+      );
+    }
+
+    // 4. En-Route & FIR Overview Grid
     this.renderEnrouteOverviewGrid();
   }
 
@@ -1871,8 +2025,10 @@ class AeroBriefApp {
   renderStationSummaryBullets(listEl, badgeEl, stationNotams, emptyMessage) {
     if (!listEl || !badgeEl) return;
 
-    const activeItems = stationNotams.filter(n => n.isActiveInWindow && n.parsed.category !== 'ADMIN_AIP');
-    const inactiveImportant = stationNotams.filter(n => !n.isActiveInWindow && n.evaluation.severity === 'CRITICAL');
+    // Strict Clutter Filtering: remove low-impact noise (birds, grass mowing, telephone changes, commercial jetway)
+    const operationalNotams = stationNotams.filter(n => !this.isClutterNotam(n));
+    const activeItems = operationalNotams.filter(n => n.isActiveInWindow);
+    const inactiveImportant = operationalNotams.filter(n => !n.isActiveInWindow && n.evaluation.severity === 'CRITICAL');
 
     const hasCritical = activeItems.some(i => i.evaluation.severity === 'CRITICAL');
     const hasCaution = activeItems.some(i => i.evaluation.severity === 'CAUTION');
@@ -1900,7 +2056,7 @@ class AeroBriefApp {
       return;
     }
 
-    const displayItems = [...activeItems, ...inactiveImportant].slice(0, 4);
+    const displayItems = [...activeItems, ...inactiveImportant].slice(0, 5);
 
     displayItems.forEach(item => {
       const globalIdx = this.evaluatedNotams.indexOf(item);
@@ -1927,19 +2083,26 @@ class AeroBriefApp {
            </button>`
         : '';
 
-      li.className = 'p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/90 space-y-1';
+      const categoryPill = item.evaluation.tags && item.evaluation.tags.length > 0
+        ? `<span class="px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700 font-mono text-[9px] font-bold">${item.evaluation.tags[0]}</span>`
+        : '';
+
+      li.className = 'p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/90 space-y-1.5';
       li.innerHTML = `
         <div class="flex flex-wrap items-center justify-between gap-1.5">
           <div class="font-bold ${color} flex items-center gap-1.5 text-xs">
             <i data-lucide="${icon}" class="w-3.5 h-3.5 shrink-0"></i>
-            <span>${item.evaluation.impactTitle}</span>
+            ${categoryPill}
+            <span>${this.escapeHtml(item.evaluation.impactTitle)}</span>
           </div>
           <div class="flex items-center gap-1 shrink-0">
             ${distBtn}
             ${isInactive ? `<span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">Outside Window</span>` : ''}
           </div>
         </div>
-        <p class="text-[11px] text-slate-300 leading-snug pl-5">${item.evaluation.pilotAction || item.evaluation.executiveSummary}</p>
+        <p class="text-[11px] text-slate-200 leading-snug pl-5 font-sans">
+          ${item.evaluation.pilotAction ? `<strong class="text-cyan-300 font-mono">▸ Crew Action:</strong> ${this.escapeHtml(item.evaluation.pilotAction)}` : this.escapeHtml(item.evaluation.executiveSummary || item.parsed.bodyText)}
+        </p>
       `;
 
       const mapBtn = li.querySelector('.btn-locate-map');
@@ -2078,18 +2241,31 @@ class AeroBriefApp {
       });
     }
 
-    const arrIcao = (this.elements.inputArrIcao ? this.elements.inputArrIcao.value : '').toUpperCase().trim();
+    const depIcao = (this.elements.inputDepIcao ? this.elements.inputDepIcao.value : 'SBJH').toUpperCase().trim();
+    const arrIcao = (this.elements.inputArrIcao ? this.elements.inputArrIcao.value : 'SGAS').toUpperCase().trim();
+    const altIcao = (this.elements.inputAltIcao ? this.elements.inputAltIcao.value : 'SBFI').toUpperCase().trim();
+
+    this.updateClutterFilterUI();
 
     const filtered = this.evaluatedNotams.filter(item => {
-      if (this.currentView === 'DEP' && item.stage !== 'DEP') return false;
+      if (this.currentView === 'DEP') {
+        if (item.stage !== 'DEP' && item.parsed.icao !== depIcao) return false;
+      }
       if (this.currentView === 'ARR') {
         const isDestTerminalFir = this.isDestinationTerminalFirNotam(item, arrIcao);
-        if (item.stage !== 'ARR' && !isDestTerminalFir) return false;
+        if (item.stage !== 'ARR' && item.parsed.icao !== arrIcao && !isDestTerminalFir) return false;
+      }
+      if (this.currentView === 'ALT') {
+        if (item.stage !== 'ALT' && item.parsed.icao !== altIcao) return false;
       }
       if (this.currentView === 'ENROUTE') {
-        if (item.stage === 'DEP' || item.stage === 'ARR') return false;
+        if (item.stage === 'DEP' || item.stage === 'ARR' || item.stage === 'ALT') return false;
+        if (item.parsed.icao === depIcao || item.parsed.icao === arrIcao || item.parsed.icao === altIcao) return false;
         if (this.selectedEnrouteStation && item.parsed.icao !== this.selectedEnrouteStation) return false;
       }
+
+      // Clutter filter: suppress low-impact / noise notices
+      if (this.filterClutter && this.isClutterNotam(item)) return false;
 
       if (!this.showInactive && !item.isActiveInWindow) return false;
 
@@ -2121,10 +2297,11 @@ class AeroBriefApp {
     if (filtered.length === 0) {
       const emptyBox = document.createElement('div');
       emptyBox.className = 'avionics-card rounded-2xl p-8 text-center text-slate-400 space-y-2';
+      const roleText = this.currentView === 'DEP' ? `Departure (${depIcao})` : (this.currentView === 'ARR' ? `Destination (${arrIcao})` : (this.currentView === 'ALT' ? `Alternate (${altIcao})` : 'current view'));
       emptyBox.innerHTML = `
         <i data-lucide="check-circle-2" class="w-7 h-7 mx-auto text-emerald-400"></i>
-        <p class="text-sm font-semibold text-slate-200">No NOTAMs match the current view or filter.</p>
-        <p class="text-xs text-slate-500">All stations in this view are clear of matching restrictions.</p>
+        <p class="text-sm font-semibold text-slate-200">No operational NOTAMs match ${roleText}.</p>
+        <p class="text-xs text-slate-500">All facilities are clear of matching operational restrictions ${this.filterClutter ? '(Clutter filter active)' : ''}.</p>
       `;
       container.appendChild(emptyBox);
       if (window.lucide) window.lucide.createIcons();
@@ -2191,25 +2368,43 @@ class AeroBriefApp {
          </div>`
       : '';
 
+    const tagPill = item.evaluation.tags && item.evaluation.tags.length > 0
+      ? `<span class="px-2 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700 text-[10px] font-mono font-bold shrink-0">${item.evaluation.tags[0]}</span>`
+      : '';
+
     wrapper.innerHTML = `
-      <!-- Scannable 1-Line Summary Header -->
-      <div class="notam-row-header w-full text-left px-4 py-3 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 cursor-pointer">
-        <div class="flex items-center gap-2.5 min-w-0 flex-1">
-          <span class="${badgeClass} text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase shrink-0 w-20 text-center">
-            ${sev}
-          </span>
-          <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-200 shrink-0">
-            ${item.parsed.icao || 'STN'}
-          </span>
-          <span class="text-xs sm:text-sm font-bold text-white truncate">
-            ${item.evaluation.impactTitle}
-          </span>
+      <!-- Scannable Decoded Summary Header -->
+      <div class="notam-row-header w-full text-left px-4 py-3 flex flex-wrap sm:flex-nowrap items-start justify-between gap-3 cursor-pointer">
+        <div class="flex flex-col min-w-0 flex-1 space-y-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="${badgeClass} text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase shrink-0">
+              ${sev}
+            </span>
+            <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-200 shrink-0">
+              ${item.parsed.icao || 'STN'}
+            </span>
+            ${tagPill}
+            <span class="text-xs sm:text-sm font-bold text-white">
+              ${this.escapeHtml(item.evaluation.impactTitle)}
+            </span>
+          </div>
+
+          <!-- Decoded Plain-English Action Strip (Immediately Scannable) -->
+          <div class="text-[11px] text-slate-300 font-sans pl-1 flex items-start gap-1.5 leading-snug">
+            ${item.evaluation.pilotAction ? `
+              <span class="text-cyan-400 font-mono font-bold shrink-0">▸ ACTION:</span>
+              <span class="text-slate-200">${this.escapeHtml(item.evaluation.pilotAction)}</span>
+            ` : `
+              <span class="text-slate-400 shrink-0">▸ SUMMARY:</span>
+              <span class="text-slate-300">${this.escapeHtml(item.evaluation.executiveSummary || item.parsed.bodyText)}</span>
+            `}
+          </div>
         </div>
 
-        <div class="flex items-center gap-2 shrink-0">
+        <div class="flex items-center gap-2 shrink-0 pt-0.5">
           ${distPill}
           ${mergedPill}
-          ${item.parsed.scheduleRaw ? `<span class="hidden lg:inline text-[11px] font-mono text-amber-300/90 bg-slate-900/90 px-2 py-0.5 rounded border border-slate-800">${item.parsed.scheduleRaw}</span>` : ''}
+          ${item.parsed.scheduleRaw ? `<span class="hidden lg:inline text-[11px] font-mono text-amber-300/90 bg-slate-900/90 px-2 py-0.5 rounded border border-slate-800">${this.escapeHtml(item.parsed.scheduleRaw)}</span>` : ''}
           ${statusPill}
           <i data-lucide="chevron-down" class="row-chevron w-4 h-4 text-slate-400 transition-transform duration-150"></i>
         </div>

@@ -420,7 +420,7 @@ export class NotamParser {
         const label = cur[1].toUpperCase();
         const sectionType = label.includes('DEP') ? 'DEP'
                           : label.includes('DEST') ? 'ARR'
-                          : label.includes('ALT') ? 'ENROUTE'
+                          : label.includes('ALT') ? 'ALT'
                           : (label.includes('ENROUTE') && !label.includes('FIR')) ? 'ENROUTE' : 'FIR';
         const icao = cur[2].toUpperCase();
         const name = cur[3] ? cur[3].trim() : '';
@@ -432,10 +432,11 @@ export class NotamParser {
         } else if (sectionType === 'ARR') {
           if (!briefing.arrIcao) briefing.arrIcao = icao;
           if (name && !briefing.arrName) briefing.arrName = name;
-        } else if (label.includes('ALT')) {
+        } else if (sectionType === 'ALT') {
           if (!briefing.altIcao) briefing.altIcao = icao;
           if (name && !briefing.altName) briefing.altName = name;
-          enrouteSet.add(icao);
+          if (!briefing.altIcaos) briefing.altIcaos = [];
+          if (!briefing.altIcaos.includes(icao)) briefing.altIcaos.push(icao);
         } else if (sectionType === 'ENROUTE') {
           enrouteSet.add(icao);
         } else if (sectionType === 'FIR') {
