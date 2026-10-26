@@ -283,6 +283,18 @@ export class NotamParser {
       if (altMatch[2] && !/NOTAM|[A-Z][0-9]{4}\/[0-9]{2}/i.test(altMatch[2])) briefing.altName = altMatch[2].trim();
     }
 
+    // Also support ICAO Flight Plan (FPL) blocks if included in the briefing PDF
+    const fplMatch = cleaned.match(/\(FPL-([A-Z0-9-]+)-[A-Z]{1,2}[\s\S]{1,120}?-([A-Z]{4})([0-9]{4})\s+-[NKM][0-9]{4}[FA][0-9]{3,4}\s+[\s\S]{1,600}?-([A-Z]{4})([0-9]{4})(?:\s+([A-Z]{4}))?/i);
+    if (fplMatch) {
+      if (!briefing.tailNumber && fplMatch[1]) briefing.tailNumber = fplMatch[1].toUpperCase();
+      if (!briefing.depIcao && fplMatch[2]) briefing.depIcao = fplMatch[2].toUpperCase();
+      if (!briefing.depTimeUtcStr && fplMatch[3]) {
+        briefing.depTimeUtcStr = `${fplMatch[3].slice(0, 2)}:${fplMatch[3].slice(2, 4)}Z`;
+      }
+      if (!briefing.arrIcao && fplMatch[4]) briefing.arrIcao = fplMatch[4].toUpperCase();
+      if (!briefing.altIcao && fplMatch[6]) briefing.altIcao = fplMatch[6].toUpperCase();
+    }
+
     if (!briefing.flightDateStr) {
       const genericDateMatch = topBannerSlice.match(/\b([0-9]{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+20[2-3][0-9]|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+[0-9]{1,2},?\s+20[2-3][0-9]|20[2-3][0-9]-[0-9]{2}-[0-9]{2})\b/i);
       if (genericDateMatch) {
@@ -501,7 +513,14 @@ export class NotamParser {
       briefing.allNotams = this.deduplicateNotams(parsedNotams);
     }
 
-    // Also collect any FIRs referenced on Q-lines across all parsed NOTAMs
+    // Also collect any FIRs referenced on Q-lines or ICAO Item 18 EET/ across the briefing
+    const eetMatch = cleaned.match(/\bEET\/([A-Z0-9\s]{6,120}?)(?=\s+(?:REG|SEL|CODE|OPR|ORGN|PER|ALTN|RALT|TALT|RMK|NAV|DAT|SUR|DOF|TYP|COM)\/|\)|\n\n|$)/i);
+    if (eetMatch) {
+      for (const m of eetMatch[1].matchAll(/\b([A-Z]{4})[0-9]{4}\b/gi)) {
+        firSet.add(m[1].toUpperCase());
+      }
+    }
+
     briefing.allNotams.forEach(n => {
       if (n.fir && /^[A-Z]{4}$/.test(n.fir)) {
         firSet.add(n.fir);

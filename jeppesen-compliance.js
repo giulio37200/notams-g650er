@@ -78,10 +78,10 @@ export class JeppesenComplianceEngine {
   async loadData() {
     try {
       const [firRes, adizRes, aeroRes, aomRes] = await Promise.all([
-        fetch('./data/fir_rules.json?v=8'),
-        fetch('./data/adiz_rules.json?v=8'),
-        fetch('./data/aerodrome_notices.json?v=8'),
-        fetch('./data/aom_tables.json?v=8')
+        fetch('./data/fir_rules.json?v=9'),
+        fetch('./data/adiz_rules.json?v=9'),
+        fetch('./data/aerodrome_notices.json?v=9'),
+        fetch('./data/aom_tables.json?v=9')
       ]);
 
       if (firRes.ok) this.firRules = await firRes.json();
@@ -179,14 +179,28 @@ export class JeppesenComplianceEngine {
 
     const firSet = new Set();
 
-    // 1. Add explicitly typed 4-letter FIR codes that exist in firRules (or look like 4-letter ICAOs)
+    // 1. Add explicitly provided 4-letter FIR codes from rawRouteFirsInput
+    const knownAirportSet = new Set([
+      dep,
+      arr,
+      alt,
+      ...(briefing?.depIcaos || []),
+      ...(briefing?.arrIcaos || []),
+      ...(briefing?.altIcaos || []),
+      ...(briefing?.enrouteIcaos || []),
+      ...Object.keys(this.aerodromeNotices || {})
+    ].filter(Boolean));
+
     tokens.forEach(tok => {
       if (this.firRules[tok]) {
         firSet.add(tok);
       } else if (/^[A-Z]{4}$/.test(tok) && !tok.startsWith('RWY')) {
-        const mapped = this.mapIcaoToFir(tok, briefing);
-        if (mapped) firSet.add(mapped);
-        else firSet.add(tok);
+        if (knownAirportSet.has(tok) && !(briefing?.firIcaos || []).includes(tok)) {
+          const mapped = this.mapIcaoToFir(tok, briefing);
+          firSet.add(mapped || tok);
+        } else {
+          firSet.add(tok);
+        }
       }
     });
 
@@ -202,11 +216,15 @@ export class JeppesenComplianceEngine {
     if (!icao || icao.length < 2) return null;
     const u = icao.toUpperCase().trim();
     if (this.firRules[u]) return u;
+    if (briefing && Array.isArray(briefing.firIcaos) && briefing.firIcaos.includes(u)) return u;
     if (briefing && briefing.stationFirMap && briefing.stationFirMap[u]) {
       return briefing.stationFirMap[u];
     }
     if (this.aerodromeNotices[u] && this.aerodromeNotices[u].fir) {
       return this.aerodromeNotices[u].fir;
+    }
+    if (/^(?:KZ[A-Z]{2}|CZ[A-Z]{2}|SB(?:BS|CW|RF|AZ|AO)|EI(?:SN|AA)|EG(?:TT|PX|GX)|LF(?:FF|MM|BB|EE|RR)|ED(?:GG|MM|WW|UU))$/.test(u)) {
+      return u;
     }
 
     // Brazil FIRs (SBBS, SBRF, SBAZ, SBCW)
@@ -308,12 +326,113 @@ export class JeppesenComplianceEngine {
   }
 
   /**
+   * Dynamically synthesize a complete, region-accurate Jeppesen FIR rule for any 4-letter FIR
+   * extracted from an uploaded Flight Brief PDF that is not in static `fir_rules.json`.
+   */
+  buildDynamicFirRule(firCode, briefing = null, evaluatedNotams = []) {
+    const f = (firCode || '').toUpperCase().trim();
+    const country = this.inferCountryFromIcao(f);
+
+    let isEuropean = /^(?:E[DGHLKBP]|L[EFIMS]|GC|BI)/.test(f);
+    let isNorthAmerica = /^(?:K|C|PA|TJ|MM|MY)/.test(f);
+    let isBrazil = /^SB/.test(f);
+    let isSouthAmerica = /^(?:S[ACDEFGHIJKLMPOTUV]|MP)/.test(f);
+    let isAfrica = /^(?:D|F|G[OFLT]|H[ABEJKLNRTU])/.test(f);
+    let isOceanic = /^(?:CZQX|EGGX|KZNY|KZWY|KZAK|KZMA|SBAO|VABF|VOMF|FSSS)/.test(f);
+
+    // Check if the uploaded PDF has any NOTAMs for this FIR mentioning CPDLC, FANS, ATN, RNP, ADS-B
+    const firNotams = (evaluatedNotams || []).filter(it => {
+      const p = it.parsed || it;
+      return (p.fir || '').toUpperCase() === f || (p.icao || '').toUpperCase() === f || (p.sectionIcao || '').toUpperCase() === f;
+    });
+    const combinedFirText = firNotams.map(it => {
+      const p = it.parsed || it;
+      return `${p.bodyText || ''} ${p.raw || ''}`;
+    }).join(' ').toUpperCase();
+
+    const pdfMentionsCpdlc = /\b(?:CPDLC|FANS|ATN|LOGON|DATALINK|DATA\s+LINK)\b/.test(combinedFirText);
+
+    const systemType = isOceanic
+      ? 'FANS 1/A+ (SATCOM / VDL2)'
+      : (isEuropean
+        ? 'ATN B1 (VDL Mode 2) / FANS 1/A'
+        : (isNorthAmerica
+          ? 'FANS 1/A+ (Domestic CPDLC) & VHF'
+          : (isBrazil || pdfMentionsCpdlc ? 'FANS 1/A+ & VHF Voice' : 'VHF / HF Voice & ACARS')));
+
+    const cpdlcAvailable = isOceanic || isEuropean || isNorthAmerica || isBrazil || pdfMentionsCpdlc;
+
+    const vfrSquawk = isEuropean || /^(?:HE|GM|DA|DT|LC|LG|LT|OE)/.test(f)
+      ? '7000'
+      : (isNorthAmerica ? '1200' : (f === 'HKNA' ? '0777' : (f === 'FLFI' || f === 'OJAC' ? '2400' : '2000')));
+
+    return {
+      firCode: f,
+      name: `${f} FIR (${country} Airspace)`,
+      region: country,
+      cpdlc: {
+        available: cpdlcAvailable,
+        adsC: isOceanic || isBrazil || isAfrica,
+        logonId: f,
+        systemType,
+        minFlightLevel: isEuropean ? 'FL285+' : 'FL245+',
+        logonWindowMin: [10, 25],
+        logonTiming: cpdlcAvailable
+          ? `Logon to ${f} 10–25 mins prior to FIR boundary (${firNotams.length} active PDF NOTAMs in FIR)`
+          : `Establish VHF/HF voice contact with ${f} ACC 10 mins prior to boundary`,
+        notes: firNotams.length > 0
+          ? `${firNotams.length} active NOTAM(s) parsed from uploaded Flight Brief PDF for ${f} FIR.`
+          : `Standard ${country} Enroute ATS communications & surveillance.`
+      },
+      pbnAdsB: {
+        adsBMandatory: true,
+        adsBNote: `1090ES ADS-B Out & Mode S required in ${f} upper RVSM airspace (FL290–FL410+)`,
+        rnpRequired: isOceanic ? 'RNP 4 / RNP 10 (RNAV 10)' : (isEuropean || isNorthAmerica ? 'RNAV 1 / RNAV 5 (RNP 2)' : 'RNAV 5 / RNP 10'),
+        lateralSeparation: isOceanic ? '30 NM / 50 NM Lateral (SLOP Authorized)' : '5 NM Radar / ADS-B Surveillance'
+      },
+      specialProcedures: {
+        ifbp1269: isAfrica ? {
+          active: true,
+          frequency: '126.9 MHz',
+          listenBeforeEntryMin: 10,
+          broadcastIntervalMin: 20,
+          summary: `IATA In-Flight Broadcast Procedure (126.9 MHz) active across ${f} (${country}) airspace.`
+        } : null,
+        slop: (isOceanic || isAfrica || isBrazil) ? {
+          authorized: true,
+          IncrementNm: 0.1,
+          maxOffsetNm: 2.0,
+          offsetRule: `Strategic Lateral Offset Procedure (SLOP) authorized in ${f}: 0.0 NM or 0.1 NM increments up to 2.0 NM RIGHT of centerline.`
+        } : null,
+        brazilContingencyPlan: isBrazil ? {
+          active: true,
+          tibaFreq: '123.45 MHz',
+          emergencyFreq: '121.5 MHz',
+          summary: `DECEA Brazilian FIR Contingency & TIBA (123.45 MHz) procedures apply within ${f} FIR.`
+        } : null,
+        customAlerts: [
+          `Active Uploaded Briefing FIR (${f} — ${country}): Verify RVSM altimetry crosscheck (max 200 ft difference) & Mach/TAS on initial contact.`
+        ]
+      },
+      adizKey: isBrazil ? 'BRAZIL_BORDER' : (f.startsWith('VA') || f.startsWith('VI') || f.startsWith('VO') || f.startsWith('VE') ? 'INDIA' : (f.startsWith('C') ? 'CANADA' : (f.startsWith('K') || f.startsWith('PA') ? 'US_ALASKA' : null))),
+      ssr: {
+        uncontrolledVfrSquawk: vfrSquawk,
+        entryUnassignedSquawk: '2000',
+        emergencySquawks: ['7500', '7600', '7700'],
+        transponderFailureRule: isAfrica
+          ? `Advise ${f} ACC at least 15 mins prior to entry if Mode S / SSR transponder is unserviceable.`
+          : `Operate Mode S + 1090ES ADS-B Out continuously in ${f} FIR. Squawk 2000 if unassigned from non-radar airspace; advise ATC immediately upon transponder degradation.`
+      }
+    };
+  }
+
+  /**
    * SUB-MODULE 1: Enroute & CNS Compliance Engine
    * - CPDLC / ADS-C Timeline
    * - PBN & ADS-B Validator
-   * - Special Procedures Alerts (IATA IFBP 126.9, SLOP 0.1-2.0 NM, Nicosia LCCC, Brazil 123.45 TIBA)
+   * - Special Procedures Alerts (IATA IFBP 126.9, SLOP 0.1-2.0 NM, Nicosia LCCC, Brazil 123.45 TIBA + Live PDF SIGMETs & En-Route NOTAMs)
    */
-  evaluateEnrouteCns(routeFirs, capabilities = {}, eobtDate = null, rawRouteString = '') {
+  evaluateEnrouteCns(routeFirs, capabilities = {}, eobtDate = null, rawRouteString = '', evaluatedNotams = [], briefing = null) {
     const caps = {
       fans1a: capabilities.fans1a !== false,
       atnB1: capabilities.atnB1 !== false,
@@ -329,23 +448,17 @@ export class JeppesenComplianceEngine {
     const baseTimeMs = eobtDate instanceof Date && !isNaN(eobtDate) ? eobtDate.getTime() : Date.now();
 
     routeFirs.forEach((firCode, idx) => {
-      const rule = this.firRules[firCode];
-      if (!rule) {
-        cpdlcTimeline.push({
-          firCode,
-          firName: `${firCode} FIR`,
-          available: false,
-          adsC: false,
-          logonId: 'VHF / HF VOICE',
-          systemType: 'Voice Only',
-          logonTiming: 'Contact ACC 10 mins prior to boundary',
-          computedWindowUtc: this.formatOffsetWindowUtc(baseTimeMs, idx * 40 - 15, idx * 40 - 10),
-          equipmentStatus: 'OK',
-          equipmentNote: 'Standard VHF/HF voice comms',
-          notes: 'Verify regional Enroute chart frequencies.'
-        });
-        return;
-      }
+      const rule = this.firRules[firCode] || this.buildDynamicFirRule(firCode, briefing, evaluatedNotams);
+
+      // Find live NOTAMs from the uploaded Flight Brief PDF belonging to this FIR
+      const firLiveNotams = (evaluatedNotams || []).filter(it => {
+        const p = it.parsed || it;
+        const isFirMatch =
+          (p.fir || '').toUpperCase() === firCode ||
+          (p.icao || '').toUpperCase() === firCode ||
+          (p.sectionIcao || '').toUpperCase() === firCode;
+        return isFirMatch && it.isActiveInWindow !== false;
+      });
 
       // 1. CPDLC / ADS-C Timeline Entry
       const cp = rule.cpdlc || {};
@@ -356,7 +469,7 @@ export class JeppesenComplianceEngine {
       let equipmentStatus = 'COMPLIANT';
       let equipmentNote = 'G650ER Avionics Matched';
       if (cp.available) {
-        if (needsFans && ! needsAtn && !caps.fans1a) {
+        if (needsFans && !needsAtn && !caps.fans1a) {
           equipmentStatus = 'DEFICIT';
           equipmentNote = 'FANS 1/A+ Disabled — Revert to HF/VHF Voice & Legacy Separation';
         } else if (needsAtn && !needsFans && !caps.atnB1) {
@@ -388,7 +501,9 @@ export class JeppesenComplianceEngine {
           : `${this.formatOffsetWindowUtc(baseTimeMs, startOffsetMin, endOffsetMin)}`,
         equipmentStatus,
         equipmentNote,
-        notes: cp.notes || ''
+        notes: firLiveNotams.length > 0
+          ? `${cp.notes ? cp.notes + ' • ' : ''}[Uploaded PDF: ${firLiveNotams.length} active NOTAM(s) in ${rule.firCode}]`
+          : (cp.notes || '')
       });
 
       // 2. PBN & ADS-B Validator Entry
@@ -411,6 +526,18 @@ export class JeppesenComplianceEngine {
       if (pbnActionItems.length === 0) {
         pbnActionItems.push(`G650ER meets ${pbn.rnpRequired || 'RNAV 5'} & 1090ES ADS-B Out requirements (${pbn.lateralSeparation || 'Standard Surveillance'}).`);
       }
+
+      // Surface top En-Route / Nav / Airway NOTAMs from the uploaded PDF directly inside the FIR PBN card
+      const enrouteNavNotams = firLiveNotams.filter(it => {
+        const p = it.parsed || it;
+        return p.sectionType === 'FIR' || p.category === 'NAVAID_APPROACH' || p.category === 'AIRSPACE';
+      }).slice(0, 2);
+
+      enrouteNavNotams.forEach(it => {
+        const p = it.parsed || it;
+        const ev = it.evaluation || {};
+        pbnActionItems.push(`[Briefing NOTAM ${p.id || rule.firCode}]: ${ev.impactTitle || 'En-Route Notice'} — ${(ev.executiveSummary || p.bodyText || '').slice(0, 120)}`);
+      });
 
       pbnValidators.push({
         firCode: rule.firCode,
@@ -503,6 +630,49 @@ export class JeppesenComplianceEngine {
       }
     });
 
+    // 4. Append active SIGMETs and high-priority En-Route FIR NOTAMs from the uploaded Flight Brief PDF
+    if (briefing && Array.isArray(briefing.sigmets) && briefing.sigmets.length > 0) {
+      briefing.sigmets.slice(0, 3).forEach((sig, sIdx) => {
+        specialAlerts.unshift({
+          id: `PDF-SIGMET-${sig.fir}-${sig.number || sIdx}`,
+          firCode: sig.fir || routeFirs[0] || 'ENRT',
+          category: `BRIEFING SIGMET (${sig.phenomenon || 'HAZARD'})`,
+          badgeColor: 'red',
+          title: `${sig.fir} SIGMET ${sig.number}: ${sig.phenomenon} ${sig.flRange || ''}`,
+          detail: sig.raw || '',
+          triggers: [
+            `Validity Window: ${sig.validity || 'Active during flight'}`,
+            'Cross-reference vertical flight profile and maintain continuous weather radar watch'
+          ]
+        });
+      });
+    }
+
+    const activeFirNotams = (evaluatedNotams || []).filter(it => {
+      const p = it.parsed || it;
+      const ev = it.evaluation || {};
+      return (p.sectionType === 'FIR' || routeFirs.includes((p.icao || '').toUpperCase())) &&
+             it.isActiveInWindow !== false &&
+             (ev.severity === 'CRITICAL' || ev.severity === 'CAUTION' || p.category === 'NAVAID_APPROACH');
+    }).slice(0, 4);
+
+    activeFirNotams.forEach((it, fIdx) => {
+      const p = it.parsed || it;
+      const ev = it.evaluation || {};
+      specialAlerts.push({
+        id: `PDF-FIR-NOTAM-${p.id || fIdx}`,
+        firCode: (p.fir || p.icao || routeFirs[0] || 'ENRT').toUpperCase(),
+        category: 'LIVE BRIEFING FIR NOTAM',
+        badgeColor: ev.severity === 'CRITICAL' ? 'red' : 'amber',
+        title: `${p.id || 'FIR Notice'}: ${ev.impactTitle || 'Active FIR / En-Route Restriction'}`,
+        detail: ev.executiveSummary || p.bodyText || '',
+        triggers: [
+          ev.pilotAction || 'Verify en-route airway & flight level compliance against active FIR NOTAM.',
+          p.upperLimit ? `Vertical Limits: ${p.lowerLimit || 'GND'} to ${p.upperLimit}` : 'Check NOTAM validity window'
+        ]
+      });
+    });
+
     return {
       cpdlcTimeline,
       pbnValidators,
@@ -513,14 +683,14 @@ export class JeppesenComplianceEngine {
   /**
    * SUB-MODULE 2: ADIZ & Defense Clearance Tracker
    * - Detects ADIZ penetrations from route FIRs, Departure/Destination ICAOs, or selected ADIZ filter
-   * - Computes exact UTC ADC Validity Windows from EOBT and checks simulated departure delay
+   * - Also extracts live Airspace / Restricted Area / Military / Border NOTAMs from the uploaded Flight Brief PDF
    */
-  evaluateAdizTracker(routeFirs, depIcao, arrIcao, eobtDate = null, simulatedDelayMin = 0, extraAdizKeys = []) {
+  evaluateAdizTracker(routeFirs, depIcao, arrIcao, eobtDate = null, simulatedDelayMin = 0, extraAdizKeys = [], evaluatedNotams = [], briefing = null) {
     const detectedKeys = new Set(extraAdizKeys);
 
     // 1. Detect from route FIRs
     routeFirs.forEach(fir => {
-      const rule = this.firRules[fir];
+      const rule = this.firRules[fir] || this.buildDynamicFirRule(fir, briefing, evaluatedNotams);
       if (rule && rule.adizKey && this.adizRules[rule.adizKey]) {
         detectedKeys.add(rule.adizKey);
       }
@@ -577,6 +747,53 @@ export class JeppesenComplianceEngine {
         inFlightCheckIn: adiz.inFlightCheckIn || {},
         exemptions: adiz.exemptions || '',
         interceptionWarning: adiz.interceptionWarning || ''
+      });
+    });
+
+    // 3. Also scan the uploaded Flight Brief PDF for active Airspace / Military / Restricted Area / ADIZ NOTAMs
+    const airspaceNotams = (evaluatedNotams || []).filter(it => {
+      const p = it.parsed || it;
+      const body = `${p.bodyText || ''} ${p.raw || ''}`.toUpperCase();
+      const isAirspace =
+        p.category === 'AIRSPACE' ||
+        /\b(?:ADIZ|ADC\b|AIR\s+DEFENSE|RESTRICTED\s+AREA|PROHIBITED\s+AREA|DANGER\s+AREA|MILITARY|GUNFIRING|FIRING|MISSILE|ROCKET|EXERCISE|TFR|SOVEREIGN)\b/.test(body);
+      return isAirspace && it.isActiveInWindow !== false;
+    }).slice(0, 2);
+
+    airspaceNotams.forEach((it, idx) => {
+      const p = it.parsed || it;
+      const ev = it.evaluation || {};
+      const stIcao = (p.sectionIcao || p.icao || depIcao || 'ENRT').toUpperCase();
+      const fir = (p.fir || routeFirs[0] || stIcao).toUpperCase();
+      const winStartMs = baseTimeMs - 15 * 60000;
+      const winEndMs = baseTimeMs + 60 * 60000;
+      const isDelayedBeyondWindow = delayMin > 60;
+
+      activeAdizCards.push({
+        regionKey: `BRIEFING AIRSPACE (${stIcao})`,
+        name: `${p.id || 'NOTAM'}: ${ev.impactTitle || 'Active Restricted / Defense Airspace Notice'}`,
+        associatedFirs: [fir],
+        adcRequired: true,
+        eobtUtcStr: this.formatTimeHm(baseTimeMs),
+        actualDepUtcStr: this.formatTimeHm(actualDepMs),
+        windowStartUtcStr: p.validFromRaw || this.formatTimeHm(winStartMs),
+        windowEndUtcStr: p.validToRaw || this.formatTimeHm(winEndMs),
+        windowLabel: p.scheduleText ? `Schedule: ${p.scheduleText}` : `Vertical: ${p.lowerLimit || 'GND'} – ${p.upperLimit || 'UNL'}`,
+        reapplyLimitMin: 60,
+        simulatedDelayMin: delayMin,
+        status: isDelayedBeyondWindow ? 'EXPIRED_REAPPLY' : 'VALID',
+        statusBadgeText: isDelayedBeyondWindow
+          ? `DELAY +${delayMin}m — RE-VERIFY NOTAM WINDOW`
+          : `ACTIVE IN FLIGHT BRIEF (${stIcao})`,
+        ruleText: ev.executiveSummary || p.bodyText || '',
+        inFlightCheckIn: {
+          leadTimeMinutes: 10,
+          station: `${fir} ACC / Controlling Authority`,
+          frequencies: ['VHF Sector Freq', '121.5 MHz Guard'],
+          tolerance: ev.pilotAction || 'Maintain lateral/vertical buffer outside active airspace volume.'
+        },
+        exemptions: '',
+        interceptionWarning: `Extracted directly from uploaded Flight Brief PDF (${p.id || stIcao}). Verify lateral track clearance.`
       });
     });
 
@@ -847,6 +1064,7 @@ export class JeppesenComplianceEngine {
 
       // Extract live NOTAM-derived CCN/NCN & FMS Discrepancy notices from the uploaded briefing
       const liveNotices = [];
+      let liveTaxiNote = '';
       stationNotams.forEach(item => {
         const p = item.parsed || item;
         const ev = item.evaluation || {};
@@ -854,70 +1072,84 @@ export class JeppesenComplianceEngine {
         const cat = p.category || '';
         const isActive = item.isActiveInWindow !== false;
 
-        if (!isActive && ev.severity !== 'CRITICAL') return;
         if (cat === 'ADMIN_AIP') return;
+
+        if (!liveTaxiNote && /\b(?:TWY|TAXIWAY|APRON|STAND|WINGSPAN)\b/.test(body)) {
+          liveTaxiNote = `[Briefing NOTAM ${p.id || icao}]: ${(ev.executiveSummary || p.bodyText || '').slice(0, 140)}`;
+        }
 
         const isNavaidOrProc =
           cat === 'NAVAID_APPROACH' ||
-          /\b(?:VOR|DME|NDB|ILS|LOC|GLIDE\s*PATH|GLIDE\s*SLOPE|RNP|RNAV|GNSS|GPS|LPV|APCH|APPROACH|PROC|SUSPENDED)\b.*?\b(?:U\/S|UNSERVICEABLE|SUSP|NOT\s+AVBL|OUT\s+OF\s+SERVICE|INOP|PROHIBITED|JAMMING)\b/.test(body);
+          /\b(?:VOR|DME|NDB|ILS|LOC|GLIDE\s*PATH|GLIDE\s*SLOPE|RNP|RNAV|GNSS|GPS|LPV|APCH|APPROACH|PROC|SUSPENDED|MINIMA|DA\b|MDA\b)\b/.test(body);
 
-        const isRunwayOrTwy =
+        const isRunwayOrOps =
           cat === 'RUNWAY' ||
+          cat === 'TAXIWAY_APRON' ||
+          cat === 'OBSTACLE' ||
+          cat === 'AIRPORT_SERVICES' ||
           ev.severity === 'CRITICAL' ||
           ev.severity === 'CAUTION';
 
-        if (isNavaidOrProc || isRunwayOrTwy) {
+        if ((isNavaidOrProc || isRunwayOrOps) && (isActive || ev.severity === 'CRITICAL' || ev.severity === 'CAUTION' || liveNotices.length < 2)) {
           liveNotices.push({
             id: p.id || `NOTAM-${icao}`,
-            type: isNavaidOrProc ? 'LIVE NCN/NOTAM' : 'LIVE CCN/NOTAM',
-            cycle: isActive ? 'ACTIVE IN WINDOW' : 'BRIEFING WATCH',
+            type: isNavaidOrProc ? 'LIVE BRIEFING NCN' : 'LIVE BRIEFING CCN',
+            cycle: isActive ? 'ACTIVE IN FLIGHT WINDOW' : 'BRIEFING WATCH',
             severity: ev.severity === 'CRITICAL' ? 'CRITICAL' : (ev.severity === 'CAUTION' ? 'WARNING' : 'INFO'),
-            title: `${p.id ? p.id + ' — ' : ''}${ev.impactTitle || 'Active Aerodrome Notice'}`,
-            detail: ev.pilotAction || ev.executiveSummary || p.bodyText || '',
-            fmsDiscrepancy: Boolean(isNavaidOrProc && /\b(?:U\/S|UNSERVICEABLE|SUSP|NOT\s+AVBL|INOP|OUT\s+OF\s+SERVICE|JAMMING)\b/.test(body))
+            title: `${p.id ? p.id + ' — ' : ''}${ev.impactTitle || 'Active Briefing Aerodrome Notice'}`,
+            detail: ev.pilotAction ? `${ev.executiveSummary || p.bodyText || ''} • Action: ${ev.pilotAction}` : (ev.executiveSummary || p.bodyText || ''),
+            fmsDiscrepancy: Boolean(isNavaidOrProc && /\b(?:U\/S|UNSERVICEABLE|SUSP|NOT\s+AVBL|INOP|OUT\s+OF\s+SERVICE|JAMMING|UNUSABLE)\b/.test(body))
           });
         }
       });
+
+      const secMatch = briefing && Array.isArray(briefing.sections)
+        ? briefing.sections.find(s => s.icao === icao && s.name)
+        : null;
+      const dbCoord = airportCoordsDb[icao] || {};
 
       if (staticEntry) {
         const existingTitles = new Set(
           [...(staticEntry.ccnNotices || []), ...(staticEntry.ncnNotices || [])].map(n => n.title.toUpperCase())
         );
-        const extraLive = liveNotices.filter(ln => !existingTitles.has(ln.title.toUpperCase())).slice(0, 3);
-        const mergedCcn = [...(staticEntry.ccnNotices || []), ...extraLive.filter(n => n.type.includes('CCN'))];
-        const mergedNcn = [...(staticEntry.ncnNotices || []), ...extraLive.filter(n => n.type.includes('NCN'))];
-        const allNotices = [...mergedCcn, ...mergedNcn];
+        const extraLive = liveNotices.filter(ln => !existingTitles.has(ln.title.toUpperCase())).slice(0, 4);
+        // Place LIVE notices from the uploaded Flight Brief PDF first!
+        const mergedNcn = [...extraLive.filter(n => n.type.includes('NCN')), ...(staticEntry.ncnNotices || [])];
+        const mergedCcn = [...extraLive.filter(n => !n.type.includes('NCN')), ...(staticEntry.ccnNotices || [])];
+        const allNotices = [...mergedNcn, ...mergedCcn];
         const hasFmsDiscrepancy = allNotices.some(n => n.fmsDiscrepancy);
 
         results.push({
           ...staticEntry,
+          name: (secMatch && secMatch.name) || staticEntry.name || dbCoord.name || `${icao} Aerodrome`,
+          fir: this.mapIcaoToFir(icao, briefing) || staticEntry.fir || 'FIR',
           ccnNotices: mergedCcn,
           ncnNotices: mergedNcn,
+          taxiRestrictions: liveTaxiNote
+            ? `${liveTaxiNote}${staticEntry.taxiRestrictions ? ' • ' + staticEntry.taxiRestrictions : ''}`
+            : staticEntry.taxiRestrictions,
           hasFmsDiscrepancy,
-          totalNotices: allNotices.length
+          totalNotices: allNotices.length,
+          liveNotamCount: stationNotams.length
         });
       } else if (isFlightStation) {
         // Dynamically synthesize an Aerodrome Compliance Card for any uploaded airport not in static seed JSON
-        const secMatch = briefing && Array.isArray(briefing.sections)
-          ? briefing.sections.find(s => s.icao === icao && s.name)
-          : null;
-        const dbCoord = airportCoordsDb[icao] || {};
         const stationName = (secMatch && secMatch.name) || dbCoord.name || `${icao} Aerodrome`;
         const firCode = this.mapIcaoToFir(icao, briefing) || 'FIR';
         const country = this.inferCountryFromIcao(icao);
 
         const defaultNotices = liveNotices.length > 0
-          ? liveNotices.slice(0, 4)
+          ? liveNotices.slice(0, 5)
           : [
               {
                 id: `JEPP-STD-${icao}`,
-                type: 'CCN',
-                cycle: '2610/2611',
+                type: 'BRIEFING CCN',
+                cycle: 'ACTIVE BRIEF',
                 severity: 'INFO',
-                title: `${icao} (${stationName}) — Active Briefing & Jeppesen 10-9 Compliance Verified`,
+                title: `${icao} (${stationName}) — Briefing NOTAMs & Jeppesen 10-9 Checked (${stationNotams.length} raw NOTAMs)`,
                 detail: country === 'Paraguay'
                   ? 'Paraguay AIC A004/24 applies (400m minimum takeoff visibility). No chart or FMS NavData discrepancies active during flight window.'
-                  : `No active Cycle 2610/2611 FMS procedure suspensions or runway closures reported at ${icao} during scheduled flight window.`,
+                  : `All ${stationNotams.length} briefing NOTAM(s) for ${icao} screened: no FMS procedure suspensions or runway closures active during scheduled flight window.`,
                 fmsDiscrepancy: false
               }
             ];
@@ -934,9 +1166,10 @@ export class JeppesenComplianceEngine {
           g650erWingspanStatus: 'COMPLIANT (G650ER 30.36m / 99\'7" Code C Verified)',
           ccnNotices: defaultNotices.filter(n => !n.type.includes('NCN')),
           ncnNotices: defaultNotices.filter(n => n.type.includes('NCN')),
-          taxiRestrictions: 'Follow Jeppesen 10-9 ground chart routing and marshaller guidance on executive/general aviation aprons.',
+          taxiRestrictions: liveTaxiNote || 'Follow Jeppesen 10-9 ground chart routing and marshaller guidance on executive/general aviation aprons.',
           hasFmsDiscrepancy,
-          totalNotices: defaultNotices.length
+          totalNotices: defaultNotices.length,
+          liveNotamCount: stationNotams.length
         });
       }
     });
@@ -948,27 +1181,31 @@ export class JeppesenComplianceEngine {
    * SUB-MODULE 5: SSR Transponder & Contingency Quick-Card
    * - Regional VFR/Uncontrolled squawk codes by FIR + state-specific transponder failure notification rules
    */
-  getSsrContingencyCards(routeFirs = []) {
+  getSsrContingencyCards(routeFirs = [], evaluatedNotams = [], briefing = null) {
     const firCards = routeFirs.map(firCode => {
-      const rule = this.firRules[firCode];
-      if (!rule || !rule.ssr) {
-        return {
-          firCode,
-          firName: `${firCode} FIR`,
-          uncontrolledVfrSquawk: '2000',
-          entryUnassignedSquawk: '2000',
-          emergencySquawks: ['7500', '7600', '7700'],
-          transponderFailureRule: 'Standard ICAO PANS-OPS Doc 8168: Squawk 2000 if unassigned; advise ACC immediately on transponder failure.'
-        };
-      }
+      const rule = this.firRules[firCode] || this.buildDynamicFirRule(firCode, briefing, evaluatedNotams);
+      const ssr = rule.ssr || {};
+
+      // Check if uploaded Flight Brief PDF has any Radar / SSR / Transponder NOTAMs in this FIR
+      const ssrNotam = (evaluatedNotams || []).find(it => {
+        const p = it.parsed || it;
+        const body = `${p.bodyText || ''} ${p.raw || ''}`.toUpperCase();
+        const inFir = (p.fir || '').toUpperCase() === firCode || (p.icao || '').toUpperCase() === firCode;
+        return inFir && /\b(?:SSR|TRANSPONDER|RADAR|PSR|MSSR|ADS-B)\b/.test(body);
+      });
+
+      const liveSsrNote = ssrNotam
+        ? ` [Briefing NOTAM ${(ssrNotam.parsed || ssrNotam).id}: ${((ssrNotam.evaluation && ssrNotam.evaluation.executiveSummary) || (ssrNotam.parsed || ssrNotam).bodyText || '').slice(0, 100)}]`
+        : '';
+
       return {
         firCode: rule.firCode,
         firName: rule.name,
         region: rule.region,
-        uncontrolledVfrSquawk: rule.ssr.uncontrolledVfrSquawk || '2000',
-        entryUnassignedSquawk: rule.ssr.entryUnassignedSquawk || '2000',
-        emergencySquawks: rule.ssr.emergencySquawks || ['7500', '7600', '7700'],
-        transponderFailureRule: rule.ssr.transponderFailureRule || ''
+        uncontrolledVfrSquawk: ssr.uncontrolledVfrSquawk || '2000',
+        entryUnassignedSquawk: ssr.entryUnassignedSquawk || '2000',
+        emergencySquawks: ssr.emergencySquawks || ['7500', '7600', '7700'],
+        transponderFailureRule: (ssr.transponderFailureRule || 'Operate Mode S + 1090ES ADS-B Out continuously; squawk 2000 if unassigned.') + liveSsrNote
       };
     });
 

@@ -585,8 +585,13 @@
             </p>
           </div>
           <div class="flex flex-wrap items-center gap-1.5" id="jepp-scenario-buttons">
-            <!-- Populated dynamically with Global Region Scenarios -->
+            <!-- Populated dynamically with Active Flight Brief & Global Region Scenarios -->
           </div>
+        </div>
+
+        <!-- Active Uploaded Flight Briefing Status Strip -->
+        <div id="jepp-active-flight-banner" class="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <!-- Populated dynamically from active Flight Brief PDF -->
         </div>
 
         <!-- Inline Route FIR & Avionics Capability Bar -->
@@ -821,7 +826,7 @@
             </div>
           </div>
           <label class="flex items-center gap-1.5 text-xs font-mono text-slate-300 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 cursor-pointer">
-            <input type="checkbox" id="jepp-show-global-ncn" checked class="rounded border-slate-700 bg-slate-900 text-purple-500 focus:ring-0">
+            <input type="checkbox" id="jepp-show-global-ncn" class="rounded border-slate-700 bg-slate-900 text-purple-500 focus:ring-0">
             <span>Include Global Critical NCN Watchlist (HECA GPS Jamming, EGNOS LPV, Saudi DCL, KASE)</span>
           </label>
         </div>
@@ -1024,24 +1029,24 @@
   <!-- Service Worker with automatic stale cache purge -->
   <script>
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', async () => {
+      (async () => {
         try {
           if ('caches' in window) {
             const keys = await caches.keys();
             for (const k of keys) {
-              if (k !== 'aerobrief-g650er-v8') {
+              if (k !== 'aerobrief-g650er-v9') {
                 await caches.delete(k);
               }
             }
           }
-          const reg = await navigator.serviceWorker.register('./sw.js?v=8');
+          const reg = await navigator.serviceWorker.register('./sw.js?v=9', { updateViaCache: 'none' });
           await reg.update();
         } catch (err) {
           console.log('SW registration note:', err);
         }
-      });
+      })();
     }
   </script>
-  <script type="module" src="app.js?v=8"></script>
+  <script type="module" src="app.js?v=9"></script>
 </body>
 </html>

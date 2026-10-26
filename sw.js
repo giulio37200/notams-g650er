@@ -1,18 +1,18 @@
 // AeroBrief G650ER - Network-First Service Worker with Offline Cockpit Fallback
-const CACHE_NAME = 'aerobrief-g650er-v8';
+const CACHE_NAME = 'aerobrief-g650er-v9';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './styles.css?v=6',
-  './app.js?v=8',
-  './notam-parser.js?v=8',
-  './g650er-rules.js?v=8',
-  './mock-briefings.js?v=8',
-  './jeppesen-compliance.js?v=8',
-  './data/fir_rules.json?v=8',
-  './data/adiz_rules.json?v=8',
-  './data/aerodrome_notices.json?v=8',
-  './data/aom_tables.json?v=8',
+  './app.js?v=9',
+  './notam-parser.js?v=9',
+  './g650er-rules.js?v=9',
+  './mock-briefings.js?v=9',
+  './jeppesen-compliance.js?v=9',
+  './data/fir_rules.json?v=9',
+  './data/adiz_rules.json?v=9',
+  './data/aerodrome_notices.json?v=9',
+  './data/aom_tables.json?v=9',
   './manifest.json'
 ];
 
@@ -48,7 +48,7 @@ self.addEventListener('fetch', (e) => {
   if (!e.request.url.startsWith(self.location.origin)) return;
 
   e.respondWith(
-    fetch(e.request, { cache: 'no-cache' })
+    fetch(e.request, { cache: 'reload' })
       .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
           const responseClone = networkResponse.clone();

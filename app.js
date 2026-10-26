@@ -7,14 +7,14 @@
  * - Smart Bilingual & Cluster NOTAM Deduplication + Haversine Distance Badges
  */
 
-import { NotamParser, AIRPORT_COORDS_DB } from './notam-parser.js?v=7';
-import { G650ERRulesEngine } from './g650er-rules.js?v=7';
-import { MOCK_FLIGHT_PRESETS } from './mock-briefings.js?v=7';
+import { NotamParser, AIRPORT_COORDS_DB } from './notam-parser.js?v=9';
+import { G650ERRulesEngine } from './g650er-rules.js?v=9';
+import { MOCK_FLIGHT_PRESETS } from './mock-briefings.js?v=9';
 import {
   JeppesenComplianceEngine,
   DEFAULT_PRESET_FIRS,
   GLOBAL_COMPLIANCE_SCENARIOS
-} from './jeppesen-compliance.js?v=7';
+} from './jeppesen-compliance.js?v=9';
 
 class AeroBriefApp {
   constructor() {
@@ -30,7 +30,8 @@ class AeroBriefApp {
 
     // Jeppesen Airway Manual Compliance Engine State
     this.jeppesenEngine = new JeppesenComplianceEngine();
-    this.activeScenarioExtraIcaos = ['SBJH', 'SGAS', 'SBFI', 'SBLO', 'SBMG', 'SGES'];
+    this.activeScenarioExtraIcaos = [];
+    this.isCustomScenarioOverride = false;
 
     // Leaflet Map State
     this.map = null;
@@ -188,6 +189,7 @@ class AeroBriefApp {
       briefJeppesenSummaryGrid: document.getElementById('brief-jeppesen-summary-grid'),
       viewJeppesenSection: document.getElementById('view-jeppesen-section'),
       jeppScenarioButtons: document.getElementById('jepp-scenario-buttons'),
+      jeppActiveFlightBanner: document.getElementById('jepp-active-flight-banner'),
       jeppInlineFirs: document.getElementById('jepp-inline-firs'),
       btnJeppApplyFirs: document.getElementById('btn-jepp-apply-firs'),
       jeppCnsStatusBadge: document.getElementById('jepp-cns-status-badge'),
@@ -874,8 +876,9 @@ class AeroBriefApp {
       m.y < headerY &&
       (/^[A-Z][0-9]{4}\/[0-9]{2}\b/.test(m.str.trim()) ||
        /^(?:Q|A|B|C|D|E)\)\s*/.test(m.str.trim()) ||
-       /^Enroute airport/i.test(m.str.trim()) ||
-       /^FIR\s+[A-Z]{4}/i.test(m.str.trim()))
+       /^(?:Departure|Destination|Alternate|Enroute|FIR)\b/i.test(m.str.trim()) ||
+       /\bNOTAM[NRC]\b/.test(m.str.trim()) ||
+       /^![A-Z0-9]{3,4}\b/.test(m.str.trim()))
     );
 
     const groupIntoLines = (list) => {
@@ -1161,7 +1164,9 @@ class AeroBriefApp {
         if (this.elements.briefArrName) this.elements.briefArrName.textContent = AIRPORT_COORDS_DB[arr].name;
       }
 
-      if (this.jeppesenEngine) {
+      this.isCustomScenarioOverride = false;
+      this.activeScenarioExtraIcaos = [dep, arr, ...(alt ? [alt] : [])].filter(Boolean);
+      if (this.jeppesenEngine && typeof this.jeppesenEngine.inferDefaultFirsForBriefing === 'function') {
         const inferredFirs = this.jeppesenEngine.inferDefaultFirsForBriefing(dep, arr, alt, this.currentBriefing);
         const firStr = inferredFirs.join(' ');
         if (this.elements.inputRouteFirs) this.elements.inputRouteFirs.value = firStr;
@@ -1473,6 +1478,7 @@ class AeroBriefApp {
       }
 
       // Dynamically update active En-Route ICAOs & Route FIRs for Jeppesen Compliance!
+      this.isCustomScenarioOverride = false;
       this.activeScenarioExtraIcaos = [
         activeDep,
         activeArr,
@@ -1480,7 +1486,7 @@ class AeroBriefApp {
         ...(this.currentBriefing.enrouteIcaos || [])
       ].filter((v, i, a) => v && a.indexOf(v) === i);
 
-      if (this.jeppesenEngine) {
+      if (this.jeppesenEngine && typeof this.jeppesenEngine.inferDefaultFirsForBriefing === 'function') {
         const inferredFirs = this.jeppesenEngine.inferDefaultFirsForBriefing(
           activeDep,
           activeArr,
@@ -1495,8 +1501,8 @@ class AeroBriefApp {
 
       this.syncAomRegimeForIcaos(activeDep, activeArr);
 
-      // When a custom flight is uploaded, focus CCN/NCN scanner on the uploaded flight's airports by default
-      if (options.fromUpload && this.elements.jeppShowGlobalNcn) {
+      // Focus CCN/NCN scanner on the active flight's airports by default
+      if (this.elements.jeppShowGlobalNcn) {
         this.elements.jeppShowGlobalNcn.checked = false;
       }
     }
@@ -2357,40 +2363,45 @@ class AeroBriefApp {
   // JEPPESEN AIRWAY MANUAL COMPLIANCE & BRIEFING MODULE (5 SUB-MODULES)
   // ===========================================================================
   async initJeppesenModule() {
-    // Render Global Compliance Scenario buttons
+    // Render Active Flight Brief button + Global Compliance Scenario buttons
     if (this.elements.jeppScenarioButtons) {
-      this.elements.jeppScenarioButtons.innerHTML = GLOBAL_COMPLIANCE_SCENARIOS.map((sc, idx) => `
-        <button type="button" data-jepp-scenario="${sc.id}" title="${sc.description}"
-                class="jepp-scenario-btn text-[11px] px-2.5 py-1 rounded-lg font-mono transition border ${
-                  idx === 0
-                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold'
-                    : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
-                }">
-          ${sc.label}
-        </button>
-      `).join('');
+      this.renderJeppesenScenarioButtons();
 
       this.elements.jeppScenarioButtons.addEventListener('click', (e) => {
         const btn = e.target.closest('.jepp-scenario-btn');
         if (!btn) return;
         const scId = btn.getAttribute('data-jepp-scenario');
+
+        if (scId === 'active-brief') {
+          this.isCustomScenarioOverride = false;
+          const dep = (this.elements.inputDepIcao ? this.elements.inputDepIcao.value : 'SBJH').toUpperCase().trim();
+          const arr = (this.elements.inputArrIcao ? this.elements.inputArrIcao.value : 'SGAS').toUpperCase().trim();
+          const alt = (this.elements.inputAltIcao ? this.elements.inputAltIcao.value : '').toUpperCase().trim();
+          const inferredFirs = this.jeppesenEngine.inferDefaultFirsForBriefing(dep, arr, alt, this.currentBriefing);
+          const firStr = inferredFirs.join(' ');
+          if (this.elements.inputRouteFirs) this.elements.inputRouteFirs.value = firStr;
+          if (this.elements.jeppInlineFirs) this.elements.jeppInlineFirs.value = firStr;
+          this.activeScenarioExtraIcaos = [
+            dep,
+            arr,
+            ...(alt ? [alt] : []),
+            ...((this.currentBriefing && this.currentBriefing.enrouteIcaos) || [])
+          ].filter((v, i, a) => v && a.indexOf(v) === i);
+          if (this.elements.jeppShowGlobalNcn) this.elements.jeppShowGlobalNcn.checked = false;
+          this.renderJeppesenComplianceDeck();
+          this.showToast(`Synced Jeppesen Compliance to Active Flight Brief (${dep} ➔ ${arr})`);
+          return;
+        }
+
         const sc = GLOBAL_COMPLIANCE_SCENARIOS.find(s => s.id === scId);
         if (!sc) return;
 
-        document.querySelectorAll('.jepp-scenario-btn').forEach(b => {
-          const active = b.getAttribute('data-jepp-scenario') === scId;
-          b.className = `jepp-scenario-btn text-[11px] px-2.5 py-1 rounded-lg font-mono transition border ${
-            active
-              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold'
-              : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
-          }`;
-        });
-
+        this.isCustomScenarioOverride = true;
         if (this.elements.inputRouteFirs) this.elements.inputRouteFirs.value = sc.firs;
         if (this.elements.jeppInlineFirs) this.elements.jeppInlineFirs.value = sc.firs;
         this.activeScenarioExtraIcaos = sc.extraIcaos || [];
         this.renderJeppesenComplianceDeck();
-        this.showToast(`Loaded Jeppesen Corridor: ${sc.label}`);
+        this.showToast(`Loaded Jeppesen Reference Corridor: ${sc.label}`);
       });
     }
 
@@ -2509,7 +2520,44 @@ class AeroBriefApp {
 
     // Load the 4 structured JSON files from ./data/*.json
     await this.jeppesenEngine.loadData();
+
+    // Re-sync FIRs for the active flight briefing now that fir_rules.json & aerodrome_notices.json are loaded
+    if (!this.isCustomScenarioOverride) {
+      const dep = (this.elements.inputDepIcao ? this.elements.inputDepIcao.value : 'SBJH').toUpperCase().trim();
+      const arr = (this.elements.inputArrIcao ? this.elements.inputArrIcao.value : 'SGAS').toUpperCase().trim();
+      const alt = (this.elements.inputAltIcao ? this.elements.inputAltIcao.value : '').toUpperCase().trim();
+      const inferredFirs = this.jeppesenEngine.inferDefaultFirsForBriefing(dep, arr, alt, this.currentBriefing);
+      const firStr = inferredFirs.join(' ');
+      if (this.elements.inputRouteFirs) this.elements.inputRouteFirs.value = firStr;
+      if (this.elements.jeppInlineFirs) this.elements.jeppInlineFirs.value = firStr;
+    }
+
     this.renderJeppesenComplianceDeck();
+  }
+
+  renderJeppesenScenarioButtons() {
+    if (!this.elements.jeppScenarioButtons) return;
+    const dep = (this.elements.inputDepIcao ? this.elements.inputDepIcao.value : 'SBJH').toUpperCase().trim();
+    const arr = (this.elements.inputArrIcao ? this.elements.inputArrIcao.value : 'SGAS').toUpperCase().trim();
+    const activeBriefBtn = `
+      <button type="button" data-jepp-scenario="active-brief" title="Sync all 5 Jeppesen modules to the active Flight Brief PDF (${dep} ➔ ${arr})"
+              class="jepp-scenario-btn text-[11px] px-2.5 py-1 rounded-lg font-mono transition border ${
+                !this.isCustomScenarioOverride
+                  ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/60 font-bold'
+                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+              }">
+        ✈ Active Flight Brief (${dep} ➔ ${arr})
+      </button>
+    `;
+
+    const refButtons = GLOBAL_COMPLIANCE_SCENARIOS.map((sc) => `
+      <button type="button" data-jepp-scenario="${sc.id}" data-firs="${sc.firs}" title="${sc.description}"
+              class="jepp-scenario-btn text-[11px] px-2.5 py-1 rounded-lg font-mono transition border bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700">
+        ${sc.label}
+      </button>
+    `).join('');
+
+    this.elements.jeppScenarioButtons.innerHTML = activeBriefBtn + refButtons;
   }
 
   getCapabilitiesState() {
@@ -2566,19 +2614,85 @@ class AeroBriefApp {
   renderJeppesenComplianceDeck() {
     if (!this.jeppesenEngine) return;
 
+    this.renderJeppesenScenarioButtons();
+
     const depIcao = (this.elements.inputDepIcao ? this.elements.inputDepIcao.value : 'SBJH').toUpperCase().trim();
     const arrIcao = (this.elements.inputArrIcao ? this.elements.inputArrIcao.value : 'SGAS').toUpperCase().trim();
     const altIcao = (this.elements.inputAltIcao ? this.elements.inputAltIcao.value : 'SBFI').toUpperCase().trim();
-    const rawFirs = (this.elements.inputRouteFirs ? this.elements.inputRouteFirs.value : 'SBCW SGFA').toUpperCase().trim();
+
+    let rawFirs = (this.elements.inputRouteFirs ? this.elements.inputRouteFirs.value : '').toUpperCase().trim();
+    if (!this.isCustomScenarioOverride) {
+      const inferredFirs = this.jeppesenEngine.inferDefaultFirsForBriefing(
+        depIcao,
+        arrIcao,
+        altIcao,
+        this.currentBriefing
+      );
+      if (inferredFirs && (!rawFirs || (rawFirs === 'SBCW SGFA' && (depIcao !== 'SBJH' || arrIcao !== 'SGAS')))) {
+        rawFirs = inferredFirs;
+        if (this.elements.inputRouteFirs) this.elements.inputRouteFirs.value = inferredFirs;
+        if (this.elements.jeppInlineFirs) this.elements.jeppInlineFirs.value = inferredFirs;
+      }
+      this.activeScenarioExtraIcaos = this.currentBriefing ? [
+        depIcao,
+        arrIcao,
+        altIcao,
+        ...(this.currentBriefing.altIcaos || []),
+        ...(this.currentBriefing.enrouteIcaos || [])
+      ].filter(Boolean) : [depIcao, arrIcao, altIcao].filter(Boolean);
+    }
+
     const eobtUtc = this.getUtcFromInput(this.elements.inputDepTime);
+    const etaUtc = this.getUtcFromInput(this.elements.inputArrTime);
     const caps = this.getCapabilitiesState();
 
     const routeFirs = this.jeppesenEngine.resolveRouteFirs(depIcao, arrIcao, altIcao, rawFirs, this.currentBriefing);
 
     // -------------------------------------------------------------------------
+    // 0. Render Active Flight Brief Context Banner (#jepp-active-flight-banner)
+    // -------------------------------------------------------------------------
+    if (this.elements.jeppActiveFlightBanner) {
+      const depMeta = AIRPORT_COORDS_DB[depIcao];
+      const arrMeta = AIRPORT_COORDS_DB[arrIcao];
+      const altMeta = AIRPORT_COORDS_DB[altIcao];
+      const enrouteList = (this.currentBriefing?.enrouteIcaos || []).filter(c => ![depIcao, arrIcao, altIcao].includes(c));
+      const totalNotams = (this.evaluatedNotams || []).length;
+      const totalMetars = (this.currentBriefing?.metars || []).length;
+      const totalSigmets = (this.currentBriefing?.sigmets || []).length;
+      const eobtStr = eobtUtc && !isNaN(eobtUtc.getTime()) ? `${String(eobtUtc.getUTCHours()).padStart(2, '0')}:${String(eobtUtc.getUTCMinutes()).padStart(2, '0')}Z` : '--:--Z';
+      const etaStr = etaUtc && !isNaN(etaUtc.getTime()) ? `${String(etaUtc.getUTCHours()).padStart(2, '0')}:${String(etaUtc.getUTCMinutes()).padStart(2, '0')}Z` : '--:--Z';
+
+      this.elements.jeppActiveFlightBanner.innerHTML = `
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-2.5">
+            <span class="px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono text-xs font-extrabold">
+              ACTIVE FLIGHT BRIEF: ${depIcao} ➔ ${arrIcao}${altIcao ? ` (ALT ${altIcao})` : ''}
+            </span>
+            <span class="text-xs text-slate-300 font-medium">
+              ${depMeta ? depMeta.name : depIcao} ➔ ${arrMeta ? arrMeta.name : arrIcao}${altIcao ? ` • Alternate: ${altMeta ? altMeta.name : altIcao}` : ''}
+            </span>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 text-[11px] font-mono">
+            <span class="px-2 py-0.5 rounded bg-slate-900 text-amber-300 border border-slate-700">FIRs: ${routeFirs.join(' ➔ ')}</span>
+            <span class="px-2 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-700">EOBT ${eobtStr} • ETA ${etaStr}</span>
+            <span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">${totalNotams} NOTAMs • ${totalMetars} METARs • ${totalSigmets} SIGMETs</span>
+            ${enrouteList.length > 0 ? `<span class="px-2 py-0.5 rounded bg-slate-900 text-cyan-300 border border-slate-700">En-Route: ${enrouteList.slice(0, 6).join(', ')}</span>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    // -------------------------------------------------------------------------
     // 1. Evaluate Enroute & CNS Compliance Engine
     // -------------------------------------------------------------------------
-    const cns = this.jeppesenEngine.evaluateEnrouteCns(routeFirs, caps, eobtUtc, rawFirs);
+    const cns = this.jeppesenEngine.evaluateEnrouteCns(
+      routeFirs,
+      caps,
+      eobtUtc,
+      rawFirs,
+      this.evaluatedNotams,
+      this.currentBriefing
+    );
 
     const hasCnsDeficit =
       cns.cpdlcTimeline.some(c => c.equipmentStatus === 'DEFICIT') ||
@@ -2586,10 +2700,10 @@ class AeroBriefApp {
 
     if (this.elements.jeppCnsStatusBadge) {
       if (hasCnsDeficit) {
-        this.elements.jeppCnsStatusBadge.textContent = 'ACTION REQUIRED: CNS / PBN DEFICIT';
-        this.elements.jeppCnsStatusBadge.className = 'px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-red-500/20 text-red-300 border border-red-500/40';
+        this.elements.jeppCnsStatusBadge.textContent = 'ACTION REQUIRED: CNS / PBN / NOTAM ALERT';
+        this.elements.jeppCnsStatusBadge.className = 'px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40';
       } else {
-        this.elements.jeppCnsStatusBadge.textContent = `G650ER CNS & PBN VERIFIED (${routeFirs.length} FIRs)`;
+        this.elements.jeppCnsStatusBadge.textContent = `G650ER CNS & PBN VERIFIED (${routeFirs.join(' ➔ ')})`;
         this.elements.jeppCnsStatusBadge.className = 'px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30';
       }
     }
@@ -2721,14 +2835,16 @@ class AeroBriefApp {
       arrIcao,
       eobtUtc,
       delayMin,
-      extraAdiz
+      extraAdiz,
+      this.evaluatedNotams,
+      this.currentBriefing
     );
 
     if (this.elements.jeppAdizCardsContainer) {
       if (adizCards.length === 0) {
         this.elements.jeppAdizCardsContainer.innerHTML = `
           <div class="md:col-span-2 p-4 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between text-xs">
-            <span class="text-slate-300">No sovereign ADIZ penetration detected along ${routeFirs.join(' ➔ ')}.</span>
+            <span class="text-slate-300">No sovereign ADIZ penetration or Restricted Airspace NOTAMs detected along ${depIcao} ➔ ${arrIcao} (${routeFirs.join(' ➔ ')}).</span>
             <span class="text-[11px] font-mono text-amber-400">Toggle "Show All Global ADIZ Rules" above to inspect India/Pakistan/Iran/Bangladesh/Canada windows</span>
           </div>
         `;
@@ -2801,7 +2917,7 @@ class AeroBriefApp {
     // -------------------------------------------------------------------------
     // 4. Evaluate Chart & NavData Change Notice (CCN/NCN) Scanner
     // -------------------------------------------------------------------------
-    const includeGlobalNcn = this.elements.jeppShowGlobalNcn ? this.elements.jeppShowGlobalNcn.checked : true;
+    const includeGlobalNcn = this.elements.jeppShowGlobalNcn ? this.elements.jeppShowGlobalNcn.checked : false;
     const scanIcaos = [
       depIcao,
       arrIcao,
@@ -2891,7 +3007,11 @@ class AeroBriefApp {
     // -------------------------------------------------------------------------
     // 5. Render SSR Transponder & Contingency Quick-Card
     // -------------------------------------------------------------------------
-    const ssrData = this.jeppesenEngine.getSsrContingencyCards(routeFirs);
+    const ssrData = this.jeppesenEngine.getSsrContingencyCards(
+      routeFirs,
+      this.evaluatedNotams,
+      this.currentBriefing
+    );
 
     if (this.elements.jeppSsrRouteCards) {
       this.elements.jeppSsrRouteCards.innerHTML = ssrData.firCards.map(card => `
@@ -2978,11 +3098,11 @@ class AeroBriefApp {
 
         <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
           <div class="flex items-center justify-between text-[10px] font-mono text-emerald-400 font-bold">
-            <span>3. DYNAMIC AOM (${arrIcao} CAT C)</span>
+            <span>3. DYNAMIC AOM (${depIcao}➔${arrIcao})</span>
             <span>${aomSnap.lvto.lvpInForce ? 'LVP ON' : 'NON-LVP FLOOR'}</span>
           </div>
           <div class="text-xs font-bold text-white font-mono">
-            TO: RVR ${aomSnap.lvto.rvrM}m • APCH: ${aomSnap.approach.adjustedRvrM}m
+            TO (${depIcao}): ${aomSnap.lvto.rvrM}m • APCH (${arrIcao}): ${aomSnap.approach.adjustedRvrM}m
           </div>
           <div class="text-[11px] text-slate-400 truncate">${aomSnap.approach.label} (${aomSnap.approach.dhFt} ft)</div>
         </div>
@@ -3025,13 +3145,25 @@ class AeroBriefApp {
   renderAomCalculator() {
     if (!this.jeppesenEngine) return;
     const res = this.getCurrentAomResult();
+    const depIcao = (this.elements.inputDepIcao ? this.elements.inputDepIcao.value : 'SBJH').toUpperCase().trim();
+    const arrIcao = (this.elements.inputArrIcao ? this.elements.inputArrIcao.value : 'SGAS').toUpperCase().trim();
+
+    const depMetar = (this.currentBriefing?.metars || []).find(m => m.station === depIcao);
+    const arrMetar = (this.currentBriefing?.metars || []).find(m => m.station === arrIcao);
+
+    const depRwyNotams = (this.evaluatedNotams || []).filter(n =>
+      n.location === depIcao && (n.category === 'RUNWAY' || n.category === 'APPROACH_LIGHTING')
+    );
+    const arrAppNotams = (this.evaluatedNotams || []).filter(n =>
+      n.location === arrIcao && (n.category === 'APPROACH_LIGHTING' || n.category === 'NAVAIDS_COMMS' || n.category === 'RUNWAY')
+    );
 
     if (this.elements.aomLvtoResultBox) {
       const lv = res.lvto;
       this.elements.aomLvtoResultBox.innerHTML = `
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <span class="text-[10px] font-mono uppercase text-slate-400 block">Computed Minimum Takeoff RVR</span>
+            <span class="text-[10px] font-mono uppercase text-slate-400 block">${depIcao} Computed Minimum Takeoff RVR</span>
             <div class="text-xl font-mono font-extrabold text-amber-400">
               RVR ${lv.rvrM} m <span class="text-sm text-slate-400 font-normal">(${lv.rvrFt} ft)</span>
             </div>
@@ -3045,6 +3177,16 @@ class AeroBriefApp {
           </span>
         </div>
         <div class="text-[11px] text-slate-200 mt-2 font-mono">${lv.ruleApplied}</div>
+        ${depMetar ? `
+          <div class="mt-2 pt-2 border-t border-slate-800/80 text-[11px] font-mono text-cyan-300">
+            <strong>${depIcao} Brief METAR (${depMetar.flightCategory || 'OBS'}):</strong> ${depMetar.raw}
+          </div>
+        ` : ''}
+        ${depRwyNotams.length > 0 ? `
+          <ul class="mt-1.5 text-[11px] font-mono text-amber-300 space-y-0.5">
+            ${depRwyNotams.slice(0, 3).map(n => `<li>▸ [${depIcao} ${n.id}] ${n.summary}</li>`).join('')}
+          </ul>
+        ` : ''}
         ${lv.notes.length > 0 ? `
           <ul class="mt-2 pt-2 border-t border-slate-800 text-[11px] text-amber-300/90 space-y-1">
             ${lv.notes.map(n => `<li>• ${n}</li>`).join('')}
@@ -3059,7 +3201,7 @@ class AeroBriefApp {
       this.elements.aomAppResultBox.innerHTML = `
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <span class="text-[10px] font-mono uppercase text-slate-400 block">${ap.dimension} Approach Minimums • ${ap.dhOrMdaLabel}: ${ap.dhFt} ft</span>
+            <span class="text-[10px] font-mono uppercase text-slate-400 block">${arrIcao} ${ap.dimension} Approach Minimums • ${ap.dhOrMdaLabel}: ${ap.dhFt} ft</span>
             <div class="text-xl font-mono font-extrabold ${isDegraded ? 'text-amber-400' : 'text-emerald-400'}">
               RVR ${ap.adjustedRvrM} m <span class="text-sm text-slate-400 font-normal">(${ap.adjustedRvrFt} ft)</span>
               ${ap.adjustedRvrM !== ap.baseRvrM ? `<span class="text-xs text-slate-500 line-through ml-1">${ap.baseRvrM}m</span>` : ''}
@@ -3074,11 +3216,23 @@ class AeroBriefApp {
           </span>
         </div>
 
+        ${arrMetar ? `
+          <div class="mt-2 pt-2 border-t border-slate-800/80 text-[11px] font-mono text-cyan-300">
+            <strong>${arrIcao} Brief METAR (${arrMetar.flightCategory || 'OBS'}):</strong> ${arrMetar.raw}
+          </div>
+        ` : ''}
+
+        ${arrAppNotams.length > 0 ? `
+          <ul class="mt-1.5 text-[11px] font-mono text-amber-300 space-y-0.5">
+            ${arrAppNotams.slice(0, 4).map(n => `<li>▸ [${arrIcao} ${n.id}] ${n.summary}</li>`).join('')}
+          </ul>
+        ` : ''}
+
         ${ap.penaltiesApplied.length > 0 ? `
           <ul class="mt-2 pt-2 border-t border-slate-800 text-[11px] font-mono text-slate-200 space-y-1">
             ${ap.penaltiesApplied.map(p => `<li class="flex items-start gap-1.5"><span class="text-amber-400">▸</span><span>${p}</span></li>`).join('')}
           </ul>
-        ` : `<div class="text-[11px] text-slate-400 mt-1.5 font-mono">Full visual &amp; non-visual aids operational — standard chart baseline RVR (${ap.baseRvrM}m).</div>`}
+        ` : `<div class="text-[11px] text-slate-400 mt-1.5 font-mono">Full visual &amp; non-visual aids operational at ${arrIcao} — standard chart baseline RVR (${ap.baseRvrM}m).</div>`}
 
         ${ap.warnings.length > 0 ? `
           <div class="mt-2.5 p-2.5 rounded-lg bg-red-500/15 border border-red-500/40 text-[11px] text-red-200 space-y-1">
