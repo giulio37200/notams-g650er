@@ -7,14 +7,15 @@
  * - Smart Bilingual & Cluster NOTAM Deduplication + Haversine Distance Badges
  */
 
-import { NotamParser, AIRPORT_COORDS_DB } from './notam-parser.js?v=9';
-import { G650ERRulesEngine } from './g650er-rules.js?v=9';
-import { MOCK_FLIGHT_PRESETS } from './mock-briefings.js?v=9';
+import { NotamParser, AIRPORT_COORDS_DB } from './notam-parser.js?v=10';
+import { G650ERRulesEngine } from './g650er-rules.js?v=10';
+import { MOCK_FLIGHT_PRESETS } from './mock-briefings.js?v=10';
 import {
   JeppesenComplianceEngine,
   DEFAULT_PRESET_FIRS,
   GLOBAL_COMPLIANCE_SCENARIOS
-} from './jeppesen-compliance.js?v=9';
+} from './jeppesen-compliance.js?v=10';
+import { BriefingStorage } from './briefing-storage.js?v=10';
 
 class AeroBriefApp {
   constructor() {
@@ -28,6 +29,11 @@ class AeroBriefApp {
     this.searchQuery = '';
     this.isGlareMode = false;
     this.selectedEnrouteStation = null;
+
+    // Persistent Saved Briefing State
+    this.savedBriefingRecord = null;
+    this.currentSavedFileName = null;
+    this.lastChartImages = [];
 
     // Jeppesen Airway Manual Compliance Engine State
     this.jeppesenEngine = new JeppesenComplianceEngine();
@@ -55,8 +61,11 @@ class AeroBriefApp {
     this.initDropZone();
     this.initJeppesenModule();
 
-    // Load default mission (SBJH -> SGAS N650MV)
+    // Default mission initialization (SBJH -> SGAS N650MV)
     this.loadPreset(0);
+
+    // Restore saved flight briefing from previous upload if available in device storage
+    this.restoreSavedFlightIfAvailable();
   }
 
   escapeHtml(str) {
@@ -251,6 +260,10 @@ class AeroBriefApp {
       pasteBoxSection: document.getElementById('paste-box-section'),
       dropZone: document.getElementById('drop-zone'),
       fileInput: document.getElementById('file-input'),
+      dropzoneTitle: document.getElementById('dropzone-title'),
+      dropzoneSubtitle: document.getElementById('dropzone-subtitle'),
+      savedBriefingIndicator: document.getElementById('saved-briefing-indicator'),
+      savedBriefingDesc: document.getElementById('saved-briefing-desc'),
 
       bannerRoute: document.getElementById('banner-route'),
       bannerTail: document.getElementById('banner-tail'),
@@ -258,6 +271,8 @@ class AeroBriefApp {
       bannerEtd: document.getElementById('banner-etd'),
       bannerEta: document.getElementById('banner-eta'),
       bannerSourceTag: document.getElementById('banner-source-tag'),
+      bannerSavedPill: document.getElementById('banner-saved-pill'),
+      btnClearSavedFlight: document.getElementById('btn-clear-saved-flight'),
 
       fetchModal: document.getElementById('fetch-modal'),
       btnCloseFetchModal: document.getElementById('btn-close-fetch-modal'),
@@ -836,6 +851,26 @@ class AeroBriefApp {
   initPresetButtons() {
     if (!this.elements.presetButtonsContainer) return;
     this.elements.presetButtonsContainer.innerHTML = '';
+
+    // If a saved uploaded flight briefing is present, render a prominent quick-switch button
+    if (this.savedBriefingRecord) {
+      const saved = this.savedBriefingRecord;
+      const isSavedActive = this.currentPresetIndex === -1;
+      const savedBtn = document.createElement('button');
+      savedBtn.className = `text-[11px] px-2.5 py-1 rounded-lg font-mono transition border flex items-center gap-1.5 ${
+        isSavedActive
+          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 font-bold shadow-sm shadow-emerald-500/20'
+          : 'bg-slate-800/90 text-emerald-400 border-slate-700 hover:bg-slate-700'
+      }`;
+      savedBtn.innerHTML = `<span>⭐ Last Uploaded (${saved.depIcao || 'DEP'}➔${saved.arrIcao || 'ARR'})</span>`;
+      savedBtn.title = `Switch back to your saved flight (${saved.fileName || `${saved.depIcao}➔${saved.arrIcao}`})`;
+      savedBtn.addEventListener('click', () => {
+        this.restoreSavedBriefing(this.savedBriefingRecord);
+        if (this.elements.setupDrawer) this.elements.setupDrawer.classList.add('hidden');
+      });
+      this.elements.presetButtonsContainer.appendChild(savedBtn);
+    }
+
     MOCK_FLIGHT_PRESETS.forEach((preset, index) => {
       const btn = document.createElement('button');
       btn.className = `text-[11px] px-2.5 py-1 rounded-lg font-mono transition border ${
@@ -858,6 +893,10 @@ class AeroBriefApp {
     this.selectedEnrouteStation = null;
     const preset = MOCK_FLIGHT_PRESETS[index];
     if (!preset) return;
+
+    if (this.elements.bannerSavedPill) this.elements.bannerSavedPill.classList.add('hidden');
+    if (this.elements.btnTabCharts) this.elements.btnTabCharts.classList.add('hidden');
+    if (this.elements.pdfChartsContainer) this.elements.pdfChartsContainer.innerHTML = '';
 
     this.elements.inputDepIcao.value = preset.depIcao;
     this.elements.inputArrIcao.value = preset.arrIcao;
@@ -887,6 +926,192 @@ class AeroBriefApp {
       fromPreset: true,
       presetAltIcao: preset.altIcao || ''
     });
+  }
+
+  /**
+   * Automatically check for and restore previously uploaded flight briefing from persistent storage
+   */
+  async restoreSavedFlightIfAvailable() {
+    try {
+      const saved = await BriefingStorage.loadLastBriefing();
+      if (saved && saved.rawText) {
+        console.log(`[AeroBrief] Restoring saved briefing from last upload: ${saved.fileName || 'Flight Briefing'} (${saved.depIcao || ''} ➔ ${saved.arrIcao || ''})`);
+        await this.restoreSavedBriefing(saved);
+      }
+    } catch (err) {
+      console.warn('[AeroBrief] Note checking saved briefing:', err);
+    }
+  }
+
+  /**
+   * Restore a saved briefing into active app state
+   */
+  async restoreSavedBriefing(saved) {
+    if (!saved || !saved.rawText) return;
+
+    this.currentPresetIndex = -1;
+    this.selectedEnrouteStation = null;
+    this.savedBriefingRecord = saved;
+    this.currentSavedFileName = saved.fileName || 'Uploaded Briefing';
+    this.lastChartImages = saved.chartImages || [];
+
+    // Restore inputs
+    if (saved.depIcao && this.elements.inputDepIcao) this.elements.inputDepIcao.value = saved.depIcao;
+    if (saved.arrIcao && this.elements.inputArrIcao) this.elements.inputArrIcao.value = saved.arrIcao;
+    if (saved.altIcao && this.elements.inputAltIcao) this.elements.inputAltIcao.value = saved.altIcao;
+    if (saved.depTime && this.elements.inputDepTime) this.elements.inputDepTime.value = saved.depTime;
+    if (saved.arrTime && this.elements.inputArrTime) this.elements.inputArrTime.value = saved.arrTime;
+    if (saved.routeFirs) {
+      if (this.elements.inputRouteFirs) this.elements.inputRouteFirs.value = saved.routeFirs;
+      if (this.elements.jeppInlineFirs) this.elements.jeppInlineFirs.value = saved.routeFirs;
+    }
+    if (saved.timeBuffer && this.elements.selectTimeBuffer) {
+      this.elements.selectTimeBuffer.value = saved.timeBuffer;
+    }
+    if (saved.aircraftCaps) {
+      if (this.elements.capFans1a && saved.aircraftCaps.fans1a !== undefined) this.elements.capFans1a.checked = saved.aircraftCaps.fans1a;
+      if (this.elements.capAtnB1 && saved.aircraftCaps.atnb1 !== undefined) this.elements.capAtnB1.checked = saved.aircraftCaps.atnb1;
+      if (this.elements.capAdsb && saved.aircraftCaps.adsb !== undefined) this.elements.capAdsb.checked = saved.aircraftCaps.adsb;
+      if (this.elements.capHudEfvs && saved.aircraftCaps.hudEfvs !== undefined) this.elements.capHudEfvs.checked = saved.aircraftCaps.hudEfvs;
+    }
+
+    // Restore cached visual charts
+    if (Array.isArray(saved.chartImages) && saved.chartImages.length > 0) {
+      this.renderCachedVisualCharts(saved.chartImages);
+    } else {
+      if (this.elements.btnTabCharts) this.elements.btnTabCharts.classList.add('hidden');
+      if (this.elements.pdfChartsContainer) this.elements.pdfChartsContainer.innerHTML = '';
+    }
+
+    if (this.elements.rawNotamsTextarea) {
+      this.elements.rawNotamsTextarea.value = saved.rawText;
+    }
+
+    this.initPresetButtons();
+    this.updateUtcDisplays();
+
+    this.processBriefingText(saved.rawText, {
+      fromUpload: true,
+      fromRestoredSave: true,
+      fileName: saved.fileName || 'Saved Briefing',
+      savedAt: saved.savedAt
+    });
+
+    this.updateSavedFlightUI(saved);
+
+    const timeStr = saved.savedAt ? new Date(saved.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + 'Z' : '';
+    this.showToast(`Restored last uploaded flight (${saved.depIcao} ➔ ${saved.arrIcao}) ${timeStr ? `saved at ${timeStr}` : ''}`);
+  }
+
+  /**
+   * Save the current active flight briefing into device persistent storage
+   */
+  async saveCurrentBriefing(extra = {}) {
+    const rawText = this.elements.rawNotamsTextarea ? this.elements.rawNotamsTextarea.value.trim() : '';
+    if (!rawText) return;
+
+    const depIcao = this.elements.inputDepIcao ? this.elements.inputDepIcao.value.toUpperCase().trim() : '';
+    const arrIcao = this.elements.inputArrIcao ? this.elements.inputArrIcao.value.toUpperCase().trim() : '';
+    const altIcao = this.elements.inputAltIcao ? this.elements.inputAltIcao.value.toUpperCase().trim() : '';
+    const depTime = this.elements.inputDepTime ? this.elements.inputDepTime.value : '';
+    const arrTime = this.elements.inputArrTime ? this.elements.inputArrTime.value : '';
+    const routeFirs = this.elements.inputRouteFirs ? this.elements.inputRouteFirs.value.trim() : '';
+    const timeBuffer = this.elements.selectTimeBuffer ? this.elements.selectTimeBuffer.value : '1.5';
+
+    const aircraftCaps = {
+      fans1a: this.elements.capFans1a ? this.elements.capFans1a.checked : true,
+      atnb1: this.elements.capAtnB1 ? this.elements.capAtnB1.checked : true,
+      adsb: this.elements.capAdsb ? this.elements.capAdsb.checked : true,
+      hudEfvs: this.elements.capHudEfvs ? this.elements.capHudEfvs.checked : true
+    };
+
+    const payload = {
+      rawText,
+      fileName: extra.fileName || this.currentSavedFileName || `Flight_${depIcao}_${arrIcao}`,
+      savedAt: new Date().toISOString(),
+      depIcao,
+      arrIcao,
+      altIcao,
+      depTime,
+      arrTime,
+      routeFirs,
+      timeBuffer,
+      aircraftCaps,
+      chartImages: extra.chartImages !== undefined ? extra.chartImages : (this.lastChartImages || [])
+    };
+
+    this.currentSavedFileName = payload.fileName;
+    if (extra.chartImages) {
+      this.lastChartImages = extra.chartImages;
+    }
+
+    try {
+      await BriefingStorage.saveLastBriefing(payload);
+      this.savedBriefingRecord = payload;
+      this.initPresetButtons();
+      this.updateSavedFlightUI(payload);
+      console.log(`[AeroBrief] Saved flight briefing to storage: ${payload.fileName} (${depIcao}➔${arrIcao})`);
+    } catch (err) {
+      console.warn('[AeroBrief] Error saving briefing to storage:', err);
+    }
+  }
+
+  /**
+   * Clear the saved flight briefing from storage and reset to default demo
+   */
+  async clearSavedFlight() {
+    await BriefingStorage.clearLastBriefing();
+    this.savedBriefingRecord = null;
+    this.currentSavedFileName = null;
+    this.lastChartImages = [];
+    this.updateSavedFlightUI(null);
+    this.loadPreset(0);
+    this.showToast('Cleared saved flight briefing — Reset to default demo mission');
+  }
+
+  /**
+   * Update all UI elements showing saved flight status
+   */
+  updateSavedFlightUI(saved) {
+    if (!saved) {
+      if (this.elements.bannerSavedPill) this.elements.bannerSavedPill.classList.add('hidden');
+      if (this.elements.btnClearSavedFlight) this.elements.btnClearSavedFlight.classList.add('hidden');
+      if (this.elements.savedBriefingIndicator) this.elements.savedBriefingIndicator.classList.add('hidden');
+      if (this.elements.dropzoneTitle) this.elements.dropzoneTitle.textContent = 'Drop ForeFlight Briefing PDF or click to browse';
+      if (this.elements.dropzoneSubtitle) this.elements.dropzoneSubtitle.textContent = 'Plots Route, NOTAM Coordinates, SIGMETs & PDF Charts locally';
+      return;
+    }
+
+    const dep = saved.depIcao || '';
+    const arr = saved.arrIcao || '';
+    const savedDate = saved.savedAt ? new Date(saved.savedAt) : new Date();
+    const formattedTime = `${String(savedDate.getUTCDate()).padStart(2, '0')} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][savedDate.getUTCMonth()]} ${String(savedDate.getUTCHours()).padStart(2, '0')}:${String(savedDate.getUTCMinutes()).padStart(2, '0')}Z`;
+
+    if (this.elements.bannerSavedPill) {
+      this.elements.bannerSavedPill.classList.remove('hidden');
+      this.elements.bannerSavedPill.title = `Saved on ${formattedTime} — Flight details persisted in device storage`;
+    }
+
+    if (this.elements.btnClearSavedFlight) {
+      this.elements.btnClearSavedFlight.classList.remove('hidden');
+    }
+
+    if (this.elements.savedBriefingIndicator && this.elements.savedBriefingDesc) {
+      this.elements.savedBriefingIndicator.classList.remove('hidden');
+      this.elements.savedBriefingDesc.textContent = `Active Saved Flight: ${saved.fileName || `${dep}➔${arr}`} (${formattedTime})`;
+    }
+
+    if (this.elements.dropzoneTitle) {
+      this.elements.dropzoneTitle.textContent = `Drop new PDF to replace ${dep}➔${arr}`;
+    }
+    if (this.elements.dropzoneSubtitle) {
+      this.elements.dropzoneSubtitle.textContent = `Current flight saved (${formattedTime}) • Re-upload only when you have a new flight`;
+    }
+
+    if (this.elements.bannerSourceTag) {
+      this.elements.bannerSourceTag.textContent = `Saved Flight: ${saved.fileName || `${dep}➔${arr}`} (${formattedTime})`;
+      this.elements.bannerSourceTag.className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+    }
   }
 
   initDropZone() {
@@ -1019,13 +1244,14 @@ class AeroBriefApp {
    * Render visual chart pages (Pages 1–3 of ForeFlight PDF) into the PDF Charts tab
    */
   async renderPdfVisualCharts(pdf) {
-    if (!this.elements.pdfChartsContainer || !this.elements.btnTabCharts) return;
+    if (!this.elements.pdfChartsContainer || !this.elements.btnTabCharts) return [];
     this.elements.pdfChartsContainer.innerHTML = '';
 
     const chartPages = Math.min(3, pdf.numPages);
     this.elements.btnTabCharts.classList.remove('hidden');
     if (this.elements.tabBadgeCharts) this.elements.tabBadgeCharts.textContent = chartPages;
 
+    const chartImages = [];
     for (let pageNum = 1; pageNum <= chartPages; pageNum++) {
       const page = await pdf.getPage(pageNum);
       const viewport = page.getViewport({ scale: 1.6 });
@@ -1048,7 +1274,39 @@ class AeroBriefApp {
 
       const ctx = canvas.getContext('2d');
       await page.render({ canvasContext: ctx, viewport }).promise;
+
+      try {
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        chartImages.push(dataUrl);
+      } catch (e) {
+        console.warn('Canvas export note:', e);
+      }
     }
+    return chartImages;
+  }
+
+  /**
+   * Render visual chart pages from offline persistent cache
+   */
+  renderCachedVisualCharts(chartImages) {
+    if (!this.elements.pdfChartsContainer || !this.elements.btnTabCharts || !Array.isArray(chartImages) || chartImages.length === 0) return;
+    this.elements.pdfChartsContainer.innerHTML = '';
+    this.elements.btnTabCharts.classList.remove('hidden');
+    if (this.elements.tabBadgeCharts) this.elements.tabBadgeCharts.textContent = chartImages.length;
+
+    chartImages.forEach((dataUrl, idx) => {
+      const pageNum = idx + 1;
+      const wrapper = document.createElement('div');
+      wrapper.className = 'avionics-card rounded-2xl p-3 border border-slate-800 space-y-2';
+      wrapper.innerHTML = `
+        <div class="text-xs font-mono text-slate-300 flex items-center justify-between px-1">
+          <span>FOREFLIGHT BRIEFING CHART — PAGE ${pageNum}</span>
+          <span class="text-emerald-400 font-bold">Restored from Offline Cache</span>
+        </div>
+        <img src="${dataUrl}" alt="ForeFlight Briefing Chart Page ${pageNum}" class="w-full h-auto rounded-xl border border-slate-800" />
+      `;
+      this.elements.pdfChartsContainer.appendChild(wrapper);
+    });
   }
 
   async handleUploadedFile(file) {
@@ -1077,27 +1335,46 @@ class AeroBriefApp {
           extractedText += pageText + '\n\n';
         }
 
-        // Also render Pages 1-3 visual charts into the PDF Charts tab
-        this.renderPdfVisualCharts(pdf).catch(e => console.warn('Chart render note:', e));
+        // Render Pages 1-3 visual charts into the PDF Charts tab
+        let chartImages = [];
+        try {
+          chartImages = await this.renderPdfVisualCharts(pdf);
+        } catch (e) {
+          console.warn('Chart render note:', e);
+        }
 
         this.elements.rawNotamsTextarea.value = extractedText;
         this.processBriefingText(extractedText, { fromUpload: true, fileName: file.name });
+
+        // Auto-save the uploaded flight briefing into persistent storage
+        await this.saveCurrentBriefing({
+          fileName: file.name,
+          chartImages: chartImages || []
+        });
+
         if (this.elements.setupDrawer) this.elements.setupDrawer.classList.add('hidden');
         if (this.currentView !== 'JEPPESEN') {
           this.switchView('brief');
         }
-        this.showToast(`Flight PDF loaded (${pdf.numPages} pages) — All sections & Jeppesen Compliance updated!`);
+        this.showToast(`Flight PDF loaded & saved (${pdf.numPages} pages) — Ready for this flight!`);
       } else {
         const text = await file.text();
         if (this.elements.btnTabCharts) this.elements.btnTabCharts.classList.add('hidden');
         if (this.elements.pdfChartsContainer) this.elements.pdfChartsContainer.innerHTML = '';
         this.elements.rawNotamsTextarea.value = text;
         this.processBriefingText(text, { fromUpload: true, fileName: file.name });
+
+        // Auto-save the uploaded flight briefing into persistent storage
+        await this.saveCurrentBriefing({
+          fileName: file.name,
+          chartImages: []
+        });
+
         if (this.elements.setupDrawer) this.elements.setupDrawer.classList.add('hidden');
         if (this.currentView !== 'JEPPESEN') {
           this.switchView('brief');
         }
-        this.showToast(`Loaded ${file.name} — All sections & Jeppesen Compliance updated!`);
+        this.showToast(`Loaded & saved ${file.name} — Ready for this flight!`);
       }
     } catch (err) {
       console.error('File parsing error:', err);
@@ -1299,9 +1576,18 @@ class AeroBriefApp {
         }
         this.runAnalysis({ syncDestAom: true });
       }
+      if (this.currentPresetIndex === -1) {
+        this.saveCurrentBriefing({
+          fileName: this.currentSavedFileName || 'Custom Flight Briefing'
+        });
+      }
       if (this.elements.setupDrawer) this.elements.setupDrawer.classList.add('hidden');
       this.showToast('Flight Brief, Route Map & Jeppesen Compliance updated');
     });
+
+    if (this.elements.btnClearSavedFlight) {
+      this.elements.btnClearSavedFlight.addEventListener('click', () => this.clearSavedFlight());
+    }
 
     this.elements.btnClearText.addEventListener('click', () => {
       this.elements.rawNotamsTextarea.value = '';
@@ -1577,9 +1863,17 @@ class AeroBriefApp {
       this.updateUtcDisplays();
 
       if (this.elements.bannerSourceTag) {
-        this.elements.bannerSourceTag.textContent = options.fromUpload
-          ? (options.fileName ? `Uploaded: ${options.fileName}` : 'Uploaded Briefing Active')
-          : 'ForeFlight Briefing Active';
+        if (options.fromRestoredSave) {
+          const dateStr = options.savedAt ? new Date(options.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + 'Z' : '';
+          this.elements.bannerSourceTag.textContent = `Saved: ${options.fileName || 'Flight Briefing'} ${dateStr ? `(${dateStr})` : ''}`;
+          this.elements.bannerSourceTag.className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+        } else if (options.fromUpload) {
+          this.elements.bannerSourceTag.textContent = options.fileName ? `Uploaded: ${options.fileName}` : 'Uploaded Briefing Active';
+          this.elements.bannerSourceTag.className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40';
+        } else {
+          this.elements.bannerSourceTag.textContent = 'ForeFlight Briefing Active';
+          this.elements.bannerSourceTag.className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400';
+        }
       }
 
       // Dynamically update active En-Route ICAOs & Route FIRs for Jeppesen Compliance!

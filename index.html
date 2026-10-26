@@ -64,6 +64,9 @@
               <span id="banner-tail" class="text-slate-200 font-semibold">N650MV</span>
               <span>•</span>
               <span id="banner-date">Oct 02, 2026</span>
+              <span id="banner-saved-pill" class="hidden text-[10px] font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.2 rounded font-mono flex items-center gap-1" title="Restored from previous uploaded flight in device storage">
+                <i data-lucide="hard-drive" class="w-2.5 h-2.5 text-emerald-400"></i> SAVED FLIGHT
+              </span>
             </div>
           </div>
 
@@ -142,8 +145,11 @@
           <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400" id="banner-source-tag">ForeFlight Briefing Loaded</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="text-[11px] text-slate-400 font-medium">Sample Missions:</span>
+          <span class="text-[11px] text-slate-400 font-medium">Missions:</span>
           <div class="flex flex-wrap gap-1.5" id="preset-buttons-container"></div>
+          <button id="btn-clear-saved-flight" class="hidden text-[11px] px-2 py-0.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/40 font-mono transition flex items-center gap-1" title="Clear saved briefing from device storage and reset to default demo">
+            <i data-lucide="trash-2" class="w-3 h-3"></i> Clear Saved
+          </button>
           <button id="btn-close-setup" class="ml-2 text-xs text-slate-400 hover:text-white p-1">
             <i data-lucide="x" class="w-4 h-4"></i>
           </button>
@@ -172,8 +178,12 @@
             <div id="drop-zone" class="dropzone h-full flex flex-col items-center justify-center p-4 rounded-xl text-center bg-slate-900/70 hover:bg-slate-900 cursor-pointer border border-dashed border-slate-700 transition">
               <input type="file" id="file-input" accept=".pdf,.txt,.log" class="hidden">
               <i data-lucide="upload-cloud" class="w-7 h-7 text-cyan-400 mb-1.5"></i>
-              <p class="text-xs font-bold text-white">Drop ForeFlight Briefing PDF or click to browse</p>
-              <p class="text-[11px] text-slate-400 mt-0.5">Plots Route, NOTAM Coordinates, SIGMETs &amp; PDF Charts locally</p>
+              <p class="text-xs font-bold text-white" id="dropzone-title">Drop ForeFlight Briefing PDF or click to browse</p>
+              <p class="text-[11px] text-slate-400 mt-0.5" id="dropzone-subtitle">Plots Route, NOTAM Coordinates, SIGMETs &amp; PDF Charts locally</p>
+              <div id="saved-briefing-indicator" class="hidden mt-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-[11px] font-mono text-emerald-300 flex items-center gap-1.5">
+                <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+                <span id="saved-briefing-desc">Active Flight Saved &amp; Ready</span>
+              </div>
             </div>
           </div>
 
@@ -1083,12 +1093,12 @@
           if ('caches' in window) {
             const keys = await caches.keys();
             for (const k of keys) {
-              if (k !== 'aerobrief-g650er-v10') {
+              if (k !== 'aerobrief-g650er-v11') {
                 await caches.delete(k);
               }
             }
           }
-          const reg = await navigator.serviceWorker.register('./sw.js?v=10', { updateViaCache: 'none' });
+          const reg = await navigator.serviceWorker.register('./sw.js?v=11', { updateViaCache: 'none' });
           await reg.update();
         } catch (err) {
           console.log('SW registration note:', err);
@@ -1096,6 +1106,6 @@
       })();
     }
   </script>
-  <script type="module" src="app.js?v=10"></script>
+  <script type="module" src="app.js?v=11"></script>
 </body>
 </html>
