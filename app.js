@@ -58,6 +58,16 @@ class AeroBriefApp {
     this.loadPreset(0);
   }
 
+  escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   initElements() {
     this.elements = {
       liveUtcClock: document.getElementById('live-utc-clock'),
@@ -2238,7 +2248,7 @@ class AeroBriefApp {
         </div>
 
         <div class="raw-notam-box hidden">
-          <pre class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-[11px] font-mono text-slate-400 whitespace-pre-wrap leading-relaxed select-all">${item.parsed.raw}</pre>
+          <pre class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-[11px] font-mono text-slate-400 whitespace-pre-wrap leading-relaxed select-all">${this.escapeHtml(item.parsed.raw)}</pre>
         </div>
       </div>
     `;
@@ -2584,7 +2594,7 @@ class AeroBriefApp {
 
   syncDestinationNotamDowngrades(showFeedback = false) {
     const arrIcao = (this.elements.inputArrIcao ? this.elements.inputArrIcao.value : 'SGAS').toUpperCase().trim();
-    const rawNotams = this.evaluatedNotams.map(it => ({
+    const rawNotams = (this.evaluatedNotams || []).map(it => ({
       ...it.parsed,
       isActiveInWindow: it.isActiveInWindow
     }));
